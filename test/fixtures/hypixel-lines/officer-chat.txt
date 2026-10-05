@@ -1,0 +1,17 @@
+# Officer chat.
+> Officer > [MVP++] Steve [GM]: officer only
+= {"kind":"chat","payload":{"chat":"officer","username":"Steve","rank":"MVP++","guildRank":"GM","message":"officer only","self":false,"relayed":false}}
+> Officer > Alex [Officer]: plain
+= {"kind":"chat","payload":{"chat":"officer","username":"Alex","rank":null,"guildRank":"Officer","message":"plain","self":false,"relayed":false}}
+> Officer > [YOUTUBE] Creator [Officer]: content
+= {"kind":"chat","payload":{"chat":"officer","username":"Creator","rank":"YOUTUBE","guildRank":"Officer","message":"content","self":false,"relayed":false}}
+> Officer > [MVP+] Steve [Elite]: こんにちは
+= {"kind":"chat","payload":{"chat":"officer","username":"Steve","rank":"MVP+","guildRank":"Elite","message":"こんにちは","self":false,"relayed":false}}
+> Officer > [VIP] Alex: no tag
+= {"kind":"chat","payload":{"chat":"officer","username":"Alex","rank":"VIP","guildRank":null,"message":"no tag","self":false,"relayed":false}}
+> Officer > [VIP+] Kai_ [Mod]: kick him?
+= {"kind":"chat","payload":{"chat":"officer","username":"Kai_","rank":"VIP+","guildRank":"Mod","message":"kick him?","self":false,"relayed":false}}
+> Officer > [ADMIN] Staffer [Officer]: hi
+= {"kind":"chat","payload":{"chat":"officer","username":"Staffer","rank":"ADMIN","guildRank":"Officer","message":"hi","self":false,"relayed":false}}
+> Officer > [MVP+] Steve [Elite]: !nw Alex
+= {"kind":"chat","payload":{"chat":"officer","username":"Steve","rank":"MVP+","guildRank":"Elite","message":"!nw Alex","self":false,"relayed":false}}

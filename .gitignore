@@ -1,0 +1,12 @@
+.idea/
+node_modules/
+dist/
+/data/
+.env
+.minecraft/
+
+# Secrets / local
+.env.local
+
+# Testing server
+/server/

@@ -1,0 +1,49 @@
+name: Bug report
+description: Something doesn't work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 'Remove tokens, keys, IDs and connection strings from everything you paste. Security problems go to Security → Report a vulnerability, not here.'
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v0.1.0 or a commit SHA or a commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: deploy
+    attributes:
+      label: How do you run it?
+      options: [Railway template, Docker Compose, Docker image, Node (npm start)]
+    validations:
+      required: true
+  - type: dropdown
+    id: storage
+    attributes:
+      label: Storage
+      options: [SQLite (default), MongoDB, Postgres]
+    validations:
+      required: true
+  - type: input
+    id: accounts
+    attributes:
+      label: Number of Minecraft accounts / relay groups
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log excerpt (LOG_LEVEL=debug)
+      render: text

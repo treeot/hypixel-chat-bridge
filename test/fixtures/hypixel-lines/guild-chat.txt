@@ -1,0 +1,62 @@
+# Guild chat. Rank prefixes: none, VIP, VIP+, MVP, MVP+, MVP++, YOUTUBE, ADMIN, MOD, HELPER, PIG+++, OWNER.
+> Guild > [MVP+] Steve [Elite]: hello there
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","rank":"MVP+","guildRank":"Elite","message":"hello there","self":false,"relayed":false}}
+> Guild > [MVP++] Technoblade [GM]: pigs
+= {"kind":"chat","payload":{"chat":"guild","username":"Technoblade","rank":"MVP++","guildRank":"GM","message":"pigs","self":false,"relayed":false}}
+> Guild > [VIP] Alex [Member]: hi
+= {"kind":"chat","payload":{"chat":"guild","username":"Alex","rank":"VIP","guildRank":"Member","message":"hi","self":false,"relayed":false}}
+> Guild > [VIP+] alex_2 [Member]: lol
+= {"kind":"chat","payload":{"chat":"guild","username":"alex_2","rank":"VIP+","guildRank":"Member","message":"lol","self":false,"relayed":false}}
+> Guild > [MVP] Notch_ [Officer]: ok
+= {"kind":"chat","payload":{"chat":"guild","username":"Notch_","rank":"MVP","guildRank":"Officer","message":"ok","self":false,"relayed":false}}
+> Guild > Steve [Member]: no rank here
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","rank":null,"guildRank":"Member","message":"no rank here","self":false,"relayed":false}}
+> Guild > [YOUTUBE] Dream [Guest]: hey
+= {"kind":"chat","payload":{"chat":"guild","username":"Dream","rank":"YOUTUBE","guildRank":"Guest","message":"hey","self":false,"relayed":false}}
+> Guild > [ADMIN] Hypixel [Staff]: welcome
+= {"kind":"chat","payload":{"chat":"guild","username":"Hypixel","rank":"ADMIN","guildRank":"Staff","message":"welcome","self":false,"relayed":false}}
+> Guild > [MOD] Mod_Name [Member]: hi
+= {"kind":"chat","payload":{"chat":"guild","username":"Mod_Name","rank":"MOD","guildRank":"Member","message":"hi","self":false,"relayed":false}}
+> Guild > [HELPER] Help3r [Member]: need help?
+= {"kind":"chat","payload":{"chat":"guild","username":"Help3r","rank":"HELPER","guildRank":"Member","message":"need help?","self":false,"relayed":false}}
+> Guild > [PIG+++] Techno [Member]: oink
+= {"kind":"chat","payload":{"chat":"guild","username":"Techno","rank":"PIG+++","guildRank":"Member","message":"oink","self":false,"relayed":false}}
+> Guild > [OWNER] Owner [Member]: test
+= {"kind":"chat","payload":{"chat":"guild","username":"Owner","rank":"OWNER","guildRank":"Member","message":"test","self":false,"relayed":false}}
+> Guild > [MVP+] Steve: no guild rank
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","rank":"MVP+","guildRank":null,"message":"no guild rank","self":false,"relayed":false}}
+> Guild > Steve: neither rank
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","rank":null,"guildRank":null,"message":"neither rank","self":false,"relayed":false}}
+> Guild > [MVP+] Steve [Elite]: message with: colons: inside
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","rank":"MVP+","guildRank":"Elite","message":"message with: colons: inside","self":false,"relayed":false}}
+# Non-ASCII message bodies (Minecraft usernames themselves are always [A-Za-z0-9_]).
+> Guild > [VIP] Kenji [Member]: こんにちは皆さん
+= {"kind":"chat","payload":{"chat":"guild","username":"Kenji","rank":"VIP","guildRank":"Member","message":"こんにちは皆さん","self":false,"relayed":false}}
+> Guild > [MVP+] Steve [Elite]: ❤ gg ❤
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","rank":"MVP+","guildRank":"Elite","message":"❤ gg ❤","self":false,"relayed":false}}
+> Guild > [MVP+] Steve [Elite]: héllo wörld ñ
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","rank":"MVP+","guildRank":"Elite","message":"héllo wörld ñ","self":false,"relayed":false}}
+> Guild > [VIP] Alex [Member]: Alex ➜ Steve: reply
+= {"kind":"chat","payload":{"chat":"guild","username":"Alex","rank":"VIP","guildRank":"Member","message":"Alex ➜ Steve: reply","self":false,"relayed":false}}
+> Guild > [VIP] Alex [Member]: look https://i.imgur.com/abc.png
+= {"kind":"chat","payload":{"chat":"guild","username":"Alex","message":"look https://i.imgur.com/abc.png","imageUrl":"https://i.imgur.com/abc.png","self":false,"relayed":false}}
+> Guild > [VIP] Alex [Member]: https://example.com
+= {"kind":"chat","payload":{"chat":"guild","username":"Alex","message":"https://example.com","imageUrl":null,"self":false,"relayed":false}}
+> Guild > [MVP+] Abcdefghijklmnop [Member]: max length
+= {"kind":"chat","payload":{"chat":"guild","username":"Abcdefghijklmnop","rank":"MVP+","guildRank":"Member","message":"max length","self":false,"relayed":false}}
+> Guild > [VIP] Jo [Member]: short
+= {"kind":"chat","payload":{"chat":"guild","username":"Jo","rank":"VIP","guildRank":"Member","message":"short","self":false,"relayed":false}}
+> Guild > [MVP+] Steve [STAFF]: caps tag
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","rank":"MVP+","guildRank":"STAFF","message":"caps tag","self":false,"relayed":false}}
+> Guild > [MVP+] Steve [Elite]: !nw Steve
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","rank":"MVP+","guildRank":"Elite","message":"!nw Steve","self":false,"relayed":false}}
+> Guild > [VIP] Alex [Member]: [this] is [fine]
+= {"kind":"chat","payload":{"chat":"guild","username":"Alex","rank":"VIP","guildRank":"Member","message":"[this] is [fine]","self":false,"relayed":false}}
+> Guild > [MVP++] Steve [Elite]: 🙂 emoji
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","rank":"MVP++","guildRank":"Elite","message":"🙂 emoji","self":false,"relayed":false}}
+> Guild > [MVP+] Steve [100]: numeric tag
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","rank":"MVP+","guildRank":"100","message":"numeric tag","self":false,"relayed":false}}
+> Guild > [MVP+] Steve [Elite]: »
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","message":"»","self":false,"relayed":false}}
+> Guild > [VIP] Alex [Member]: Ünïcödé ✓ ★ ☆
+= {"kind":"chat","payload":{"chat":"guild","username":"Alex","rank":"VIP","guildRank":"Member","message":"Ünïcödé ✓ ★ ☆","self":false,"relayed":false}}

@@ -1,0 +1,15 @@
+.git
+.github
+.idea
+node_modules
+dist
+data
+docs
+test
+coverage
+*.log
+.env
+.env.*
+!.env.example
+.minecraft
+docker-compose.yml

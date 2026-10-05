@@ -1,0 +1,59 @@
+{
+  "name": "hypixel-chat-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Discord <-> Hypixel guild chat bridge with multi-guild support",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/treeot/hypixel-chat-bridge.git"
+  },
+  "homepage": "https://github.com/treeot/hypixel-chat-bridge#readme",
+  "bugs": {
+    "url": "https://github.com/treeot/hypixel-chat-bridge/issues"
+  },
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "tsx index.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "docs:gen": "tsx scripts/gen-docs.ts",
+    "docs:check": "tsx scripts/gen-docs.ts --check"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.10",
+    "axios": "^1.20.0",
+    "discord.js": "^14.27.0",
+    "dotenv": "^18.0.5",
+    "fuse.js": "^7.5.0",
+    "leo-profanity": "^1.9.0",
+    "mineflayer": "^4.39.0",
+    "mongodb": "^7.7.0",
+    "pg": "^8.23.1",
+    "prismarine-nbt": "^2.8.0",
+    "skyhelper-networth": "^2.8.0",
+    "unicode-emoji-json": "^0.9.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.4",
+    "@types/pg": "^8.23.1",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.9",
+    "prismarine-auth": "3.1.1",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.3"
+  }
+}

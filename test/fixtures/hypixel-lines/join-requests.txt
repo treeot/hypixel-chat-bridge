@@ -1,0 +1,13 @@
+# Join requests are system lines (no "Name:" sender). Usernames are lower-cased for the reqs flow.
+> [VIP] Steve has requested to join the Guild!
+= {"kind":"guildJoinRequest","username":"steve"}
+> Steve has requested to join the Guild!
+= {"kind":"guildJoinRequest","username":"steve"}
+> -----------------------------------------------------\n[MVP+] Alex_99 has requested to join the Guild!\nClick here to accept or type /guild accept Alex_99!\n-----------------------------------------------------
+= {"kind":"guildJoinRequest","username":"alex_99"}
+> [MVP++] Abcdefghijklmnop has requested to join the Guild!
+= {"kind":"guildJoinRequest","username":"abcdefghijklmnop"}
+> [YOUTUBE] Creator has requested to join the Guild!
+= {"kind":"guildJoinRequest","username":"creator"}
+> [MVP+] Alex_99 has requested to join the Guild!\nClick here to accept or type /guild accept Alex_99!
+= {"kind":"guildJoinRequest","username":"alex_99"}

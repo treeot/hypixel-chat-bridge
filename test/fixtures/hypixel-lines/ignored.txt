@@ -1,0 +1,33 @@
+# Lines the parser deliberately ignores (separators, server notices, lobby/party/DM chat, /g info and /g online output).
+> -----------------------------------------------------
+= null
+> EASTER EGG NEARBY!
+= null
+> You are sending commands too fast! Please slow down.
+= null
+> Unknown command. Type "/help" for help.
+= null
+> You cannot say the same message twice!
+= null
+> [MVP+] Steve: hi
+= null
+> Party > [MVP+] Steve: hi
+= null
+> From [MVP+] Steve: hi
+= null
+> To [MVP+] Steve: hi
+= null
+> Guild Name: Example
+= null
+> Online Members: 12
+= null
+> -- Guild Master --
+= null
+> {"not":"locraw"}
+= null
+> Total Members: 87
+= null
+> You were spawned in Limbo.
+= null
+> [MVP+] Steve ●  [VIP] Alex ●  Bob ●
+= null

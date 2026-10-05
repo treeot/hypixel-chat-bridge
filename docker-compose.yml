@@ -1,0 +1,44 @@
+# Quick start: cp .env.example .env, fill in the three required values, then: docker compose up -d
+# Optional database (default is SQLite in the bridge-data volume):
+#   docker compose --profile postgres up -d   and set DATABASE_URL=postgres://bridge:bridge@postgres:5432/bridge
+#   docker compose --profile mongo up -d      and set DATABASE_URL=mongodb://mongo:27017
+services:
+  bridge:
+    image: ghcr.io/treeot/hypixel-chat-bridge:latest
+    build: .
+    # Needs Docker Compose 2.24+ for `required`; without a .env file, pass the variables another way.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_OPTIONS: --max-old-space-size=256
+    volumes:
+      - bridge-data:/app/data
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    profiles: [postgres]
+    environment:
+      POSTGRES_USER: bridge
+      POSTGRES_PASSWORD: bridge
+      POSTGRES_DB: bridge
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bridge']
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    profiles: [mongo]
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+volumes:
+  bridge-data:
+  postgres-data:
+  mongo-data:

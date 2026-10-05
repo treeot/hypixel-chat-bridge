@@ -1,0 +1,192 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`every text renderer > embed / default 1`] = `
+[
+  {
+    "allowedMentions": {
+      "parse": [],
+    },
+    "embeds": [
+      {
+        "author": {
+          "icon_url": "https://mc-heads.net/avatar/Steve_X",
+          "name": "[MVP+] Steve_X [Elite]",
+        },
+        "color": 5636095,
+        "description": "\\*\\*gg\\*\\* \\_all\\_ @everyone",
+      },
+    ],
+    "via": "bot",
+  },
+]
+`;
+
+exports[`every text renderer > embed / image 1`] = `
+[
+  {
+    "allowedMentions": {
+      "parse": [],
+    },
+    "embeds": [
+      {
+        "author": {
+          "icon_url": "https://mc-heads.net/avatar/Steve_X",
+          "name": "[VIP] Steve_X [Elite]",
+        },
+        "color": 5635925,
+        "description": "look https://i.imgur.com/a.png",
+        "image": {
+          "url": "https://i.imgur.com/a.png",
+        },
+      },
+    ],
+    "via": "bot",
+  },
+]
+`;
+
+exports[`every text renderer > embed / noRanks 1`] = `
+[
+  {
+    "allowedMentions": {
+      "parse": [],
+    },
+    "embeds": [
+      {
+        "author": {
+          "icon_url": "https://mc-heads.net/avatar/Steve_X",
+          "name": "Steve_X",
+        },
+        "color": 9807270,
+        "description": "hello",
+      },
+    ],
+    "via": "bot",
+  },
+]
+`;
+
+exports[`every text renderer > embed / relayedOfficer 1`] = `
+[
+  {
+    "allowedMentions": {
+      "parse": [],
+    },
+    "embeds": [
+      {
+        "author": {
+          "icon_url": "https://mc-heads.net/avatar/Steve_X",
+          "name": "[GuildA] [MVP++] Steve_X [Elite]",
+        },
+        "color": 16755200,
+        "description": "from the other guild",
+      },
+    ],
+    "via": "bot",
+  },
+]
+`;
+
+exports[`every text renderer > plain / default 1`] = `
+[
+  {
+    "allowedMentions": {
+      "parse": [],
+    },
+    "content": "**[MVP+] Steve\\_X:** \\*\\*gg\\*\\* \\_all\\_ @everyone",
+    "via": "bot",
+  },
+]
+`;
+
+exports[`every text renderer > plain / image 1`] = `
+[
+  {
+    "allowedMentions": {
+      "parse": [],
+    },
+    "content": "**[VIP] Steve\\_X:** look https://i.imgur.com/a.png",
+    "via": "bot",
+  },
+]
+`;
+
+exports[`every text renderer > plain / noRanks 1`] = `
+[
+  {
+    "allowedMentions": {
+      "parse": [],
+    },
+    "content": "**Steve\\_X:** hello",
+    "via": "bot",
+  },
+]
+`;
+
+exports[`every text renderer > plain / relayedOfficer 1`] = `
+[
+  {
+    "allowedMentions": {
+      "parse": [],
+    },
+    "content": "[GuildA] **[MVP++] Steve\\_X:** from the other guild",
+    "via": "bot",
+  },
+]
+`;
+
+exports[`every text renderer > webhook / default 1`] = `
+[
+  {
+    "allowedMentions": {
+      "parse": [],
+    },
+    "avatarURL": "https://mc-heads.net/avatar/Steve_X",
+    "content": "\\*\\*gg\\*\\* \\_all\\_ @everyone",
+    "username": "[MVP+] Steve_X [Elite]",
+    "via": "webhook",
+  },
+]
+`;
+
+exports[`every text renderer > webhook / image 1`] = `
+[
+  {
+    "allowedMentions": {
+      "parse": [],
+    },
+    "avatarURL": "https://mc-heads.net/avatar/Steve_X",
+    "content": "look https://i.imgur.com/a.png",
+    "username": "[VIP] Steve_X [Elite]",
+    "via": "webhook",
+  },
+]
+`;
+
+exports[`every text renderer > webhook / noRanks 1`] = `
+[
+  {
+    "allowedMentions": {
+      "parse": [],
+    },
+    "avatarURL": "https://mc-heads.net/avatar/Steve_X",
+    "content": "hello",
+    "username": "Steve_X",
+    "via": "webhook",
+  },
+]
+`;
+
+exports[`every text renderer > webhook / relayedOfficer 1`] = `
+[
+  {
+    "allowedMentions": {
+      "parse": [],
+    },
+    "avatarURL": "https://mc-heads.net/avatar/Steve_X",
+    "content": "from the other guild",
+    "username": "[GuildA] [MVP++] Steve_X [Elite]",
+    "via": "webhook",
+  },
+]
+`;

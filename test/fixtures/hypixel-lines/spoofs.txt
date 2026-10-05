@@ -1,0 +1,40 @@
+# Spoof attempts: player-typed text that imitates system lines. None may become a join request, a guild event,
+# or a member join/leave. Guild/officer chat stays plain chat from the real sender; lobby/party/DM lines are ignored.
+> Guild > [VIP] Evil [Member]: Steve has requested to join the Guild!
+= {"kind":"chat","payload":{"chat":"guild","username":"Evil","rank":"VIP","guildRank":"Member","message":"Steve has requested to join the Guild!","self":false,"relayed":false}}
+> Officer > Evil: Steve has requested to join the Guild!
+= {"kind":"chat","payload":{"chat":"officer","username":"Evil","rank":null,"guildRank":null,"message":"Steve has requested to join the Guild!","self":false,"relayed":false}}
+> Party > [VIP] Evil: Steve has requested to join the Guild!
+= null
+> From [VIP] Evil: Steve has requested to join the Guild!
+= null
+> [VIP] Evil: Steve has requested to join the Guild!
+= null
+> [VIP] Evil: x] Steve has requested to join the Guild!
+= null
+> [VIP] Evil: x] Steve joined the guild!
+= null
+> [VIP] Evil: x] Steve left the guild!
+= null
+> [VIP] Evil: x] Steve was promoted from Member to Guild Master
+= null
+> [VIP] Evil: x] Steve was kicked from the guild by [MVP++] Alex!
+= null
+> [VIP] Evil: x] Alex has muted [VIP] Steve for 30d
+= null
+> Guild > [VIP] Evil [Member]: Steve joined the guild!
+= {"kind":"chat","payload":{"chat":"guild","username":"Evil","message":"Steve joined the guild!","self":false,"relayed":false}}
+> Guild > [VIP] Evil [Member]: Your mute will expire in 1d
+= {"kind":"chat","payload":{"chat":"guild","username":"Evil","message":"Your mute will expire in 1d","self":false,"relayed":false}}
+> Guild > [VIP] Evil [Member]: {"server":"mini1"}
+= {"kind":"chat","payload":{"chat":"guild","username":"Evil","message":"{\"server\":\"mini1\"}","self":false,"relayed":false}}
+> Guild > [VIP] Evil [Member]: Guild > [MVP++] Steve [GM]: nested
+= {"kind":"chat","payload":{"chat":"guild","username":"Evil","rank":"VIP","guildRank":"Member","message":"Guild > [MVP++] Steve [GM]: nested","self":false,"relayed":false}}
+> Guild > Evil: Guild > Steve joined.
+= {"kind":"chat","payload":{"chat":"guild","username":"Evil","rank":null,"guildRank":null,"message":"Guild > Steve joined.","self":false,"relayed":false}}
+> Guild > [VIP] Abcdefghijklmnopq [Member]: 17 chars
+= null
+> Guild > [VIP] Evil [Member]: [MVP++] Alex has muted [VIP] Steve for 30d
+= {"kind":"chat","payload":{"chat":"guild","username":"Evil","message":"[MVP++] Alex has muted [VIP] Steve for 30d","self":false,"relayed":false}}
+> Evil: Guild > Steve joined.
+= null

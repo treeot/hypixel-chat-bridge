@@ -1,0 +1,51 @@
+# Guild events: login/logout, join/leave, kick, promote/demote, mute/unmute, guild chat mute, level up, quest, mute notice, /locraw.
+> Guild > Steve joined.
+= {"kind":"event","payload":{"chat":"guild","tone":"success","title":"Steve joined.","username":"Steve"}}
+> Guild > Steve left.
+= {"kind":"event","payload":{"chat":"guild","tone":"failure","title":"Steve left.","username":"Steve"}}
+> Guild > alex_2 joined.
+= {"kind":"event","payload":{"chat":"guild","tone":"success","title":"alex_2 joined.","username":"alex_2"}}
+> [VIP] Steve joined the guild!
+= {"kind":"event","payload":{"chat":"guild","tone":"success","title":"Member Joined","description":"Steve joined the guild!","username":"Steve"}}
+> Steve joined the guild!
+= {"kind":"event","payload":{"chat":"guild","tone":"success","title":"Member Joined","description":"Steve joined the guild!","username":"Steve"}}
+> [YOUTUBE] Creator joined the guild!
+= {"kind":"event","payload":{"chat":"guild","tone":"success","title":"Member Joined","description":"Creator joined the guild!","username":"Creator"}}
+> [MVP++] Steve left the guild!
+= {"kind":"event","payload":{"chat":"guild","tone":"failure","title":"Member Left","description":"Steve left the guild","username":"Steve"}}
+> Alex left the guild!
+= {"kind":"event","payload":{"chat":"guild","tone":"failure","title":"Member Left","description":"Alex left the guild","username":"Alex"}}
+> [MVP+] Steve was kicked from the guild by [MVP++] Alex!
+= {"kind":"event","payload":{"chat":"guild","tone":"failure","title":"Member Kicked","description":"Steve was kicked from the guild by Alex","username":"Steve"}}
+> Steve was kicked from the guild by Alex!
+= {"kind":"event","payload":{"chat":"guild","tone":"failure","title":"Member Kicked","description":"Steve was kicked from the guild by Alex","username":"Steve"}}
+> [MVP+] Steve was promoted from Member to Elite
+= {"kind":"event","payload":{"chat":"guild","tone":"success","description":"Steve was promoted from Member to Elite","username":"Steve"}}
+> [MVP+] Steve was promoted from Guild Member to Senior Member
+= {"kind":"event","payload":{"chat":"guild","tone":"success","description":"Steve was promoted from Guild Member to Senior Member","username":"Steve"}}
+> [VIP] Steve was demoted from Elite to Member
+= {"kind":"event","payload":{"chat":"guild","tone":"failure","description":"Steve was demoted to Member","username":"Steve"}}
+> [MVP++] Alex has muted [VIP] Steve for 1h
+= {"kind":"event","payload":{"chat":"guild","tone":"failure","description":"Steve has been muted for 1h","username":"Steve"}}
+> Alex has muted Steve for 30d
+= {"kind":"event","payload":{"chat":"guild","tone":"failure","description":"Steve has been muted for 30d","username":"Steve"}}
+> [MVP++] Alex has muted [VIP] BridgeBotA for 1h
+= {"kind":"event","payload":{"chat":"guild","tone":"warning","description":"Bot was muted by Alex, requesting unmute","username":"BridgeBotA"}}
+> [MVP++] Alex has unmuted [VIP] Steve
+= {"kind":"event","payload":{"chat":"guild","tone":"success","description":"Steve has been unmuted!","username":"Steve"}}
+> [MVP++] Alex has muted the guild chat for 30m
+= {"kind":"event","payload":{"chat":"guild","tone":"failure","description":"Guild Chat has been muted for 30m by Alex"}}
+> [MVP++] Alex has unmuted the guild chat!
+= {"kind":"event","payload":{"chat":"guild","tone":"success","description":"Guild Chat has been unmuted! by Alex"}}
+>                         The Guild has reached Level 42!
+= {"kind":"event","payload":{"chat":"guild","tone":"success","title":"Guild Level Up","description":"The guild reached level 42"}}
+>                      GUILD QUEST TIER 2 COMPLETED!
+= {"kind":"event","payload":{"chat":"guild","tone":"success","title":"Guild Quest","description":"Tier 2 completed"}}
+>                      GUILD QUEST COMPLETED!
+= {"kind":"event","payload":{"chat":"guild","tone":"success","title":"Guild Quest","description":"Weekly quest completed"}}
+> Your mute will expire in 6d 23h 59m 59s
+= {"kind":"muteInfraction","description":"Mute will expire in 6d 23h 59m 59s"}
+> {"server":"limbo"}
+= {"kind":"locraw","data":{"server":"limbo"}}
+> {"server":"mini123A","gametype":"PROTOTYPE","lobbyname":"prototypelobby1"}
+= {"kind":"locraw","data":{"server":"mini123A","gametype":"PROTOTYPE"}}

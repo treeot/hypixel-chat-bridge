@@ -1,0 +1,31 @@
+# Own-bot and relay-marker lines. Our bots: BridgeBotA (self) and BridgeBotB. Marker: ».
+# relayed = sender is one of OUR bots AND the message starts with the marker. Players typing » are never "relayed".
+> Guild > [VIP] BridgeBotA [Bot]: Steve: hi from discord
+= {"kind":"chat","payload":{"chat":"guild","username":"BridgeBotA","message":"Steve: hi from discord","self":true,"relayed":false}}
+> Guild > BridgeBotA [Bot]: »[GB] Alex: relayed hi
+= {"kind":"chat","payload":{"chat":"guild","username":"BridgeBotA","rank":null,"message":"»[GB] Alex: relayed hi","self":true,"relayed":true}}
+> Guild > [MVP+] BridgeBotB [Bot]: »[GA] Alex: hi
+= {"kind":"chat","payload":{"chat":"guild","username":"BridgeBotB","message":"»[GA] Alex: hi","self":false,"relayed":true}}
+> Guild > [MVP+] bridgebotb [Bot]: »[GA] Alex: hi
+= {"kind":"chat","payload":{"chat":"guild","username":"bridgebotb","self":false,"relayed":true}}
+> Guild > [MVP+] Steve [Elite]: »[GA] Alex: fake relay
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","message":"»[GA] Alex: fake relay","self":false,"relayed":false}}
+> Officer > [VIP] BridgeBotA [Bot]: »[GB] Alex: officer relay
+= {"kind":"chat","payload":{"chat":"officer","username":"BridgeBotA","self":true,"relayed":true}}
+> Guild > [VIP] BridgeBotA [Bot]: Steve ➜ NW: $1.2B
+= {"kind":"chat","payload":{"chat":"guild","username":"BridgeBotA","message":"Steve ➜ NW: $1.2B","self":true,"relayed":false}}
+> Guild > [VIP] BridgeBotC [Bot]: »[GA] x: y
+= {"kind":"chat","payload":{"chat":"guild","username":"BridgeBotC","self":false,"relayed":false}}
+> Guild > [VIP] BridgeBotA_ [Bot]: »[GB] Alex: lookalike
+= {"kind":"chat","payload":{"chat":"guild","username":"BridgeBotA_","self":false,"relayed":false}}
+> Guild > [MVP+] Steve [Elite]: » [GA] spaced
+= {"kind":"chat","payload":{"chat":"guild","username":"Steve","self":false,"relayed":false}}
+> Guild > [VIP] BridgeBotB [Bot]: no marker here
+= {"kind":"chat","payload":{"chat":"guild","username":"BridgeBotB","self":false,"relayed":false}}
+# The first letter below is CYRILLIC CAPITAL LETTER VE (U+0412), a homoglyph of B. Not a Minecraft name: must not parse.
+> Guild > [VIP] ВridgeBotA [Bot]: »[GB] Alex: homoglyph
+= null
+> Guild > [VIP] BridgeBotB: »[GA] Alex: no guild rank
+= {"kind":"chat","payload":{"chat":"guild","username":"BridgeBotB","guildRank":null,"self":false,"relayed":true}}
+> Guild > [VIP] BRIDGEBOTA [Bot]: »[GB] Alex: case
+= {"kind":"chat","payload":{"chat":"guild","username":"BRIDGEBOTA","self":true,"relayed":true}}
