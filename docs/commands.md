@@ -16,10 +16,9 @@ Permissions: **Everyone**; **Staff** = members with `STAFF_ROLE_ID` (owner-only 
 | `/alliance blacklist check <player>` | Staff | Check a player against the alliance blacklist |
 | `/alliance blacklist list` | Staff | Show the whole alliance's blacklist |
 | `/alliance blacklist sync` | Staff | Push local blacklist entries that are missing on GuildLB |
-| `/alliance blacklist autosync <enabled>` | Owner | Also send /blacklist add and remove to GuildLB |
-| `/blacklist add <username> <reason> [discord]` | Staff | Add a user to the blacklist |
+| `/blacklist add <username> <reason> [discord] [alliance]` | Staff | Add a user to the blacklist |
 | `/blacklist list` | Staff | List the users in the blacklist |
-| `/blacklist remove <username>` | Staff | Remove a user from the blacklist |
+| `/blacklist remove <username> [alliance]` | Staff | Remove a user from the blacklist |
 | `/credits` | Everyone | Shows credits for this bot. |
 | `/demote <username>` † | Staff | Demotes the given user by one guild rank |
 | `/execute <command>` † | Owner | Executes the given command as the minecraft bot |

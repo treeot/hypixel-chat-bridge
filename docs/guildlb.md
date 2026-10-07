@@ -21,7 +21,8 @@ These need `GUILDLB_GUILD_KEY`. Without it, `/alliance` is not published (it is 
 | `/alliance blacklist check <player>` | Staff | Shows every alliance guild's entry for the player, plus local status |
 | `/alliance blacklist list` | Staff | Pages through the whole alliance blacklist |
 | `/alliance blacklist sync` | Staff | Previews, then pushes local blacklist entries that are missing on GuildLB (as category OTHER, up to 500 per run) |
-| `/alliance blacklist autosync <enabled>` | Owner | Mirrors `/blacklist add` and `/blacklist remove` to GuildLB. Off by default; mirrored entries use category OTHER. |
+
+`/blacklist add` and `/blacklist remove` also take an `alliance` option that sends the change to your guild's GuildLB blacklist (as category OTHER). Leave it out and the GuildLB setting in `/setup` decides; it is off by default.
 
 **Checks.** In-game join requests, the Apply button, staff `/invite` and automatic waitlist invites all check the alliance blacklist by Mojang UUID. Join requests are checked even while join requirements are off. The bridge never auto-accepts, invites or passes a listed player through Apply:
 
