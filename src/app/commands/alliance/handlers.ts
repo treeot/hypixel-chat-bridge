@@ -4,7 +4,6 @@ import { FullEmbed, SimpleEmbed, headUrl } from '../../../discord/format'
 import { normalizeUuid, type AddResult, type BlacklistCategory, type GuildLbClient, type RemoveResult } from '../../../services/guildlb'
 import { guildLbErrorText } from '../../../services/guildlbText'
 import { entryField } from '../../../services/allianceGate'
-import { guildlbSettings } from '../../../settings/guildlb'
 
 export interface LocalBlacklistEntry {
   uuid: string
@@ -17,10 +16,6 @@ export interface LocalBlacklist {
   add(entry: LocalBlacklistEntry): Promise<void>
   remove(uuid: string): Promise<boolean>
   all(): Promise<LocalBlacklistEntry[]>
-}
-export interface SettingsStore {
-  get(type: string): Promise<Record<string, unknown> | null>
-  set(type: string, value: Record<string, unknown>): Promise<void>
 }
 
 export interface AllianceDeps {
@@ -126,32 +121,14 @@ export async function allianceCheck(deps: AllianceDeps, player: string): Promise
   return FullEmbed('failure', { author: author(name), description: `Listed by ${n} alliance guild${n === 1 ? '' : 's'}.`, fields: [...fields, localField] })
 }
 
-export interface GuildLbSettings {
-  syncBlacklist: boolean
-}
-
-export function parseGuildLbSettings(doc: Record<string, unknown> | null): GuildLbSettings {
-  return guildlbSettings.read(doc)
-}
-
-export async function setAutosync(info: SettingsStore, enabled: boolean): Promise<APIEmbed> {
-  const next = guildlbSettings.schema.parse({ ...parseGuildLbSettings(await info.get(guildlbSettings.doc)), syncBlacklist: enabled })
-  await info.set(guildlbSettings.doc, next)
-  return SimpleEmbed(
-    'success',
-    enabled ? "/blacklist add and remove now also update your guild's GuildLB blacklist." : '/blacklist add and remove no longer touch GuildLB.'
-  )
-}
-
 export type MirrorOp = { kind: 'add'; uuid: string; reason: string; addedBy: string } | { kind: 'remove'; uuid: string }
 
 export async function mirrorBlacklist(
-  ctx: { guildlb?: Pick<GuildLbClient, 'hasGuildKey' | 'addToBlacklist' | 'removeFromBlacklist'>; info: Pick<SettingsStore, 'get'>; log: Logger },
+  ctx: { guildlb?: Pick<GuildLbClient, 'hasGuildKey' | 'addToBlacklist' | 'removeFromBlacklist'>; log: Logger },
   op: MirrorOp
-): Promise<string | undefined> {
+): Promise<string> {
   const client = ctx.guildlb
-  if (!client?.hasGuildKey) return undefined
-  if (!parseGuildLbSettings(await ctx.info.get(guildlbSettings.doc)).syncBlacklist) return undefined
+  if (!client?.hasGuildKey) return 'GuildLB: skipped, `GUILDLB_GUILD_KEY` is not set.'
   const uuid = normalizeUuid(op.uuid)
   try {
     if (op.kind === 'add') {

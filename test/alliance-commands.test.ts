@@ -6,8 +6,6 @@ import {
   allianceCheck,
   allianceRemove,
   mirrorBlacklist,
-  parseGuildLbSettings,
-  setAutosync,
   type AllianceDeps,
   type LocalBlacklistEntry
 } from '../src/app/commands/alliance/handlers'
@@ -132,16 +130,13 @@ describe('allianceCheck', () => {
   })
 })
 
-describe('autosync and /blacklist mirroring', () => {
-  it('autosync is declared owner-only on the command (read by the handler and the docs generator)', () => {
-    expect(slashCommands.find(c => c.name === 'alliance')?.ownerOnlySubcommands?.has('blacklist autosync')).toBe(true)
-  })
-  it('setting is off by default and toggles and drops unknown fields', async () => {
-    expect(parseGuildLbSettings(null)).toEqual({ syncBlacklist: false })
-    let stored: Record<string, unknown> | null = { id: 'guildlb', other: 1 }
-    const info = { get: async () => stored, set: vi.fn(async (_t: string, v: Record<string, unknown>) => void (stored = v)) }
-    await setAutosync(info, true)
-    expect(info.set).toHaveBeenCalledWith('guildlb', { syncBlacklist: true })
+describe('/blacklist alliance mirroring', () => {
+  it('/blacklist add and remove offer an alliance option', () => {
+    const cmd = slashCommands.find(c => c.name === 'blacklist')
+    for (const sub of ['add', 'remove']) {
+      const options = (cmd?.options?.find(o => o.name === sub) as { options?: { name: string; required?: boolean }[] }).options
+      expect(options?.find(o => o.name === 'alliance')).toMatchObject({ required: false })
+    }
   })
   const client = (over: object = {}) => ({
     hasGuildKey: true,
@@ -149,26 +144,22 @@ describe('autosync and /blacklist mirroring', () => {
     removeFromBlacklist: vi.fn(async () => ({ status: 'removed' as const })),
     ...over
   })
-  const ctx = (sync: boolean, guildlb: ReturnType<typeof client> | undefined = client()) => ({
-    guildlb,
-    info: { get: async () => ({ syncBlacklist: sync }) },
-    log: fakeLog()
-  })
+  const ctx = (guildlb: ReturnType<typeof client> | undefined = client()) => ({ guildlb, log: fakeLog() })
 
-  it('does nothing unless enabled and keyed', async () => {
-    const c = ctx(false)
-    expect(await mirrorBlacklist(c, { kind: 'add', uuid: UUID, reason: 'r', addedBy: 'M' })).toBeUndefined()
+  it('says it was skipped without a guild key', async () => {
+    const c = ctx(client({ hasGuildKey: false }))
+    expect(await mirrorBlacklist(c, { kind: 'add', uuid: UUID, reason: 'r', addedBy: 'M' })).toBe('GuildLB: skipped, `GUILDLB_GUILD_KEY` is not set.')
     expect(c.guildlb?.addToBlacklist).not.toHaveBeenCalled()
-    expect(await mirrorBlacklist({ ...ctx(true), guildlb: undefined }, { kind: 'remove', uuid: UUID })).toBeUndefined()
+    expect(await mirrorBlacklist({ guildlb: undefined, log: fakeLog() }, { kind: 'remove', uuid: UUID })).toBe('GuildLB: skipped, `GUILDLB_GUILD_KEY` is not set.')
   })
   it('mirrors add as OTHER and remove by normalized uuid', async () => {
-    const c = ctx(true)
+    const c = ctx()
     expect(await mirrorBlacklist(c, { kind: 'add', uuid: UUID.toUpperCase(), reason: 'r', addedBy: 'M' })).toBe('GuildLB: added (OTHER).')
     expect(c.guildlb?.addToBlacklist).toHaveBeenCalledWith({ playerUuid: UUID, category: 'OTHER', reason: 'r', addedBy: 'M' })
     expect(await mirrorBlacklist(c, { kind: 'remove', uuid: UUID })).toBe('GuildLB: removed.')
   })
   it('a GuildLB failure keeps the local change and says so', async () => {
-    const c = ctx(true, client({ addToBlacklist: vi.fn(async () => Promise.reject(new GuildLbError(0, 'NETWORK', 'GuildLB is unreachable'))) }))
+    const c = ctx(client({ addToBlacklist: vi.fn(async () => Promise.reject(new GuildLbError(0, 'NETWORK', 'GuildLB is unreachable'))) }))
     expect(await mirrorBlacklist(c, { kind: 'add', uuid: UUID, reason: 'r', addedBy: 'M' })).toBe(
       'GuildLB: failed (GuildLB error (NETWORK): GuildLB is unreachable); the local change was kept.'
     )

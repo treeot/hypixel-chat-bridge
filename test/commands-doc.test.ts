@@ -71,8 +71,7 @@ describe('owner-only subcommands', () => {
     expect(rows.map(r => r.permission)).toEqual(['Staff', 'Owner', 'Staff'])
   })
 
-  it('real /alliance blacklist autosync is Owner, siblings Staff', () => {
-    expect(renderCommandsMd()).toMatch(/`\/alliance blacklist autosync <enabled>` \| Owner \|/)
+  it('real /alliance blacklist sync is Staff', () => {
     expect(renderCommandsMd()).toMatch(/`\/alliance blacklist sync` \| Staff \|/)
   })
 })

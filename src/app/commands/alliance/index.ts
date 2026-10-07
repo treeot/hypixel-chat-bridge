@@ -5,7 +5,7 @@ import { BLACKLIST_CATEGORIES, type BlacklistCategory } from '../../../services/
 import { disabledLine } from '../../requirements'
 import { resolveMinecraftAccount } from '../moderation/_shared'
 import { runList, runSync } from './listSync'
-import { allianceAdd, allianceCheck, allianceRemove, setAutosync, type AllianceDeps } from './handlers'
+import { allianceAdd, allianceCheck, allianceRemove, type AllianceDeps } from './handlers'
 
 const player: ApplicationCommandStringOptionData = {
   name: 'player',
@@ -37,16 +37,8 @@ const subcommands: ApplicationCommandSubCommandData[] = [
   { name: 'remove', description: "Remove a player from your guild's alliance blacklist", type: ApplicationCommandOptionType.Subcommand, options: [player] },
   { name: 'check', description: 'Check a player against the alliance blacklist', type: ApplicationCommandOptionType.Subcommand, options: [player] },
   { name: 'list', description: "Show the whole alliance's blacklist", type: ApplicationCommandOptionType.Subcommand },
-  { name: 'sync', description: 'Push local blacklist entries that are missing on GuildLB', type: ApplicationCommandOptionType.Subcommand },
-  {
-    name: 'autosync',
-    description: 'Also send /blacklist add and remove to GuildLB',
-    type: ApplicationCommandOptionType.Subcommand,
-    options: [{ name: 'enabled', description: 'On or off', type: ApplicationCommandOptionType.Boolean, required: true }]
-  }
+  { name: 'sync', description: 'Push local blacklist entries that are missing on GuildLB', type: ApplicationCommandOptionType.Subcommand }
 ]
-
-export const OWNER_ONLY_SUBCOMMANDS: ReadonlySet<string> = new Set(['blacklist autosync'])
 
 const alliance: SlashCommand = {
   name: 'alliance',
@@ -54,7 +46,6 @@ const alliance: SlashCommand = {
   type: 1,
   options: [{ name: 'blacklist', description: 'The GuildLB alliance blacklist', type: ApplicationCommandOptionType.SubcommandGroup, options: subcommands }],
   permission: 'staff',
-  ownerOnlySubcommands: OWNER_ONLY_SUBCOMMANDS,
   deferred: true,
   hiddenWithout: ['guildlbGuild'],
 
@@ -64,10 +55,6 @@ const alliance: SlashCommand = {
 
     const deps: AllianceDeps = { guildlb: client, blacklist: ctx.repos.blacklist, resolve: input => resolveMinecraftAccount(input, ctx.log), log: ctx.log }
     const opts = interaction.options
-
-    const path = [opts.getSubcommandGroup(false), opts.getSubcommand()].filter(Boolean).join(' ')
-    if (OWNER_ONLY_SUBCOMMANDS.has(path) && interaction.user.id !== ctx.env.ownerId)
-      return interaction.editReply({ embeds: [SimpleEmbed('failure', 'Only the owner can change this.')] })
 
     switch (opts.getSubcommand()) {
       case 'add': {
@@ -92,8 +79,6 @@ const alliance: SlashCommand = {
         return runList(interaction, client, ctx.log)
       case 'sync':
         return runSync(interaction, client, ctx.repos.blacklist, ctx.log)
-      case 'autosync':
-        return interaction.editReply({ embeds: [await setAutosync(ctx.info, opts.getBoolean('enabled', true))] })
     }
   }
 }

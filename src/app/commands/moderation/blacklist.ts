@@ -1,9 +1,16 @@
-import { ApplicationCommandOptionType } from 'discord.js'
+import { ApplicationCommandOptionType, type ApplicationCommandBooleanOptionData } from 'discord.js'
 import type { SlashCommand } from '../../context'
 import { headUrl, SimpleEmbed } from '../../../discord/format'
 import { getUsernameFromUUID } from '../../../services/mojang'
 import { mirrorBlacklist } from '../alliance/handlers'
 import { FOOTER, resolveMinecraftAccount as resolve } from './_shared'
+
+const allianceOption: ApplicationCommandBooleanOptionData = {
+  name: 'alliance',
+  description: "Also update your guild's GuildLB alliance blacklist (default: set in /setup)",
+  type: ApplicationCommandOptionType.Boolean,
+  required: false
+}
 
 const blacklist: SlashCommand = {
   name: 'blacklist',
@@ -17,7 +24,8 @@ const blacklist: SlashCommand = {
       options: [
         { name: 'username', description: 'The user to add from the blacklist', type: ApplicationCommandOptionType.String, required: true },
         { name: 'reason', description: 'The reason to add the user from the blacklist', type: ApplicationCommandOptionType.String, required: true },
-        { name: 'discord', description: 'The Discord ID of the user', type: ApplicationCommandOptionType.String, required: false }
+        { name: 'discord', description: 'The Discord ID of the user', type: ApplicationCommandOptionType.String, required: false },
+        allianceOption
       ]
     },
     { name: 'list', description: 'List the users in the blacklist', type: ApplicationCommandOptionType.Subcommand },
@@ -25,7 +33,7 @@ const blacklist: SlashCommand = {
       name: 'remove',
       description: 'Remove a user from the blacklist',
       type: ApplicationCommandOptionType.Subcommand,
-      options: [{ name: 'username', description: 'The user to add from the blacklist', type: ApplicationCommandOptionType.String, required: true }]
+      options: [{ name: 'username', description: 'The user to add from the blacklist', type: ApplicationCommandOptionType.String, required: true }, allianceOption]
     }
   ],
   permission: 'staff',
@@ -33,6 +41,7 @@ const blacklist: SlashCommand = {
 
   async execute(interaction, ctx) {
     const subcommand = interaction.options.getSubcommand()
+    const shareWithAlliance = async () => interaction.options.getBoolean('alliance') ?? (await ctx.settings.read('guildlb')).syncBlacklist
 
     if (subcommand === 'add') {
       const input = interaction.options.getString('username')
@@ -50,7 +59,9 @@ const blacklist: SlashCommand = {
         discord: discordId !== null && /^\d{17,20}$/.test(discordId) ? discordId : '',
         addedBy: interaction.user.id
       })
-      const mirrored = await mirrorBlacklist(ctx, { kind: 'add', uuid: resolved.uuid, reason, addedBy: interaction.user.username })
+      const mirrored = (await shareWithAlliance())
+        ? await mirrorBlacklist(ctx, { kind: 'add', uuid: resolved.uuid, reason, addedBy: interaction.user.id })
+        : undefined
 
       return interaction.editReply({
         embeds: [
@@ -97,7 +108,7 @@ const blacklist: SlashCommand = {
       }
 
       await ctx.repos.blacklist.remove(resolved.uuid)
-      const mirrored = await mirrorBlacklist(ctx, { kind: 'remove', uuid: resolved.uuid })
+      const mirrored = (await shareWithAlliance()) ? await mirrorBlacklist(ctx, { kind: 'remove', uuid: resolved.uuid }) : undefined
 
       return interaction.editReply({
         embeds: [
