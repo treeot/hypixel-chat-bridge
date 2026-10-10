@@ -61,9 +61,11 @@ describe('requirement helpers', () => {
   })
   it('logs the missing GUILDLB_GUILD_KEY at info only when another GuildLB key is set', () => {
     const websiteOnly = { ...noKeys, hypixelApiKey: 'hk', guildlb: { apiUrl: 'https://guildlb.com', apiKey: 'wk' } } as unknown as Env
-    expect(disabledFeatures(websiteOnly)).toEqual([{ level: 'info', text: 'GUILDLB_GUILD_KEY not set: alliance blacklist checks and /alliance are off.' }])
+    expect(disabledFeatures(websiteOnly)).toEqual([
+      { level: 'info', text: 'GUILDLB_GUILD_KEY not set: alliance blacklist and scammer checks, /alliance and !scammer are off.' }
+    ])
     expect(disabledFeatures({ ...noKeys, hypixelApiKey: 'hk' } as unknown as Env)).toEqual([
-      { level: 'debug', text: 'GUILDLB_GUILD_KEY not set: alliance blacklist checks and /alliance are off.' }
+      { level: 'debug', text: 'GUILDLB_GUILD_KEY not set: alliance blacklist and scammer checks, /alliance and !scammer are off.' }
     ])
   })
 })

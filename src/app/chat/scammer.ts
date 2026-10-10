@@ -38,7 +38,7 @@ const scammer: ChatCommand = {
       ctx.log.warn('GuildLB scammer check failed', { error: guildLbErrorText(error) })
       return say(plain(guildLbErrorText(error)))
     }
-    say(scammerChatLine(check))
+    say(scammerChatLine({ ...check, name: check.name || player }))
 
     await ctx.discord.sendEmbed(
       chat,

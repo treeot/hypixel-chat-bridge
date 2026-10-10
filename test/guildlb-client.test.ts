@@ -206,6 +206,16 @@ describe('checkScammer', () => {
     ])
   })
 
+  it('accepts only a Minecraft-shaped name, falling back to the input, then the uuid', async () => {
+    for (const bad of ['x'.repeat(300), 'Bad Name', '[a](https://e.example)', 5]) {
+      const { c } = client(() => ok({ uuid: '069a79f444e94726a5befca90e38aaf5', name: bad, scammer: false, skyblockz_status: 'clear', flags: [] }))
+      expect((await c.checkScammer(' Steve ')).name).toBe('Steve')
+      expect((await c.checkScammer('069a79f4-44e9-4726-a5be-fca90e38aaf5')).name).toBe('069a79f444e94726a5befca90e38aaf5')
+    }
+    const { c } = client(() => ok({ uuid: '069a79f444e94726a5befca90e38aaf5', name: 'Real_Name', scammer: false, skyblockz_status: 'clear', flags: [] }))
+    expect((await c.checkScammer('Steve')).name).toBe('Real_Name')
+  })
+
   it('rejects a response without a boolean scammer', async () => {
     const { c } = client(() => ok({ uuid: 'u', name: 'Steve', flags: [] }))
     await expect(c.checkScammer('Steve')).rejects.toMatchObject({ code: 'BAD_RESPONSE' })

@@ -117,6 +117,17 @@ export function sanitizeEntries(raw: unknown[]): BlacklistEntry[] {
     createdAt: str(e.createdAt) ?? ''
   }))
 }
+const MC_NAME = /^\w{1,16}$/
+const UUID_SHAPE = /^[0-9a-fA-F-]{32,36}$/
+
+/** GuildLB's `name` is untrusted (it ends up in embed authors and head URLs): only a Minecraft-shaped name is kept. */
+function displayName(raw: unknown, player: string, uuid: string): string {
+  if (typeof raw === 'string' && MC_NAME.test(raw)) return raw
+  const typed = player.trim()
+  if (MC_NAME.test(typed)) return typed
+  return UUID_SHAPE.test(uuid) ? uuid : ''
+}
+
 const SKYBLOCKZ_STATUSES = ['flagged', 'clear'] as const
 
 /** Flags come from SkyBlockZ and other guilds: drop non-objects, keep only strings, cap reasons. */
@@ -198,9 +209,10 @@ export class GuildLbClient {
     const data = out.data
     if (!isObject(data) || typeof data.scammer !== 'boolean') throw new GuildLbError(out.status, 'BAD_RESPONSE', 'GuildLB returned an unexpected scammer check')
     const status = SKYBLOCKZ_STATUSES.find(s => s === data.skyblockz_status) ?? 'unknown'
+    const uuid = str(data.uuid) ?? ''
     return {
-      uuid: str(data.uuid) ?? '',
-      name: str(data.name) ?? player.trim(),
+      uuid,
+      name: displayName(data.name, player, uuid),
       scammer: data.scammer,
       skyblockzStatus: status,
       flags: Array.isArray(data.flags) ? sanitizeFlags(data.flags) : []
