@@ -70,3 +70,29 @@ export function scammerSummary(check: ScammerCheck): string {
   const n = check.flags.length
   return n ? `Flagged by ${n} source${n === 1 ? '' : 's'}.` : 'Flagged as a scammer.'
 }
+
+const shortSource = (source: string) => (source === 'Guild Alliance' ? 'Alliance' : oneLine(source))
+
+/** One in-game line. Reasons come from SkyBlockZ and other guilds: flattened, capped, and sent only through the guarded execute. */
+export function scammerChatLine(check: ScammerCheck): string {
+  const name = oneLine(check.name)
+  if (check.scammer) {
+    const flags = check.flags.map(f => `${shortSource(f.source)}: ${oneLine(f.reason) || 'no reason given'}`).join(' | ')
+    return capLine(`${name}: SCAMMER${flags ? ` — ${flags}` : ''}`)
+  }
+  return capLine(check.skyblockzStatus === 'unknown' ? `${name}: no alliance scam flags (SkyBlockZ unreachable)` : `${name}: no scam flags (SkyBlockZ clear)`)
+}
+
+/** Officer line for a flagged join; `ign` is the requester's name as seen in game. */
+export function scammerOfficerLine(ign: string, check: ScammerCheck): string {
+  return capLine(`[Alliance] ${scammerChatLine({ ...check, name: ign })}`)
+}
+
+export function scammerEmbed(ign: string, check: ScammerCheck, outcome: string): APIEmbed {
+  return FullEmbed('failure', {
+    author: { name: `${ign} is flagged as a scammer on GuildLB`, icon_url: headUrl(ign) },
+    description: outcome,
+    fields: scammerFields(check),
+    timestamp: new Date().toISOString()
+  })
+}

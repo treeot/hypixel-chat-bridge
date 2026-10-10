@@ -83,6 +83,17 @@ describe('flat areas', () => {
     expect(guildlbArea.view(state, '-').embeds[0].description).toContain('GUILDLB_GUILD_KEY')
   })
 
+  it('guildlb offers the scammer join check toggle and explains it', () => {
+    const view = guildlbArea.view(state, '-')
+    expect(view.embeds[0].description).toMatch(/scammer/i)
+    expect(JSON.stringify(view.components)).toContain('Check join requests against the GuildLB scammer list')
+    expect(guildlbArea.handle(state, idOf('setup:guildlb:-:tg:0'), sel('scammerCheck'))).toMatchObject({
+      kind: 'save',
+      area: 'guildlb',
+      value: { syncBlacklist: false, scammerCheck: true }
+    })
+  })
+
   it('filters: toggles and word lists save and refresh the safety filter', () => {
     const toggled = filtersArea.handle(state, idOf('setup:filters:-:tg:0'), sel('categories.slurs', 'categories.profanity'))
     expect(toggled).toMatchObject({

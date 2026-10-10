@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
-import { capLine, oneLine, scammerFields, scammerSummary } from '../../services/allianceGate'
+import { capLine, scammerChatLine, scammerFields, scammerSummary } from '../../services/allianceGate'
 import { GuildLbError, PLAYER_NOT_FOUND, type ScammerCheck } from '../../services/guildlb'
 import { guildLbErrorText } from '../../services/guildlbText'
 import { disabledLine, REQUIREMENT_ENV } from '../requirements'
@@ -8,18 +8,6 @@ import { matchesTriggers } from './_shared'
 
 const triggers = ['scammer'] as const
 const PLAYER = /^(?:[A-Za-z0-9_]{1,16}|[0-9a-fA-F]{32}|[0-9a-fA-F-]{36})$/
-
-const shortSource = (source: string) => (source === 'Guild Alliance' ? 'Alliance' : oneLine(source))
-
-/** One in-game line. Reasons come from SkyBlockZ and other guilds: flattened, capped, and sent only through the guarded execute. */
-export function scammerChatLine(check: ScammerCheck): string {
-  const name = oneLine(check.name)
-  if (check.scammer) {
-    const flags = check.flags.map(f => `${shortSource(f.source)}: ${oneLine(f.reason) || 'no reason given'}`).join(' | ')
-    return capLine(`${name}: SCAMMER${flags ? ` — ${flags}` : ''}`)
-  }
-  return capLine(check.skyblockzStatus === 'unknown' ? `${name}: no alliance scam flags (SkyBlockZ unreachable)` : `${name}: no scam flags (SkyBlockZ clear)`)
-}
 
 /** guildLbErrorText is Discord-escaped; in game the backslashes would show. */
 const plain = (text: string) => capLine(text.replace(/\\(.)/g, '$1'))

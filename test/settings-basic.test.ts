@@ -54,7 +54,10 @@ describe('simple areas: defaults', () => {
   it('relay is on for guild and officer', () => expect(relaySettings.read(null)).toEqual({ guild: true, officer: true }))
   it('GEXP is off (7 grace days)', () => expect(gexpSettings.read(null)).toEqual({ enabled: false, weeklyRequirement: 0, graceDays: 7 }))
   it('no verified role', () => expect(verifySettings.read(null)).toEqual({}))
-  it('GuildLB blacklist sync is off', () => expect(guildlbSettings.read(null)).toEqual({ syncBlacklist: false }))
+  it('GuildLB blacklist sync and the scammer join check are off', () =>
+    expect(guildlbSettings.read(null)).toEqual({ syncBlacklist: false, scammerCheck: false }))
+  it('a stored GuildLB doc without scammerCheck reads it as off', () =>
+    expect(guildlbSettings.read({ syncBlacklist: true })).toEqual({ syncBlacklist: true, scammerCheck: false }))
   it('every filter category is on (incl. profanity) and matches the safety defaults', () => {
     expect(filtersSettings.read(null)).toEqual(DEFAULT_SAFETY)
   })

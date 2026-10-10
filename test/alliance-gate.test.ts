@@ -7,10 +7,10 @@ vi.mock('../src/services/mojang', () => ({
 
 import type { APIEmbed } from 'discord.js'
 import type { AppContext } from '../src/app/context'
-import { GuildLbError, type BlacklistEntry } from '../src/services/guildlb'
+import { GuildLbError, type BlacklistEntry, type ScammerCheck } from '../src/services/guildlb'
 import { getUUIDFromUsername } from '../src/services/mojang'
 import { allianceEmbed, allianceOfficerLine, checkAlliance, entryField, OFFICER_LINE_MAX } from '../src/services/allianceGate'
-import { allianceCheck, APPLY_DENIED, APPLY_REVIEW, LISTED_FALLBACK, WHITELISTED } from '../src/app/features/allianceChecks'
+import { allianceCheck, APPLY_DENIED, APPLY_REVIEW, LISTED_FALLBACK, SCAMMER_FALLBACK, WHITELISTED } from '../src/app/features/allianceChecks'
 import { runPreAcceptCheck, type ScreenFlow, type ScreenInput } from '../src/app/features/screening'
 import { DEFAULT_JOIN_SETTINGS } from '../src/app/features/settings'
 import { evaluateJoinRequest } from '../src/app/features/joinRequest'
@@ -22,24 +22,54 @@ const UUID = '069a79f444e94726a5befca90e38aaf5'
 const entry: BlacklistEntry = { guildName: 'Other Guild', category: 'SCAMMING', reason: 'chargeback\nscam', addedBy: 'mod', createdAt: '2026-08-08T12:00:00Z' }
 const LINE = '[Alliance] Steve is blacklisted by Other Guild (SCAMMING): chargeback scam'
 
-function setup(opts: { listed?: boolean; whitelisted?: boolean; autoDeny?: boolean; fail?: boolean; noKey?: boolean } = {}) {
+const flaggedCheck: ScammerCheck = {
+  uuid: UUID,
+  name: 'Steve',
+  scammer: true,
+  skyblockzStatus: 'flagged',
+  flags: [
+    { source: 'SkyBlockZ', reason: 'Coop scam' },
+    { source: 'Guild Alliance', reason: 'Chargeback\nscam' }
+  ]
+}
+const SLINE = '[Alliance] Steve: SCAMMER — SkyBlockZ: Coop scam | Alliance: Chargeback scam'
+
+function setup(
+  opts: {
+    listed?: boolean
+    whitelisted?: boolean
+    autoDeny?: boolean
+    fail?: boolean
+    noKey?: boolean
+    scammerCheck?: boolean
+    scammer?: ScammerCheck
+    scammerFail?: boolean
+  } = {}
+) {
   const mc = Object.assign(new FakeRunner(), { id: 1 })
   const sendEmbed = vi.fn<(chat: string, embed: APIEmbed) => Promise<void>>(async () => undefined)
   const checkBlacklist = vi.fn(async () => {
     if (opts.fail) throw new GuildLbError(503, 'AUTH_UNAVAILABLE', 'down')
     return { blacklisted: !!opts.listed, entries: opts.listed ? [entry] : [] }
   })
+  const checkScammer = vi.fn(async (): Promise<ScammerCheck> => {
+    if (opts.scammerFail) throw new GuildLbError(502, 'UPSTREAM', 'The lookup failed upstream. Retry later.')
+    return opts.scammer ?? { uuid: UUID, name: 'Steve', scammer: false, skyblockzStatus: 'clear', flags: [] }
+  })
   const whitelistHas = vi.fn(async () => !!opts.whitelisted)
-  const docs: Record<string, unknown> = { joinRequests: opts.autoDeny ? { autoDeny: true } : null }
+  const docs: Record<string, unknown> = {
+    joinRequests: opts.autoDeny ? { autoDeny: true } : null,
+    guildlb: opts.scammerCheck ? { syncBlacklist: false, scammerCheck: true } : null
+  }
   const ctx = {
     log: fakeLog(),
     info: { get: async (t: string) => docs[t] ?? null },
     repos: { whitelist: { has: whitelistHas } },
     minecraft: mc,
     discord: { sendEmbed },
-    guildlb: { hasGuildKey: !opts.noKey, checkBlacklist, attempt: passAttempt }
+    guildlb: { hasGuildKey: !opts.noKey, checkBlacklist, checkScammer, attempt: passAttempt }
   } as unknown as AppContext
-  return { ctx, mc, sendEmbed, checkBlacklist, whitelistHas }
+  return { ctx, mc, sendEmbed, checkBlacklist, checkScammer, whitelistHas }
 }
 
 const input = (flow: ScreenFlow, uuid = UUID): ScreenInput => ({ flow, accountId: 1, uuid, username: 'Steve' })
@@ -264,5 +294,68 @@ describe('through the call sites', () => {
       expect(await run(ctx)).toEqual({ username: 'Steve', verdict: 'unchecked', action: { type: 'review', note: 'Join requirements are off.' } })
       expect(checkBlacklist).toHaveBeenCalledWith(UUID)
     })
+  })
+})
+
+describe('allianceCheck scammer screen', () => {
+  it('is off by default: no scammer call', async () => {
+    const { ctx, checkScammer } = setup({ scammer: flaggedCheck })
+    expect(await allianceCheck(ctx, input('joinRequest'))).toEqual({ action: 'continue' })
+    expect(checkScammer).not.toHaveBeenCalled()
+  })
+  it('on + flagged holds a join request (auto-deny off) and tells officers in game', async () => {
+    const { ctx, mc, checkScammer } = setup({ scammerCheck: true, scammer: flaggedCheck })
+    expect(await allianceCheck(ctx, input('joinRequest'))).toEqual({ action: 'hold', note: SLINE })
+    expect(checkScammer).toHaveBeenCalledWith(UUID)
+    expect(mc.commands).toEqual([`/oc ${SLINE}`])
+  })
+  it('on + flagged denies when auto-deny is on', async () => {
+    const { ctx } = setup({ scammerCheck: true, scammer: flaggedCheck, autoDeny: true })
+    expect(await allianceCheck(ctx, input('joinRequest'))).toEqual({ action: 'deny', note: SLINE })
+  })
+  it('apply gets the generic applicant reply', async () => {
+    expect(await allianceCheck(setup({ scammerCheck: true, scammer: flaggedCheck }).ctx, input('apply'))).toEqual({
+      action: 'hold',
+      note: SLINE,
+      applicantReply: APPLY_REVIEW
+    })
+    expect(await allianceCheck(setup({ scammerCheck: true, scammer: flaggedCheck, autoDeny: true }).ctx, input('apply'))).toEqual({
+      action: 'deny',
+      note: SLINE,
+      applicantReply: APPLY_DENIED
+    })
+  })
+  it('an invite is blocked with an officer embed listing the flags', async () => {
+    const { ctx, sendEmbed } = setup({ scammerCheck: true, scammer: flaggedCheck })
+    expect((await allianceCheck(ctx, input('invite'))).action).toBe('hold')
+    const [embed] = officerEmbeds(sendEmbed)
+    expect(embed.description).toBe('Invite blocked.')
+    expect(embed.fields?.[0]).toEqual({ name: 'Flags', value: 'SkyBlockZ: Coop scam\nGuild Alliance: Chargeback scam' })
+  })
+  it('the local whitelist overrides it and officers are told', async () => {
+    const { ctx, sendEmbed, mc } = setup({ scammerCheck: true, scammer: flaggedCheck, whitelisted: true })
+    expect(await allianceCheck(ctx, input('joinRequest'))).toEqual({ action: 'continue' })
+    expect(officerEmbeds(sendEmbed).map(e => e.description)).toEqual([WHITELISTED])
+    expect(mc.commands).toEqual([])
+  })
+  it('not flagged, or SkyBlockZ unreachable with no flags, continues', async () => {
+    expect(await allianceCheck(setup({ scammerCheck: true }).ctx, input('joinRequest'))).toEqual({ action: 'continue' })
+    const unknown: ScammerCheck = { ...flaggedCheck, scammer: false, skyblockzStatus: 'unknown', flags: [] }
+    expect(await allianceCheck(setup({ scammerCheck: true, scammer: unknown }).ctx, input('joinRequest'))).toEqual({ action: 'continue' })
+  })
+  it('a failing scammer check continues', async () => {
+    const { ctx, mc } = setup({ scammerCheck: true, scammerFail: true })
+    expect(await allianceCheck(ctx, input('joinRequest'))).toEqual({ action: 'continue' })
+    expect(mc.commands).toEqual([])
+  })
+  it('a blacklist hit short-circuits before the scammer call', async () => {
+    const { ctx, checkScammer } = setup({ listed: true, scammerCheck: true, scammer: flaggedCheck })
+    expect(await allianceCheck(ctx, input('joinRequest'))).toEqual({ action: 'hold', note: LINE })
+    expect(checkScammer).not.toHaveBeenCalled()
+  })
+  it('once flagged, a failure building the verdict holds with a generic note', async () => {
+    const { ctx, checkScammer } = setup({ scammerCheck: true, autoDeny: true })
+    checkScammer.mockResolvedValue({ ...flaggedCheck, flags: [{ source: null, reason: 1 }] as unknown as ScammerCheck['flags'] })
+    expect(await allianceCheck(ctx, input('joinRequest'))).toEqual({ action: 'hold', note: SCAMMER_FALLBACK })
   })
 })
