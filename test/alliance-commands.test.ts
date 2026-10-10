@@ -1,14 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Env } from '../src/core/env'
 import { GuildLbError, type BlacklistEntry } from '../src/services/guildlb'
-import {
-  allianceAdd,
-  allianceCheck,
-  allianceRemove,
-  mirrorBlacklist,
-  type AllianceDeps,
-  type LocalBlacklistEntry
-} from '../src/app/commands/alliance/handlers'
+import { allianceAdd, allianceCheck, allianceRemove, mirrorBlacklist, type AllianceDeps, type LocalBlacklistEntry } from '../src/app/commands/alliance/handlers'
 import { slashCommands, visibleCommands } from '../src/app/commands'
 import { fakeLog } from './helpers/fakes'
 
@@ -150,7 +143,9 @@ describe('/blacklist alliance mirroring', () => {
     const c = ctx(client({ hasGuildKey: false }))
     expect(await mirrorBlacklist(c, { kind: 'add', uuid: UUID, reason: 'r', addedBy: 'M' })).toBe('GuildLB: skipped, `GUILDLB_GUILD_KEY` is not set.')
     expect(c.guildlb?.addToBlacklist).not.toHaveBeenCalled()
-    expect(await mirrorBlacklist({ guildlb: undefined, log: fakeLog() }, { kind: 'remove', uuid: UUID })).toBe('GuildLB: skipped, `GUILDLB_GUILD_KEY` is not set.')
+    expect(await mirrorBlacklist({ guildlb: undefined, log: fakeLog() }, { kind: 'remove', uuid: UUID })).toBe(
+      'GuildLB: skipped, `GUILDLB_GUILD_KEY` is not set.'
+    )
   })
   it('mirrors add as OTHER and remove by normalized uuid', async () => {
     const c = ctx()

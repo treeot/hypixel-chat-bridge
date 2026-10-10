@@ -33,7 +33,10 @@ const blacklist: SlashCommand = {
       name: 'remove',
       description: 'Remove a user from the blacklist',
       type: ApplicationCommandOptionType.Subcommand,
-      options: [{ name: 'username', description: 'The user to add from the blacklist', type: ApplicationCommandOptionType.String, required: true }, allianceOption]
+      options: [
+        { name: 'username', description: 'The user to add from the blacklist', type: ApplicationCommandOptionType.String, required: true },
+        allianceOption
+      ]
     }
   ],
   permission: 'staff',
