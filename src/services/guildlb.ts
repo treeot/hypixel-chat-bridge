@@ -39,6 +39,24 @@ export interface BlacklistAdd {
   public?: boolean
 }
 
+export interface ScammerFlag {
+  source: string
+  reason: string
+}
+
+export interface ScammerCheck {
+  uuid: string
+  name: string
+  scammer: boolean
+  /** `unknown`: SkyBlockZ was unreachable, so the result covers alliance entries only. */
+  skyblockzStatus: 'flagged' | 'clear' | 'unknown'
+  flags: ScammerFlag[]
+}
+
+/** `GuildLbError.code` for a name or UUID with no Minecraft account (scammer check 404). */
+export const PLAYER_NOT_FOUND = 'PLAYER_NOT_FOUND'
+export const SCAMMER_REASON_MAX = 300
+
 export type Tracked<T> = { status: 'ok'; data: T } | { status: 'not-tracked'; queued: boolean }
 export type AddResult = { status: 'added' } | { status: 'exists'; message: string } | { status: 'not-alliance' }
 export type RemoveResult = { status: 'removed' } | { status: 'not-listed' }
@@ -99,12 +117,21 @@ export function sanitizeEntries(raw: unknown[]): BlacklistEntry[] {
     createdAt: str(e.createdAt) ?? ''
   }))
 }
+const SKYBLOCKZ_STATUSES = ['flagged', 'clear'] as const
+
+/** Flags come from SkyBlockZ and other guilds: drop non-objects, keep only strings, cap reasons. */
+export function sanitizeFlags(raw: unknown[]): ScammerFlag[] {
+  return raw.filter(isObject).map(f => ({ source: str(f.source) ?? 'unknown', reason: (str(f.reason) ?? '').slice(0, SCAMMER_REASON_MAX) }))
+}
+
 /** One URL path segment. Empty and dot segments would be resolved away by URL parsing (path traversal), so they are refused before any request. */
 function seg(s: string): string {
   const t = s.trim()
   if (t === '' || t === '.' || t === '..') throw new GuildLbError(0, 'BAD_REQUEST', 'Invalid name or UUID')
   return encodeURIComponent(t)
 }
+
+const notFound = () => new GuildLbError(404, PLAYER_NOT_FOUND, 'No Minecraft account has that username or UUID.')
 
 export class GuildLbClient {
   readonly baseUrl: string
@@ -155,6 +182,29 @@ export class GuildLbClient {
     if (!isObject(data) || typeof data.blacklisted !== 'boolean' || !Array.isArray(data.entries))
       throw new GuildLbError(out.status, 'BAD_RESPONSE', 'GuildLB returned an unexpected blacklist check')
     return { blacklisted: data.blacklisted, entries: sanitizeEntries(data.entries) }
+  }
+
+  /** SkyBlockZ plus every alliance guild's public SCAMMING entries. `player` is a name or UUID; a 404 throws PLAYER_NOT_FOUND. */
+  async checkScammer(player: string): Promise<ScammerCheck> {
+    let out: Outcome<unknown>
+    try {
+      out = await this.request<unknown>('guild', 'GET', `/api/alliance/scammer/${seg(player)}`)
+    } catch (error) {
+      // A 404 without the JSON envelope still means "no such account".
+      if (error instanceof GuildLbError && error.status === 404) throw notFound()
+      throw error
+    }
+    if (!out.ok) throw out.status === 404 ? notFound() : this.toError(out)
+    const data = out.data
+    if (!isObject(data) || typeof data.scammer !== 'boolean') throw new GuildLbError(out.status, 'BAD_RESPONSE', 'GuildLB returned an unexpected scammer check')
+    const status = SKYBLOCKZ_STATUSES.find(s => s === data.skyblockz_status) ?? 'unknown'
+    return {
+      uuid: str(data.uuid) ?? '',
+      name: str(data.name) ?? player.trim(),
+      scammer: data.scammer,
+      skyblockzStatus: status,
+      flags: Array.isArray(data.flags) ? sanitizeFlags(data.flags) : []
+    }
   }
 
   /** Your guild's own list. GuildLB has no endpoint listing other guilds' entries. */

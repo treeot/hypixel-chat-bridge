@@ -6,8 +6,17 @@ vi.mock('../src/services/mojang', () => ({
 }))
 
 import type { Env } from '../src/core/env'
-import { GuildLbError, type BlacklistEntry } from '../src/services/guildlb'
-import { allianceAdd, allianceCheck, allianceRemove, mirrorBlacklist, type AllianceDeps, type LocalBlacklistEntry } from '../src/app/commands/alliance/handlers'
+import { GuildLbError, PLAYER_NOT_FOUND, type BlacklistEntry, type ScammerCheck } from '../src/services/guildlb'
+import { Colours } from '../src/discord/format'
+import {
+  allianceAdd,
+  allianceCheck,
+  allianceRemove,
+  allianceScammer,
+  mirrorBlacklist,
+  type AllianceDeps,
+  type LocalBlacklistEntry
+} from '../src/app/commands/alliance/handlers'
 import { slashCommands, visibleCommands } from '../src/app/commands'
 import type { AppContext } from '../src/app/context'
 import { fakeLog } from './helpers/fakes'
@@ -31,7 +40,7 @@ function deps(
   resolved: { uuid: string; username: string } | null = { uuid: UUID, username: 'Steve' }
 ) {
   const d: AllianceDeps = {
-    guildlb: { addToBlacklist: vi.fn(), removeFromBlacklist: vi.fn(), checkBlacklist: vi.fn(), ...guildlb } as AllianceDeps['guildlb'],
+    guildlb: { addToBlacklist: vi.fn(), removeFromBlacklist: vi.fn(), checkBlacklist: vi.fn(), checkScammer: vi.fn(), ...guildlb } as AllianceDeps['guildlb'],
     blacklist,
     resolve: vi.fn(async () => resolved ?? undefined),
     log: fakeLog()
@@ -144,6 +153,79 @@ describe('allianceCheck', () => {
     await allianceCheck(d, 'Old_Name')
     expect(checkBlacklist).toHaveBeenCalledWith('Old_Name')
     expect((await allianceCheck(d, '../x')).description).toBe('Could not resolve a Minecraft account for ../x.')
+  })
+})
+
+describe('allianceScammer', () => {
+  const result = (over: Partial<ScammerCheck> = {}): ScammerCheck => ({
+    uuid: UUID,
+    name: 'Steve',
+    scammer: false,
+    skyblockzStatus: 'clear',
+    flags: [],
+    ...over
+  })
+  const run = async (answer: ScammerCheck | Error, input = 'Steve') => {
+    const checkScammer = vi.fn(async () => {
+      if (answer instanceof Error) throw answer
+      return answer
+    })
+    const { d } = deps({ checkScammer })
+    return { embed: await allianceScammer(d, input), checkScammer }
+  }
+
+  it('flagged: red, counts sources and lists every flag', async () => {
+    const { embed, checkScammer } = await run(
+      result({
+        scammer: true,
+        skyblockzStatus: 'flagged',
+        flags: [
+          { source: 'SkyBlockZ', reason: 'Coop scam' },
+          { source: 'Guild Alliance', reason: 'Chargeback scam' }
+        ]
+      })
+    )
+    expect(checkScammer).toHaveBeenCalledWith(UUID)
+    expect(embed.color).toBe(Colours.failure)
+    expect(embed.author).toEqual({ name: 'Steve', icon_url: 'https://mc-heads.net/avatar/Steve' })
+    expect(embed.description).toBe('Flagged by 2 sources.')
+    expect(embed.fields).toEqual([
+      { name: 'Flags', value: 'SkyBlockZ: Coop scam\nGuild Alliance: Chargeback scam' },
+      { name: 'SkyBlockZ', value: 'Flagged' }
+    ])
+  })
+  it('one flag reads singular', async () => {
+    const { embed } = await run(result({ scammer: true, skyblockzStatus: 'clear', flags: [{ source: 'Guild Alliance', reason: 'Chargeback scam' }] }))
+    expect(embed.description).toBe('Flagged by 1 source.')
+    expect(embed.fields?.at(-1)).toEqual({ name: 'SkyBlockZ', value: 'Clear' })
+  })
+  it('clear: green, no scam flags, SkyBlockZ clear', async () => {
+    const { embed } = await run(result())
+    expect(embed.color).toBe(Colours.success)
+    expect(embed.description).toBe('No scam flags.')
+    expect(embed.fields).toEqual([{ name: 'SkyBlockZ', value: 'Clear' }])
+  })
+  it('unknown: says SkyBlockZ was unreachable and never calls the result clear', async () => {
+    const { embed } = await run(result({ skyblockzStatus: 'unknown' }))
+    expect(embed.description).toBe('No scam flags.')
+    expect(embed.fields).toEqual([{ name: 'SkyBlockZ', value: 'SkyBlockZ unreachable — result covers alliance entries only' }])
+    expect(JSON.stringify(embed)).not.toMatch(/clear/i)
+  })
+  it("escapes other guilds' reasons", async () => {
+    const { embed } = await run(result({ scammer: true, flags: [{ source: 'Guild Alliance', reason: '[x](https://y)\n**b**' }] }))
+    expect(embed.fields?.[0].value).toBe('Guild Alliance: \\[x](https://y) \\*\\*b\\*\\*')
+  })
+  it('errors use guildLbErrorText', async () => {
+    expect((await run(new GuildLbError(404, PLAYER_NOT_FOUND, 'x'))).embed.description).toBe('No Minecraft account with that name.')
+    expect((await run(new GuildLbError(502, 'UPSTREAM', 'The lookup failed upstream. Retry later.'))).embed.description).toBe(
+      'GuildLB error (502): The lookup failed upstream. Retry later.'
+    )
+  })
+  it('is a staff subcommand of /alliance', () => {
+    const alliance = slashCommands.find(c => c.name === 'alliance')
+    expect(alliance?.permission).toBe('staff')
+    const sub = alliance?.options?.find(o => o.name === 'scammer') as { options?: { name: string; required?: boolean }[] } | undefined
+    expect(sub?.options?.map(o => [o.name, o.required])).toEqual([['player', true]])
   })
 })
 
