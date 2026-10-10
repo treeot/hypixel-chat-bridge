@@ -14,7 +14,7 @@ Permissions: **Everyone**; **Staff** = members with `STAFF_ROLE_ID` (owner-only 
 | `/alliance blacklist add <player> <category> [reason] [public]` | Staff | Add a player to your guild's alliance blacklist |
 | `/alliance blacklist remove <player>` | Staff | Remove a player from your guild's alliance blacklist |
 | `/alliance blacklist check <player>` | Staff | Check a player against the alliance blacklist |
-| `/alliance blacklist list` | Staff | Show the whole alliance's blacklist |
+| `/alliance blacklist list` | Staff | Show your guild's own GuildLB blacklist |
 | `/alliance blacklist sync` | Staff | Push local blacklist entries that are missing on GuildLB |
 | `/blacklist add <username> <reason> [discord] [alliance]` | Staff | Add a user to the blacklist |
 | `/blacklist list` | Staff | List the users in the blacklist |

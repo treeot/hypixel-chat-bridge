@@ -1,18 +1,27 @@
 import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('../src/services/mojang', () => ({ getUsernameFromUUID: vi.fn(async () => 'Steve') }))
+
+import type { APIEmbed, ChatInputCommandInteraction } from 'discord.js'
 import { GuildLbError, type BlacklistEntry } from '../src/services/guildlb'
 import {
   clampPage,
+  CONFIRM_ID,
   listPageEmbed,
+  OTHER_GUILDS_NOTE,
   MAX_SYNC,
   pageCount,
   pagerRow,
   planSync,
   previewEmbed,
   pushPlan,
+  runList,
+  runSync,
   SYNC_MIN_GAP_MS
 } from '../src/app/commands/alliance/listSync'
 import type { LocalBlacklistEntry } from '../src/app/commands/alliance/handlers'
-import { fakeClock } from './helpers/fakes'
+import { slashCommands } from '../src/app/commands'
+import { fakeClock, fakeLog } from './helpers/fakes'
 
 const remote = (uuid: string, extra: Partial<BlacklistEntry> = {}): BlacklistEntry => ({
   playerUuid: uuid,
@@ -32,18 +41,19 @@ describe('paging', () => {
     expect(clampPage(5, 11)).toBe(1)
     expect(clampPage(-1, 11)).toBe(0)
   })
-  it('renders 10 per page, names when known, uuid otherwise', () => {
-    const entries = Array.from({ length: 12 }, (_, i) => remote(`u${i}`, { guildName: 'G', reason: `line\nbreak ${i}` }))
+  it("renders your guild's list 10 per page, names when known, uuid otherwise, and says other guilds can't be listed", () => {
+    const entries = Array.from({ length: 12 }, (_, i) => remote(`u${i}`, { reason: `line\nbreak ${i}`, public: i !== 11 }))
     const names = new Map([['u10', 'Steve']])
     const p2 = listPageEmbed(entries, 1, names)
+    expect(p2.title).toBe("Your guild's GuildLB blacklist (12)")
     expect(p2.footer?.text).toBe('Page 2/2')
-    expect(p2.description?.split('\n')).toEqual(['**11. Steve** — OTHER by G: line break 10', '**12. u11** — OTHER by G: line break 11'])
-    expect(listPageEmbed([], 0, names).description).toBe('The alliance blacklist is empty.')
+    expect(p2.description?.split('\n')).toEqual(['**11. Steve** — OTHER: line break 10', '**12. u11** — OTHER (private): line break 11', '', OTHER_GUILDS_NOTE])
+    expect(listPageEmbed([], 0, names).description).toBe(`Your guild's GuildLB blacklist is empty.\n\n${OTHER_GUILDS_NOTE}`)
+    expect(OTHER_GUILDS_NOTE).toBe("Other guilds' public entries can't be listed; use /alliance blacklist check <player> or /alliance scammer <player>.")
   })
-  it("neutralizes masked links in other guilds' reason and guild name", () => {
-    const d = listPageEmbed([remote('u0', { guildName: 'G [g](https://g.example)', reason: '[x](https://y)' })], 0, new Map()).description ?? ''
+  it('neutralizes masked links in reasons', () => {
+    const d = listPageEmbed([remote('u0', { reason: '[x](https://y)' })], 0, new Map()).description ?? ''
     expect(d).toContain('\\[x](https://y)')
-    expect(d).toContain('G \\[g](https://g.example)')
     expect(d).not.toMatch(/(?<!\\)\[[a-z]\]\(/)
   })
   it('disables the buttons at the edges', () => {
@@ -127,5 +137,36 @@ describe('pushPlan', () => {
     await pushPlan(plan(4), add, 'M', async () => undefined, clock)
     expect(starts).toEqual([0, SYNC_MIN_GAP_MS, SYNC_MIN_GAP_MS + 1000, SYNC_MIN_GAP_MS * 2 + 1000])
     expect(Math.floor(60_000 / SYNC_MIN_GAP_MS)).toBeLessThanOrEqual(80)
+  })
+})
+
+describe('runList', () => {
+  it("lists your guild's own GuildLB blacklist", async () => {
+    const guildBlacklist = vi.fn(async () => [remote('069a79f444e94726a5befca90e38aaf5', { category: 'SCAMMING', reason: 'coop' })])
+    const replies: { embeds: APIEmbed[] }[] = []
+    const interaction = { editReply: vi.fn(async (o: { embeds: APIEmbed[] }) => (replies.push(o), {})) } as unknown as ChatInputCommandInteraction
+    await runList(interaction, { guildBlacklist }, fakeLog())
+    expect(guildBlacklist).toHaveBeenCalledTimes(1)
+    expect(replies[0].embeds[0].title).toBe("Your guild's GuildLB blacklist (1)")
+    expect(replies[0].embeds[0].description).toBe(`**1. Steve** — SCAMMING: coop\n\n${OTHER_GUILDS_NOTE}`)
+  })
+  it('the list subcommand describes what it shows', () => {
+    const alliance = slashCommands.find(c => c.name === 'alliance')
+    const group = alliance?.options?.find(o => o.name === 'blacklist') as { options?: { name: string; description: string }[] }
+    expect(group.options?.find(o => o.name === 'list')?.description).toBe("Show your guild's own GuildLB blacklist")
+  })
+})
+
+describe('runSync', () => {
+  it("pushes with the staff member's Discord user ID as addedBy", async () => {
+    const addToBlacklist = vi.fn(async () => ({ status: 'added' as const }))
+    const click = { customId: CONFIRM_ID, update: vi.fn(async () => undefined) }
+    const message = { awaitMessageComponent: vi.fn(async () => click) }
+    const interaction = {
+      user: { id: '123456789012345678', username: 'ModName' },
+      editReply: vi.fn(async () => message)
+    } as unknown as ChatInputCommandInteraction
+    await runSync(interaction, { guildBlacklist: async () => [], addToBlacklist }, { all: async () => [local('U0', 'r')] }, fakeLog())
+    expect(addToBlacklist).toHaveBeenCalledWith({ playerUuid: 'u0', category: 'OTHER', reason: 'r', addedBy: '123456789012345678' }, expect.anything())
   })
 })

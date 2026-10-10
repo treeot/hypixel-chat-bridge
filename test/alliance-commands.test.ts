@@ -1,8 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('../src/services/mojang', () => ({
+  getUUIDFromUsername: vi.fn(async () => '069a79f444e94726a5befca90e38aaf5'),
+  getUsernameFromUUID: vi.fn(async () => 'Steve')
+}))
+
 import type { Env } from '../src/core/env'
 import { GuildLbError, type BlacklistEntry } from '../src/services/guildlb'
 import { allianceAdd, allianceCheck, allianceRemove, mirrorBlacklist, type AllianceDeps, type LocalBlacklistEntry } from '../src/app/commands/alliance/handlers'
 import { slashCommands, visibleCommands } from '../src/app/commands'
+import type { AppContext } from '../src/app/context'
 import { fakeLog } from './helpers/fakes'
 
 const UUID = '069a79f444e94726a5befca90e38aaf5'
@@ -32,15 +39,16 @@ function deps(
   return { d, blacklist }
 }
 
-const addInput = { player: 'Steve', category: 'SCAMMING' as const, reason: 'chargeback', staffName: 'ModName', staffId: '42' }
+const STAFF_ID = '123456789012345678'
+const addInput = { player: 'Steve', category: 'SCAMMING' as const, reason: 'chargeback', staffId: STAFF_ID }
 
 describe('allianceAdd', () => {
   it('adds on GuildLB and locally', async () => {
     const addToBlacklist = vi.fn(async () => ({ status: 'added' as const }))
     const { d, blacklist } = deps({ addToBlacklist })
     const embed = await allianceAdd(d, addInput)
-    expect(addToBlacklist).toHaveBeenCalledWith({ playerUuid: UUID, category: 'SCAMMING', reason: 'chargeback', addedBy: 'ModName', public: undefined })
-    expect(blacklist.rows.get(UUID)).toEqual({ uuid: UUID, reason: 'chargeback', discord: '', addedBy: '42' })
+    expect(addToBlacklist).toHaveBeenCalledWith({ playerUuid: UUID, category: 'SCAMMING', reason: 'chargeback', addedBy: STAFF_ID, public: undefined })
+    expect(blacklist.rows.get(UUID)).toEqual({ uuid: UUID, reason: 'chargeback', discord: '', addedBy: STAFF_ID })
     expect(embed.description).toBe('Added to the alliance blacklist as **SCAMMING**.\nAlso added to the local blacklist.')
   })
   it('409 → already listed, still makes sure the local entry exists', async () => {
@@ -74,6 +82,22 @@ describe('allianceAdd', () => {
   it('unresolvable player', async () => {
     const { d } = deps({}, memoryBlacklist(), null)
     expect((await allianceAdd(d, addInput)).description).toBe('Could not resolve a Minecraft account for Steve.')
+  })
+})
+
+describe('/alliance blacklist add', () => {
+  it("sends the staff member's Discord user ID as addedBy, never the username", async () => {
+    const addToBlacklist = vi.fn(async () => ({ status: 'added' as const }))
+    const strings: Record<string, string> = { player: 'Steve', category: 'SCAMMING', reason: 'chargeback' }
+    const interaction = {
+      user: { id: STAFF_ID, username: 'ModName' },
+      options: { getSubcommand: () => 'add', getString: (n: string) => strings[n] ?? null, getBoolean: () => null },
+      editReply: vi.fn(async () => undefined)
+    }
+    const ctx = { guildlb: { hasGuildKey: true, addToBlacklist }, repos: { blacklist: memoryBlacklist() }, log: fakeLog() } as unknown as AppContext
+    const alliance = slashCommands.find(c => c.name === 'alliance')!
+    await (alliance.execute as (i: unknown, c: AppContext) => Promise<unknown>)(interaction, ctx)
+    expect(addToBlacklist).toHaveBeenCalledWith(expect.objectContaining({ addedBy: STAFF_ID }))
   })
 })
 

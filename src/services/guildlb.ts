@@ -33,7 +33,8 @@ export interface BlacklistAdd {
   playerUuid: string
   category: BlacklistCategory
   reason?: string
-  addedBy?: string
+  /** Discord user ID (17-20 digits) of the staff member; GuildLB rejects anything else. */
+  addedBy: string
   /** Sent as documented; GuildLB currently ignores it (known GuildLB-side bug), so entries are public. */
   public?: boolean
 }
@@ -156,10 +157,7 @@ export class GuildLbClient {
     return { blacklisted: data.blacklisted, entries: sanitizeEntries(data.entries) }
   }
 
-  async allianceBlacklist(): Promise<BlacklistEntry[]> {
-    return this.list(await this.request<BlacklistEntry[]>('guild', 'GET', '/api/alliance/blacklist'))
-  }
-
+  /** Your guild's own list. GuildLB has no endpoint listing other guilds' entries. */
   async guildBlacklist(): Promise<BlacklistEntry[]> {
     return this.list(await this.request<BlacklistEntry[]>('guild', 'GET', '/api/guild/blacklist'))
   }

@@ -30,7 +30,7 @@ export interface AddInput {
   category: BlacklistCategory
   reason?: string
   isPublic?: boolean
-  staffName: string
+  /** Discord user ID: sent to GuildLB as `addedBy` and stored locally. */
   staffId: string
 }
 
@@ -49,7 +49,7 @@ export async function allianceAdd(deps: AllianceDeps, input: AddInput): Promise<
       playerUuid: uuid,
       category: input.category,
       reason: input.reason,
-      addedBy: input.staffName,
+      addedBy: input.staffId,
       public: input.isPublic
     })
   } catch (error) {

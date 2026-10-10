@@ -108,12 +108,12 @@ describe('guild-key endpoints', () => {
     expect(result.entries[1].guildName).toBeUndefined()
   })
 
-  it('lists both blacklists', async () => {
-    const entry = { playerUuid: 'abc', category: 'OTHER', reason: 'r', addedBy: 'm', createdAt: '2026-08-08T12:00:00Z' }
+  it("lists your guild's own blacklist (GuildLB has no endpoint listing other guilds' entries)", async () => {
+    const entry = { playerUuid: 'abc', category: 'OTHER', reason: 'r', addedBy: '123456789012345678', public: false, createdAt: '2026-08-08T12:00:00Z' }
     const { c, calls } = client(() => ok([entry]))
-    expect(await c.allianceBlacklist()).toEqual([entry])
     expect(await c.guildBlacklist()).toEqual([entry])
-    expect(calls.map(x => x.url.pathname)).toEqual(['/api/alliance/blacklist', '/api/guild/blacklist'])
+    expect(calls.map(x => x.url.pathname)).toEqual(['/api/guild/blacklist'])
+    expect('allianceBlacklist' in c).toBe(false)
   })
 
   it('adds with the documented body and maps 409 / 403', async () => {
@@ -121,7 +121,7 @@ describe('guild-key endpoints', () => {
     const { c, calls } = client(() =>
       status === 200 ? ok({ id: 1 }) : status === 409 ? fail(409, 'ALREADY_EXISTS', 'already listed: scam') : fail(403, 'FORBIDDEN', 'not alliance')
     )
-    const entry = { playerUuid: 'abc', category: 'SCAMMING' as const, reason: 'r', addedBy: 'Mod', public: false }
+    const entry = { playerUuid: 'abc', category: 'SCAMMING' as const, reason: 'r', addedBy: '123456789012345678', public: false }
     expect(await c.addToBlacklist(entry)).toEqual({ status: 'added' })
     expect(calls[0].init.method).toBe('POST')
     expect(JSON.parse(String(calls[0].init.body))).toEqual(entry)
@@ -133,7 +133,7 @@ describe('guild-key endpoints', () => {
 
   it('surfaces a 5xx add as an error (GuildLB currently turns backend 4xx into 5xx)', async () => {
     const { c } = client(() => fail(500, 'INTERNAL_SERVER_ERROR', 'boom'))
-    await expect(c.addToBlacklist({ playerUuid: 'abc', category: 'OTHER' })).rejects.toMatchObject({ status: 500 })
+    await expect(c.addToBlacklist({ playerUuid: 'abc', category: 'OTHER', addedBy: '123456789012345678' })).rejects.toMatchObject({ status: 500 })
   })
 
   it('removes by uuid; removed:false and 404 both mean not listed', async () => {

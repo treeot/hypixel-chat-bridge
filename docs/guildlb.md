@@ -19,7 +19,7 @@ These need `GUILDLB_GUILD_KEY`. Without it, `/alliance` is not published (it is 
 | `/alliance blacklist add <player> <category> [reason] [public]` | Staff | Adds the player to your guild's GuildLB blacklist, then to the local blacklist |
 | `/alliance blacklist remove <player>` | Staff | Removes your guild's own GuildLB entry, then the local entry |
 | `/alliance blacklist check <player>` | Staff | Shows every alliance guild's entry for the player, plus local status |
-| `/alliance blacklist list` | Staff | Pages through the whole alliance blacklist |
+| `/alliance blacklist list` | Staff | Pages through your guild's own GuildLB blacklist (other guilds' entries can't be listed) |
 | `/alliance blacklist sync` | Staff | Previews, then pushes local blacklist entries that are missing on GuildLB (as category OTHER, up to 500 per run) |
 
 `/blacklist add` and `/blacklist remove` also take an `alliance` option that sends the change to your guild's GuildLB blacklist (as category OTHER). Leave it out and the GuildLB setting in `/setup` decides; it is off by default.
