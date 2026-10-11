@@ -1,8 +1,24 @@
 import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('../src/services/mojang', () => ({
+  getUUIDFromUsername: vi.fn(async () => '069a79f444e94726a5befca90e38aaf5'),
+  getUsernameFromUUID: vi.fn(async () => 'Steve')
+}))
+
 import type { Env } from '../src/core/env'
-import { GuildLbError, type BlacklistEntry } from '../src/services/guildlb'
-import { allianceAdd, allianceCheck, allianceRemove, mirrorBlacklist, type AllianceDeps, type LocalBlacklistEntry } from '../src/app/commands/alliance/handlers'
+import { GuildLbError, PLAYER_NOT_FOUND, type BlacklistEntry, type ScammerCheck } from '../src/services/guildlb'
+import { Colours } from '../src/discord/format'
+import {
+  allianceAdd,
+  allianceCheck,
+  allianceRemove,
+  allianceScammer,
+  mirrorBlacklist,
+  type AllianceDeps,
+  type LocalBlacklistEntry
+} from '../src/app/commands/alliance/handlers'
 import { slashCommands, visibleCommands } from '../src/app/commands'
+import type { AppContext } from '../src/app/context'
 import { fakeLog } from './helpers/fakes'
 
 const UUID = '069a79f444e94726a5befca90e38aaf5'
@@ -24,7 +40,7 @@ function deps(
   resolved: { uuid: string; username: string } | null = { uuid: UUID, username: 'Steve' }
 ) {
   const d: AllianceDeps = {
-    guildlb: { addToBlacklist: vi.fn(), removeFromBlacklist: vi.fn(), checkBlacklist: vi.fn(), ...guildlb } as AllianceDeps['guildlb'],
+    guildlb: { addToBlacklist: vi.fn(), removeFromBlacklist: vi.fn(), checkBlacklist: vi.fn(), checkScammer: vi.fn(), ...guildlb } as AllianceDeps['guildlb'],
     blacklist,
     resolve: vi.fn(async () => resolved ?? undefined),
     log: fakeLog()
@@ -32,15 +48,16 @@ function deps(
   return { d, blacklist }
 }
 
-const addInput = { player: 'Steve', category: 'SCAMMING' as const, reason: 'chargeback', staffName: 'ModName', staffId: '42' }
+const STAFF_ID = '123456789012345678'
+const addInput = { player: 'Steve', category: 'SCAMMING' as const, reason: 'chargeback', staffId: STAFF_ID }
 
 describe('allianceAdd', () => {
   it('adds on GuildLB and locally', async () => {
     const addToBlacklist = vi.fn(async () => ({ status: 'added' as const }))
     const { d, blacklist } = deps({ addToBlacklist })
     const embed = await allianceAdd(d, addInput)
-    expect(addToBlacklist).toHaveBeenCalledWith({ playerUuid: UUID, category: 'SCAMMING', reason: 'chargeback', addedBy: 'ModName', public: undefined })
-    expect(blacklist.rows.get(UUID)).toEqual({ uuid: UUID, reason: 'chargeback', discord: '', addedBy: '42' })
+    expect(addToBlacklist).toHaveBeenCalledWith({ playerUuid: UUID, category: 'SCAMMING', reason: 'chargeback', addedBy: STAFF_ID, public: undefined })
+    expect(blacklist.rows.get(UUID)).toEqual({ uuid: UUID, reason: 'chargeback', discord: '', addedBy: STAFF_ID })
     expect(embed.description).toBe('Added to the alliance blacklist as **SCAMMING**.\nAlso added to the local blacklist.')
   })
   it('409 → already listed, still makes sure the local entry exists', async () => {
@@ -74,6 +91,22 @@ describe('allianceAdd', () => {
   it('unresolvable player', async () => {
     const { d } = deps({}, memoryBlacklist(), null)
     expect((await allianceAdd(d, addInput)).description).toBe('Could not resolve a Minecraft account for Steve.')
+  })
+})
+
+describe('/alliance blacklist add', () => {
+  it("sends the staff member's Discord user ID as addedBy, never the username", async () => {
+    const addToBlacklist = vi.fn(async () => ({ status: 'added' as const }))
+    const strings: Record<string, string> = { player: 'Steve', category: 'SCAMMING', reason: 'chargeback' }
+    const interaction = {
+      user: { id: STAFF_ID, username: 'ModName' },
+      options: { getSubcommand: () => 'add', getString: (n: string) => strings[n] ?? null, getBoolean: () => null },
+      editReply: vi.fn(async () => undefined)
+    }
+    const ctx = { guildlb: { hasGuildKey: true, addToBlacklist }, repos: { blacklist: memoryBlacklist() }, log: fakeLog() } as unknown as AppContext
+    const alliance = slashCommands.find(c => c.name === 'alliance')!
+    await (alliance.execute as (i: unknown, c: AppContext) => Promise<unknown>)(interaction, ctx)
+    expect(addToBlacklist).toHaveBeenCalledWith(expect.objectContaining({ addedBy: STAFF_ID }))
   })
 })
 
@@ -120,6 +153,79 @@ describe('allianceCheck', () => {
     await allianceCheck(d, 'Old_Name')
     expect(checkBlacklist).toHaveBeenCalledWith('Old_Name')
     expect((await allianceCheck(d, '../x')).description).toBe('Could not resolve a Minecraft account for ../x.')
+  })
+})
+
+describe('allianceScammer', () => {
+  const result = (over: Partial<ScammerCheck> = {}): ScammerCheck => ({
+    uuid: UUID,
+    name: 'Steve',
+    scammer: false,
+    skyblockzStatus: 'clear',
+    flags: [],
+    ...over
+  })
+  const run = async (answer: ScammerCheck | Error, input = 'Steve') => {
+    const checkScammer = vi.fn(async () => {
+      if (answer instanceof Error) throw answer
+      return answer
+    })
+    const { d } = deps({ checkScammer })
+    return { embed: await allianceScammer(d, input), checkScammer }
+  }
+
+  it('flagged: red, counts sources and lists every flag', async () => {
+    const { embed, checkScammer } = await run(
+      result({
+        scammer: true,
+        skyblockzStatus: 'flagged',
+        flags: [
+          { source: 'SkyBlockZ', reason: 'Coop scam' },
+          { source: 'Guild Alliance', reason: 'Chargeback scam' }
+        ]
+      })
+    )
+    expect(checkScammer).toHaveBeenCalledWith(UUID)
+    expect(embed.color).toBe(Colours.failure)
+    expect(embed.author).toEqual({ name: 'Steve', icon_url: 'https://mc-heads.net/avatar/Steve' })
+    expect(embed.description).toBe('Flagged by 2 sources.')
+    expect(embed.fields).toEqual([
+      { name: 'Flags', value: 'SkyBlockZ: Coop scam\nGuild Alliance: Chargeback scam' },
+      { name: 'SkyBlockZ', value: 'Flagged' }
+    ])
+  })
+  it('one flag reads singular', async () => {
+    const { embed } = await run(result({ scammer: true, skyblockzStatus: 'clear', flags: [{ source: 'Guild Alliance', reason: 'Chargeback scam' }] }))
+    expect(embed.description).toBe('Flagged by 1 source.')
+    expect(embed.fields?.at(-1)).toEqual({ name: 'SkyBlockZ', value: 'Clear' })
+  })
+  it('clear: green, no scam flags, SkyBlockZ clear', async () => {
+    const { embed } = await run(result())
+    expect(embed.color).toBe(Colours.success)
+    expect(embed.description).toBe('No scam flags.')
+    expect(embed.fields).toEqual([{ name: 'SkyBlockZ', value: 'Clear' }])
+  })
+  it('unknown: says SkyBlockZ was unreachable and never calls the result clear', async () => {
+    const { embed } = await run(result({ skyblockzStatus: 'unknown' }))
+    expect(embed.description).toBe('No scam flags.')
+    expect(embed.fields).toEqual([{ name: 'SkyBlockZ', value: 'SkyBlockZ unreachable — result covers alliance entries only' }])
+    expect(JSON.stringify(embed)).not.toMatch(/clear/i)
+  })
+  it("escapes other guilds' reasons", async () => {
+    const { embed } = await run(result({ scammer: true, flags: [{ source: 'Guild Alliance', reason: '[x](https://y)\n**b**' }] }))
+    expect(embed.fields?.[0].value).toBe('Guild Alliance: \\[x](https://y) \\*\\*b\\*\\*')
+  })
+  it('errors use guildLbErrorText', async () => {
+    expect((await run(new GuildLbError(404, PLAYER_NOT_FOUND, 'x'))).embed.description).toBe('No Minecraft account with that name.')
+    expect((await run(new GuildLbError(502, 'UPSTREAM', 'The lookup failed upstream. Retry later.'))).embed.description).toBe(
+      'GuildLB error (502): The lookup failed upstream. Retry later.'
+    )
+  })
+  it('is a staff subcommand of /alliance', () => {
+    const alliance = slashCommands.find(c => c.name === 'alliance')
+    expect(alliance?.permission).toBe('staff')
+    const sub = alliance?.options?.find(o => o.name === 'scammer') as { options?: { name: string; required?: boolean }[] } | undefined
+    expect(sub?.options?.map(o => [o.name, o.required])).toEqual([['player', true]])
   })
 })
 

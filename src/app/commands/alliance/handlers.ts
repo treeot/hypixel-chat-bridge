@@ -3,7 +3,7 @@ import type { Logger } from '../../../core/logger'
 import { FullEmbed, SimpleEmbed, headUrl } from '../../../discord/format'
 import { normalizeUuid, type AddResult, type BlacklistCategory, type GuildLbClient, type RemoveResult } from '../../../services/guildlb'
 import { guildLbErrorText } from '../../../services/guildlbText'
-import { entryField } from '../../../services/allianceGate'
+import { entryField, scammerFields, scammerSummary } from '../../../services/allianceGate'
 
 export interface LocalBlacklistEntry {
   uuid: string
@@ -19,7 +19,7 @@ export interface LocalBlacklist {
 }
 
 export interface AllianceDeps {
-  guildlb: Pick<GuildLbClient, 'addToBlacklist' | 'removeFromBlacklist' | 'checkBlacklist'>
+  guildlb: Pick<GuildLbClient, 'addToBlacklist' | 'removeFromBlacklist' | 'checkBlacklist' | 'checkScammer'>
   blacklist: LocalBlacklist
   resolve(input: string): Promise<{ uuid: string; username: string } | undefined>
   log: Logger
@@ -30,7 +30,7 @@ export interface AddInput {
   category: BlacklistCategory
   reason?: string
   isPublic?: boolean
-  staffName: string
+  /** Discord user ID: sent to GuildLB as `addedBy` and stored locally. */
   staffId: string
 }
 
@@ -49,7 +49,7 @@ export async function allianceAdd(deps: AllianceDeps, input: AddInput): Promise<
       playerUuid: uuid,
       category: input.category,
       reason: input.reason,
-      addedBy: input.staffName,
+      addedBy: input.staffId,
       public: input.isPublic
     })
   } catch (error) {
@@ -119,6 +119,27 @@ export async function allianceCheck(deps: AllianceDeps, player: string): Promise
   const fields = result.entries.slice(0, 10).map(entryField)
   if (n > 10) fields.push({ name: '…', value: `+${n - 10} more` })
   return FullEmbed('failure', { author: author(name), description: `Listed by ${n} alliance guild${n === 1 ? '' : 's'}.`, fields: [...fields, localField] })
+}
+
+/** SkyBlockZ plus the alliance's public SCAMMING entries. Red when flagged, green otherwise. */
+export async function allianceScammer(deps: AllianceDeps, player: string): Promise<APIEmbed> {
+  const resolved = await deps.resolve(player)
+  if (!resolved && !/^[A-Za-z0-9_]{1,16}$/.test(player)) return unresolved(player)
+  const query = resolved ? normalizeUuid(resolved.uuid) : player
+
+  let result
+  try {
+    result = await deps.guildlb.checkScammer(query)
+  } catch (error) {
+    return SimpleEmbed('failure', guildLbErrorText(error))
+  }
+  const name = result.name || resolved?.username || player
+  return FullEmbed(result.scammer ? 'failure' : 'success', {
+    author: author(name),
+    description: scammerSummary(result),
+    fields: scammerFields(result),
+    footer: result.uuid ? { text: `UUID ${result.uuid}` } : undefined
+  })
 }
 
 export type MirrorOp = { kind: 'add'; uuid: string; reason: string; addedBy: string } | { kind: 'remove'; uuid: string }

@@ -2,7 +2,7 @@ import { inspect } from 'node:util'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { GuildLbClient, GuildLbError, normalizeUuid, PLAYER_TTL_MS } from '../src/services/guildlb'
+import { GuildLbClient, GuildLbError, normalizeUuid, PLAYER_NOT_FOUND, PLAYER_TTL_MS, SCAMMER_REASON_MAX } from '../src/services/guildlb'
 import { fakeClock, fakeFetch, fakeLog, json } from './helpers/fakes'
 
 const ok = (data: unknown) => json(200, { success: true, data, meta: { generatedAt: '2026-10-04T12:00:00Z' } })
@@ -108,12 +108,12 @@ describe('guild-key endpoints', () => {
     expect(result.entries[1].guildName).toBeUndefined()
   })
 
-  it('lists both blacklists', async () => {
-    const entry = { playerUuid: 'abc', category: 'OTHER', reason: 'r', addedBy: 'm', createdAt: '2026-08-08T12:00:00Z' }
+  it("lists your guild's own blacklist (GuildLB has no endpoint listing other guilds' entries)", async () => {
+    const entry = { playerUuid: 'abc', category: 'OTHER', reason: 'r', addedBy: '123456789012345678', public: false, createdAt: '2026-08-08T12:00:00Z' }
     const { c, calls } = client(() => ok([entry]))
-    expect(await c.allianceBlacklist()).toEqual([entry])
     expect(await c.guildBlacklist()).toEqual([entry])
-    expect(calls.map(x => x.url.pathname)).toEqual(['/api/alliance/blacklist', '/api/guild/blacklist'])
+    expect(calls.map(x => x.url.pathname)).toEqual(['/api/guild/blacklist'])
+    expect('allianceBlacklist' in c).toBe(false)
   })
 
   it('adds with the documented body and maps 409 / 403', async () => {
@@ -121,7 +121,7 @@ describe('guild-key endpoints', () => {
     const { c, calls } = client(() =>
       status === 200 ? ok({ id: 1 }) : status === 409 ? fail(409, 'ALREADY_EXISTS', 'already listed: scam') : fail(403, 'FORBIDDEN', 'not alliance')
     )
-    const entry = { playerUuid: 'abc', category: 'SCAMMING' as const, reason: 'r', addedBy: 'Mod', public: false }
+    const entry = { playerUuid: 'abc', category: 'SCAMMING' as const, reason: 'r', addedBy: '123456789012345678', public: false }
     expect(await c.addToBlacklist(entry)).toEqual({ status: 'added' })
     expect(calls[0].init.method).toBe('POST')
     expect(JSON.parse(String(calls[0].init.body))).toEqual(entry)
@@ -133,7 +133,7 @@ describe('guild-key endpoints', () => {
 
   it('surfaces a 5xx add as an error (GuildLB currently turns backend 4xx into 5xx)', async () => {
     const { c } = client(() => fail(500, 'INTERNAL_SERVER_ERROR', 'boom'))
-    await expect(c.addToBlacklist({ playerUuid: 'abc', category: 'OTHER' })).rejects.toMatchObject({ status: 500 })
+    await expect(c.addToBlacklist({ playerUuid: 'abc', category: 'OTHER', addedBy: '123456789012345678' })).rejects.toMatchObject({ status: 500 })
   })
 
   it('removes by uuid; removed:false and 404 both mean not listed', async () => {
@@ -144,6 +144,101 @@ describe('guild-key endpoints', () => {
     expect(await c.removeFromBlacklist('abc')).toEqual({ status: 'not-listed' })
     expect(calls[0].init.method).toBe('DELETE')
     expect(calls[0].url.pathname).toBe('/api/guild/blacklist/abc')
+  })
+})
+
+describe('checkScammer', () => {
+  const flagged = {
+    uuid: '0123456789abcdef0123456789abcdef',
+    name: 'Steve',
+    scammer: true,
+    skyblockz_status: 'flagged',
+    flags: [
+      { source: 'SkyBlockZ', reason: 'Coop scam' },
+      { source: 'Guild Alliance', reason: 'Chargeback scam' }
+    ]
+  }
+
+  it('uses the guild key, encodes the player and maps a flagged player', async () => {
+    const { c, calls } = client(() => ok(flagged))
+    expect(await c.checkScammer('Steve')).toEqual({
+      uuid: flagged.uuid,
+      name: 'Steve',
+      scammer: true,
+      skyblockzStatus: 'flagged',
+      flags: [
+        { source: 'SkyBlockZ', reason: 'Coop scam' },
+        { source: 'Guild Alliance', reason: 'Chargeback scam' }
+      ]
+    })
+    expect(calls[0].url.pathname).toBe('/api/alliance/scammer/Steve')
+    expect(calls[0].init.method).toBe('GET')
+    expect((calls[0].init.headers as Record<string, string>).Authorization).toBe('Bearer guild-secret')
+  })
+
+  it('path-escapes hostile input into one segment', async () => {
+    const { c, calls } = client(() => ok(flagged))
+    await c.checkScammer('../a b?x#y')
+    expect(calls[0].url.pathname).toBe('/api/alliance/scammer/..%2Fa%20b%3Fx%23y')
+    expect(calls[0].url.search).toBe('')
+  })
+
+  it('maps a clear player', async () => {
+    const { c } = client(() => ok({ uuid: 'u', name: 'Steve', scammer: false, skyblockz_status: 'clear', flags: [] }))
+    expect(await c.checkScammer('Steve')).toEqual({ uuid: 'u', name: 'Steve', scammer: false, skyblockzStatus: 'clear', flags: [] })
+  })
+
+  it('maps unknown and unexpected SkyBlockZ statuses to unknown', async () => {
+    for (const status of ['unknown', 'down', undefined, 7]) {
+      const { c } = client(() => ok({ uuid: 'u', name: 'Steve', scammer: false, skyblockz_status: status, flags: [] }))
+      expect((await c.checkScammer('Steve')).skyblockzStatus).toBe('unknown')
+    }
+  })
+
+  it('drops malformed flags, keeps only strings and caps reasons', async () => {
+    const flags = [null, 'x', { source: 5, reason: { a: 1 } }, { source: 'Guild Alliance', reason: 'r'.repeat(1000) }]
+    const { c } = client(() => ok({ uuid: 'u', scammer: true, skyblockz_status: 'clear', flags }))
+    const result = await c.checkScammer('Steve')
+    expect(result.name).toBe('Steve')
+    expect(result.flags).toEqual([
+      { source: 'unknown', reason: '' },
+      { source: 'Guild Alliance', reason: 'r'.repeat(SCAMMER_REASON_MAX) }
+    ])
+  })
+
+  it('accepts only a Minecraft-shaped name, falling back to the input, then the uuid', async () => {
+    for (const bad of ['x'.repeat(300), 'Bad Name', '[a](https://e.example)', 5]) {
+      const { c } = client(() => ok({ uuid: '069a79f444e94726a5befca90e38aaf5', name: bad, scammer: false, skyblockz_status: 'clear', flags: [] }))
+      expect((await c.checkScammer(' Steve ')).name).toBe('Steve')
+      expect((await c.checkScammer('069a79f4-44e9-4726-a5be-fca90e38aaf5')).name).toBe('069a79f444e94726a5befca90e38aaf5')
+    }
+    const { c } = client(() => ok({ uuid: '069a79f444e94726a5befca90e38aaf5', name: 'Real_Name', scammer: false, skyblockz_status: 'clear', flags: [] }))
+    expect((await c.checkScammer('Steve')).name).toBe('Real_Name')
+  })
+
+  it('rejects a response without a boolean scammer', async () => {
+    const { c } = client(() => ok({ uuid: 'u', name: 'Steve', flags: [] }))
+    await expect(c.checkScammer('Steve')).rejects.toMatchObject({ code: 'BAD_RESPONSE' })
+  })
+
+  it('maps 404 to PLAYER_NOT_FOUND, with or without the JSON envelope', async () => {
+    const enveloped = client(() => fail(404, 'NOT_FOUND', 'No Minecraft account has that username or UUID.'))
+    await expect(enveloped.c.checkScammer('Nobody')).rejects.toMatchObject({ status: 404, code: PLAYER_NOT_FOUND })
+    const bare = client(() => new Response('Not found', { status: 404 }))
+    await expect(bare.c.checkScammer('Nobody')).rejects.toMatchObject({ status: 404, code: PLAYER_NOT_FOUND })
+  })
+
+  it('surfaces a 502 upstream failure as an error', async () => {
+    const { c } = client(() => fail(502, 'UPSTREAM_ERROR', 'The lookup failed upstream. Retry later.'))
+    const err = await c.checkScammer('Steve').catch(e => e)
+    expect(err).toBeInstanceOf(GuildLbError)
+    expect(err).toMatchObject({ status: 502, code: 'UPSTREAM_ERROR' })
+  })
+
+  it('refuses without a guild key and makes no request', async () => {
+    const { c, calls } = client(() => ok(flagged), { apiKey: 'web-secret' })
+    await expect(c.checkScammer('Steve')).rejects.toMatchObject({ code: 'NO_KEY' })
+    expect(calls).toHaveLength(0)
   })
 })
 

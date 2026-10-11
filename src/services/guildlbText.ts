@@ -1,9 +1,10 @@
 import { escapeUntrusted } from '../discord/format'
-import { GuildLbError } from './guildlb'
+import { GuildLbError, PLAYER_NOT_FOUND } from './guildlb'
 
 export const NETWORTH_UNAVAILABLE = 'Networth unavailable: set HYPIXEL_API_KEY or GUILDLB_API_KEY.'
 export const NOT_TRACKED_QUEUED = 'Not tracked by GuildLB yet — it has been queued, try again in a few minutes.'
 export const NOT_TRACKED_LATER = 'Not tracked by GuildLB yet — try again later.'
+export const NO_ACCOUNT = 'No Minecraft account with that name.'
 export const GUILDLB_DOWN = 'GuildLB did not respond; try again later.'
 
 /** GuildLB answers 404 PLAYER_NOT_TRACKED with `details.queued`: true when it queued the player for tracking. */
@@ -24,6 +25,7 @@ export const ERROR_MESSAGE_MAX = 200
 export function guildLbErrorText(error: unknown): string {
   if (error instanceof GuildLbError) {
     if (error.status === 401) return 'GuildLB rejected the key.'
+    if (error.code === PLAYER_NOT_FOUND) return NO_ACCOUNT
     const flat = error.message.replace(/\s+/g, ' ').trim()
     const capped = flat.length > ERROR_MESSAGE_MAX ? `${flat.slice(0, ERROR_MESSAGE_MAX - 1)}…` : flat
     if (error.code === 'RATE_LIMITED' || error.code === 'NO_KEY') return escapeUntrusted(capped)

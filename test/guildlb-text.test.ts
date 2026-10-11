@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GuildLbError } from '../src/services/guildlb'
+import { GuildLbError, PLAYER_NOT_FOUND } from '../src/services/guildlb'
 import { formatAsOf, guildLbErrorText, NOT_TRACKED_LATER, NOT_TRACKED_QUEUED, notTrackedLine } from '../src/services/guildlbText'
 
 describe('guildlbText', () => {
@@ -17,6 +17,9 @@ describe('guildlbText', () => {
     expect(guildLbErrorText(new GuildLbError(429, 'RATE_LIMITED', 'GuildLB rate limit reached; retry in 30s'))).toBe('GuildLB rate limit reached; retry in 30s')
     expect(guildLbErrorText(new GuildLbError(500, 'INTERNAL_SERVER_ERROR', 'boom'))).toBe('GuildLB error (500): boom')
     expect(guildLbErrorText(new Error('x'))).toBe('GuildLB request failed.')
+  })
+  it('guildLbErrorText names an unknown Minecraft account', () => {
+    expect(guildLbErrorText(new GuildLbError(404, PLAYER_NOT_FOUND, 'whatever'))).toBe('No Minecraft account with that name.')
   })
   it('guildLbErrorText escapes and caps RATE_LIMITED and NO_KEY text too', () => {
     expect(guildLbErrorText(new GuildLbError(429, 'RATE_LIMITED', '**bold** [x](https://e.example)\n_y_'))).toBe(

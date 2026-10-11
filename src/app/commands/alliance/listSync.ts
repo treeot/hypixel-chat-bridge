@@ -33,18 +33,21 @@ export function clampPage(page: number, total: number): number {
   return Math.min(Math.max(0, page), pageCount(total) - 1)
 }
 
+export const OTHER_GUILDS_NOTE = "Other guilds' public entries can't be listed; use /alliance blacklist check <player> or /alliance scammer <player>."
+
+/** Your guild's own list (`GET /api/guild/blacklist`); GuildLB cannot list other guilds' entries. */
 export function listPageEmbed(entries: BlacklistEntry[], page: number, names: ReadonlyMap<string, string>): APIEmbed {
-  if (!entries.length) return SimpleEmbed('info', 'The alliance blacklist is empty.')
+  if (!entries.length) return SimpleEmbed('info', `Your guild's GuildLB blacklist is empty.\n\n${OTHER_GUILDS_NOTE}`)
   const p = clampPage(page, entries.length)
   const lines = entries.slice(p * PAGE_SIZE, (p + 1) * PAGE_SIZE).map((e, i) => {
     const uuid = e.playerUuid ? normalizeUuid(e.playerUuid) : ''
     const who = names.get(uuid) ?? (uuid || 'unknown player')
     const reason = e.reason ? `: ${escapeUntrusted(e.reason.replace(/\s+/g, ' ').trim().slice(0, 150))}` : ''
-    return `**${p * PAGE_SIZE + i + 1}. ${escapeUntrusted(who)}** — ${e.category} by ${escapeUntrusted(e.guildName ?? 'unknown guild')}${reason}`
+    return `**${p * PAGE_SIZE + i + 1}. ${escapeUntrusted(who)}** — ${e.category}${e.public === false ? ' (private)' : ''}${reason}`
   })
   return FullEmbed('info', {
-    title: `Alliance blacklist (${entries.length})`,
-    description: lines.join('\n'),
+    title: `Your guild's GuildLB blacklist (${entries.length})`,
+    description: [...lines, '', OTHER_GUILDS_NOTE].join('\n'),
     footer: { text: `Page ${p + 1}/${pageCount(entries.length)}` }
   })
 }
@@ -176,10 +179,10 @@ async function resolveNames(entries: BlacklistEntry[], page: number, names: Map<
   )
 }
 
-export async function runList(interaction: ChatInputCommandInteraction, client: Pick<GuildLbClient, 'allianceBlacklist'>, log: Logger): Promise<unknown> {
+export async function runList(interaction: ChatInputCommandInteraction, client: Pick<GuildLbClient, 'guildBlacklist'>, log: Logger): Promise<unknown> {
   let entries: BlacklistEntry[]
   try {
-    entries = await client.allianceBlacklist()
+    entries = await client.guildBlacklist()
   } catch (error) {
     return interaction.editReply({ embeds: [SimpleEmbed('failure', guildLbErrorText(error))] })
   }
@@ -240,7 +243,7 @@ export async function runSync(
   const counts = await pushPlan(
     plan,
     entry => client.addToBlacklist(entry, { maxWaitMs: SYNC_MAX_WAIT_MS }),
-    interaction.user.username,
+    interaction.user.id,
     async (done, total) => {
       await interaction.editReply({ embeds: [progressEmbed(done, total)] }).catch(error => log.warn('Sync progress edit failed', { error: String(error) }))
     }

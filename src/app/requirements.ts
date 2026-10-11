@@ -69,6 +69,9 @@ export function disabledFeatures(env: Env): StartupNotice[] {
       text: 'HYPIXEL_API_KEY not set: live SkyBlock stat commands, join requirements/auto-accept, GEXP, own-guild lookups, verify/link and Apply are disabled.'
     })
   if (!has(env, 'guildlbGuild'))
-    lines.push({ level: env.guildlb ? 'info' : 'debug', text: 'GUILDLB_GUILD_KEY not set: alliance blacklist checks and /alliance are off.' })
+    lines.push({
+      level: env.guildlb ? 'info' : 'debug',
+      text: 'GUILDLB_GUILD_KEY not set: alliance blacklist and scammer checks, /alliance and !scammer are off.'
+    })
   return lines
 }

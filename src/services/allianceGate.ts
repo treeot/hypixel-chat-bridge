@@ -1,6 +1,6 @@
 import type { APIEmbed, APIEmbedField } from 'discord.js'
 import { escapeUntrusted, FullEmbed, headUrl } from '../discord/format'
-import { normalizeUuid, type BlacklistEntry, type GuildLbClient } from './guildlb'
+import { normalizeUuid, type BlacklistEntry, type GuildLbClient, type ScammerCheck } from './guildlb'
 
 /** Alliance blacklist check. `skipped` = no guild key, or GuildLB failed (logged once by `attempt`). */
 export type AllianceVerdict = { status: 'clear' } | { status: 'listed'; entries: BlacklistEntry[] } | { status: 'skipped' }
@@ -15,17 +15,19 @@ export async function checkAlliance(
   return result.blacklisted ? { status: 'listed', entries: result.entries } : { status: 'clear' }
 }
 
-const oneLine = (s: string) => s.replace(/\s+/g, ' ').trim()
+export const oneLine = (s: string) => s.replace(/\s+/g, ' ').trim()
 
 export const OFFICER_LINE_MAX = 200
+
+/** Caps an in-game line built from other services' text. */
+export const capLine = (line: string): string => (line.length > OFFICER_LINE_MAX ? `${line.slice(0, OFFICER_LINE_MAX - 1)}…` : line)
 
 /** In-game officer line. Other guilds' text is flattened and capped; the send still goes through the fail-closed safety guard. */
 export function allianceOfficerLine(ign: string, entries: BlacklistEntry[]): string {
   const by = entries.length
     ? entries.map(e => `${oneLine(e.guildName ?? 'unknown guild')} (${e.category})${e.reason ? `: ${oneLine(e.reason)}` : ''}`).join('; ')
     : 'an alliance guild'
-  const line = `[Alliance] ${ign} is blacklisted by ${by}`
-  return line.length > OFFICER_LINE_MAX ? `${line.slice(0, OFFICER_LINE_MAX - 1)}…` : line
+  return capLine(`[Alliance] ${ign} is blacklisted by ${by}`)
 }
 
 function dateTag(iso: string): string {
@@ -45,6 +47,52 @@ export function allianceEmbed(ign: string, entries: BlacklistEntry[], outcome: s
     author: { name: `${ign} is on the GuildLB alliance blacklist`, icon_url: headUrl(ign) },
     description: outcome,
     fields: entries.slice(0, 10).map(entryField),
+    timestamp: new Date().toISOString()
+  })
+}
+
+export const SKYBLOCKZ_UNREACHABLE = 'SkyBlockZ unreachable — result covers alliance entries only'
+const SKYBLOCKZ_LABEL: Record<ScammerCheck['skyblockzStatus'], string> = { flagged: 'Flagged', clear: 'Clear', unknown: SKYBLOCKZ_UNREACHABLE }
+
+/** Discord fields for a scammer check: one escaped `Source: reason` line per flag, then the SkyBlockZ status (never "clear" when unknown). */
+export function scammerFields(check: ScammerCheck): APIEmbedField[] {
+  const fields: APIEmbedField[] = []
+  if (check.flags.length) {
+    const lines = check.flags.map(f => escapeUntrusted(`${oneLine(f.source)}: ${oneLine(f.reason) || 'no reason given'}`))
+    fields.push({ name: 'Flags', value: lines.join('\n').slice(0, 1024) })
+  }
+  fields.push({ name: 'SkyBlockZ', value: SKYBLOCKZ_LABEL[check.skyblockzStatus] })
+  return fields
+}
+
+export function scammerSummary(check: ScammerCheck): string {
+  if (!check.scammer) return 'No scam flags.'
+  const n = check.flags.length
+  return n ? `Flagged by ${n} source${n === 1 ? '' : 's'}.` : 'Flagged as a scammer.'
+}
+
+const shortSource = (source: string) => (source === 'Guild Alliance' ? 'Alliance' : oneLine(source))
+
+/** One in-game line. Reasons come from SkyBlockZ and other guilds: flattened, capped, and sent only through the guarded execute. */
+export function scammerChatLine(check: ScammerCheck): string {
+  const name = oneLine(check.name)
+  if (check.scammer) {
+    const flags = check.flags.map(f => `${shortSource(f.source)}: ${oneLine(f.reason) || 'no reason given'}`).join(' | ')
+    return capLine(`${name}: SCAMMER${flags ? ` — ${flags}` : ''}`)
+  }
+  return capLine(check.skyblockzStatus === 'unknown' ? `${name}: no alliance scam flags (SkyBlockZ unreachable)` : `${name}: no scam flags (SkyBlockZ clear)`)
+}
+
+/** Officer line for a flagged join; `ign` is the requester's name as seen in game. */
+export function scammerOfficerLine(ign: string, check: ScammerCheck): string {
+  return capLine(`[Alliance] ${scammerChatLine({ ...check, name: ign })}`)
+}
+
+export function scammerEmbed(ign: string, check: ScammerCheck, outcome: string): APIEmbed {
+  return FullEmbed('failure', {
+    author: { name: `${ign} is flagged as a scammer on GuildLB`, icon_url: headUrl(ign) },
+    description: outcome,
+    fields: scammerFields(check),
     timestamp: new Date().toISOString()
   })
 }

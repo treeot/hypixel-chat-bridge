@@ -5,7 +5,7 @@ import { BLACKLIST_CATEGORIES, type BlacklistCategory } from '../../../services/
 import { disabledLine } from '../../requirements'
 import { resolveMinecraftAccount } from '../moderation/_shared'
 import { runList, runSync } from './listSync'
-import { allianceAdd, allianceCheck, allianceRemove, type AllianceDeps } from './handlers'
+import { allianceAdd, allianceCheck, allianceRemove, allianceScammer, type AllianceDeps } from './handlers'
 
 const player: ApplicationCommandStringOptionData = {
   name: 'player',
@@ -36,7 +36,7 @@ const subcommands: ApplicationCommandSubCommandData[] = [
   },
   { name: 'remove', description: "Remove a player from your guild's alliance blacklist", type: ApplicationCommandOptionType.Subcommand, options: [player] },
   { name: 'check', description: 'Check a player against the alliance blacklist', type: ApplicationCommandOptionType.Subcommand, options: [player] },
-  { name: 'list', description: "Show the whole alliance's blacklist", type: ApplicationCommandOptionType.Subcommand },
+  { name: 'list', description: "Show your guild's own GuildLB blacklist", type: ApplicationCommandOptionType.Subcommand },
   { name: 'sync', description: 'Push local blacklist entries that are missing on GuildLB', type: ApplicationCommandOptionType.Subcommand }
 ]
 
@@ -44,7 +44,15 @@ const alliance: SlashCommand = {
   name: 'alliance',
   description: 'GuildLB alliance tools.',
   type: 1,
-  options: [{ name: 'blacklist', description: 'The GuildLB alliance blacklist', type: ApplicationCommandOptionType.SubcommandGroup, options: subcommands }],
+  options: [
+    { name: 'blacklist', description: 'The GuildLB alliance blacklist', type: ApplicationCommandOptionType.SubcommandGroup, options: subcommands },
+    {
+      name: 'scammer',
+      description: 'Check a player against SkyBlockZ and the alliance scammer entries',
+      type: ApplicationCommandOptionType.Subcommand,
+      options: [player]
+    }
+  ],
   permission: 'staff',
   deferred: true,
   hiddenWithout: ['guildlbGuild'],
@@ -66,7 +74,6 @@ const alliance: SlashCommand = {
           category: category as BlacklistCategory,
           reason: opts.getString('reason') ?? undefined,
           isPublic: opts.getBoolean('public') ?? undefined,
-          staffName: interaction.user.username,
           staffId: interaction.user.id
         })
         return interaction.editReply({ embeds: [embed] })
@@ -75,6 +82,8 @@ const alliance: SlashCommand = {
         return interaction.editReply({ embeds: [await allianceRemove(deps, opts.getString('player', true))] })
       case 'check':
         return interaction.editReply({ embeds: [await allianceCheck(deps, opts.getString('player', true))] })
+      case 'scammer':
+        return interaction.editReply({ embeds: [await allianceScammer(deps, opts.getString('player', true))] })
       case 'list':
         return runList(interaction, client, ctx.log)
       case 'sync':
