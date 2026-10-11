@@ -1,0 +1,245 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Same ramp as treeot.rocks so the two properties read as one hand: near-monochrome
+     neutrals tinted a few degrees toward the accent, with one violet reserved for state.
+     Dashboard-only additions are --danger and --success, for destructive actions and
+     health tiles — the portfolio has nothing that needs them. */
+  :root {
+    --background: 258 14% 6%;
+    --surface: 258 12% 9%;
+    --surface-2: 257 11% 12.5%;
+    --foreground: 250 20% 97%;
+    --muted: 257 11% 14%;
+    --muted-foreground: 255 8% 63%;
+    --border: 257 10% 17%;
+    --border-strong: 257 9% 27%;
+    --accent: 256 92% 72%;
+    --ring: 256 70% 60%;
+    --danger: 358 72% 62%;
+    --success: 152 55% 50%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.011em;
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.03em;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-offset-2;
+    --tw-ring-color: hsl(var(--ring) / 0.7);
+    --tw-ring-offset-color: hsl(var(--background));
+  }
+}
+
+@layer components {
+  /* ---------- shell ---------- */
+  .shell {
+    @apply mx-auto w-full max-w-5xl px-6 pb-24 pt-10;
+  }
+  .topbar {
+    @apply sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md;
+  }
+  .topbar-inner {
+    @apply mx-auto flex h-14 max-w-5xl items-center justify-between gap-6 px-6;
+  }
+  .brand {
+    @apply font-mono text-sm font-medium tracking-tight text-foreground;
+  }
+  .nav-link {
+    @apply rounded-md px-2.5 py-1.5 font-mono text-[13px] text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground;
+  }
+  .nav-link-active {
+    @apply bg-surface-2 text-foreground;
+  }
+
+  /* ---------- type ---------- */
+  .eyebrow {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground;
+  }
+  .page-title {
+    @apply mt-3 text-3xl font-semibold tracking-[-0.035em] text-foreground;
+  }
+  .page-note {
+    @apply mt-3 max-w-2xl text-sm leading-6 text-muted-foreground;
+  }
+  .section-heading {
+    @apply flex items-center gap-4 pb-4 pt-12;
+  }
+  .section-heading h2 {
+    @apply shrink-0 text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground;
+  }
+  .section-heading::after {
+    content: '';
+    @apply h-px flex-1 bg-border;
+  }
+
+  /* ---------- collapsible sections ---------- */
+  /* The same heading rule as above, with the whole row as the click target. `relative`
+     anchors the action slot, which sits outside <summary> so its button does not toggle. */
+  .section-fold {
+    @apply relative;
+  }
+  .section-fold-summary {
+    @apply flex cursor-pointer list-none items-center gap-3 pb-4 pt-12;
+  }
+  /* Safari draws its own triangle on a summary unless this pseudo-element is cleared. */
+  .section-fold-summary::-webkit-details-marker {
+    display: none;
+  }
+  .section-fold-summary h2 {
+    @apply shrink-0 text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground;
+  }
+  .section-fold-summary::after {
+    content: '';
+    @apply h-px flex-1 bg-border;
+  }
+  .section-fold-summary:hover h2 {
+    @apply text-foreground;
+  }
+  /* Keyboard focus lands on the summary; without this the ring is the only cue and the
+     browser default sits awkwardly across the full-width row. */
+  .section-fold-summary:focus-visible {
+    @apply outline-none;
+  }
+  .section-fold-summary:focus-visible h2 {
+    @apply text-foreground underline underline-offset-4;
+  }
+  .section-fold-caret {
+    @apply w-3 shrink-0 text-center text-[13px] leading-none text-muted-foreground transition-transform;
+  }
+  .section-fold[open] .section-fold-caret {
+    @apply rotate-90;
+  }
+  /* Pinned to the heading row rather than flowing after it, so an action button lines up
+     with the title instead of pushing the panel down. */
+  .section-fold-action {
+    @apply absolute right-0 top-12 -translate-y-1/2 pt-2;
+  }
+
+  /* ---------- panels ---------- */
+  /* gap-px over a bordered container: the container colour shows through as hairline
+     dividers, so a grid of tiles costs one border instead of one per cell. */
+  .tile-grid {
+    @apply grid gap-px overflow-hidden rounded-lg border border-border bg-border;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  }
+  .tile {
+    @apply bg-surface px-5 py-4;
+  }
+  .tile dt {
+    @apply font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground;
+  }
+  .tile dd {
+    @apply mt-2 text-2xl font-semibold tabular-nums tracking-[-0.03em] text-foreground;
+  }
+  .panel {
+    @apply overflow-hidden rounded-lg border border-border bg-surface;
+  }
+  .panel-empty {
+    @apply px-5 py-12 text-center font-mono text-xs text-muted-foreground;
+  }
+
+  /* ---------- table ---------- */
+  .table {
+    @apply w-full border-collapse text-sm;
+  }
+  .table th {
+    @apply border-b border-border px-5 py-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground;
+  }
+  .table td {
+    @apply border-b border-border px-5 py-3.5 align-middle text-foreground;
+  }
+  .table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .table tbody tr {
+    @apply transition-colors hover:bg-surface-2;
+  }
+  .cell-mono {
+    @apply font-mono text-[12px] tabular-nums text-muted-foreground;
+  }
+  .cell-num {
+    @apply font-mono tabular-nums text-foreground;
+  }
+
+  /* ---------- controls ---------- */
+  .btn {
+    @apply inline-flex h-8 items-center justify-center gap-1.5 rounded-md px-3 text-[13px] font-medium transition-colors disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-foreground text-background hover:bg-foreground/90;
+  }
+  .btn-ghost {
+    @apply btn border border-border bg-surface-2 text-muted-foreground hover:border-border-strong hover:text-foreground;
+  }
+  .btn-danger {
+    @apply btn border text-[hsl(var(--danger))] hover:bg-[hsl(var(--danger)/0.12)];
+    border-color: hsl(var(--danger) / 0.35);
+  }
+  .input {
+    @apply w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground;
+  }
+  textarea.input {
+    @apply min-h-[5rem] resize-y leading-6;
+  }
+
+  /* ---------- status ---------- */
+  .dot {
+    @apply inline-block h-1.5 w-1.5 shrink-0 rounded-full;
+  }
+  .dot-up {
+    background: hsl(var(--success));
+  }
+  .dot-down {
+    background: hsl(var(--danger));
+  }
+  .status {
+    @apply inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground;
+  }
+  .flash {
+    @apply mt-4 rounded-md border px-3 py-2 font-mono text-[12px];
+    border-color: hsl(var(--success) / 0.35);
+    color: hsl(var(--success));
+    background: hsl(var(--success) / 0.08);
+  }
+  .flash-error {
+    border-color: hsl(var(--danger) / 0.35);
+    color: hsl(var(--danger));
+    background: hsl(var(--danger) / 0.08);
+  }
+
+  /* ---------- bridge dashboard additions ---------- */
+  .switch {
+    @apply relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border border-border bg-muted transition-colors;
+  }
+  .switch[aria-checked='true'] {
+    @apply bg-accent;
+  }
+  .switch-thumb {
+    @apply absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-foreground transition-transform;
+  }
+  .switch[aria-checked='true'] .switch-thumb {
+    @apply translate-x-4;
+  }
+  .table-wrap {
+    @apply w-full overflow-x-auto;
+  }
+  .field-error {
+    @apply mt-1 text-xs text-danger;
+  }
+}
