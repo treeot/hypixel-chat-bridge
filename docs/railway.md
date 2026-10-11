@@ -31,6 +31,22 @@ Railway auto-detects the `Dockerfile` in the repo root and builds it, and its de
 
 Do not add replicas: Railway does not allow replicas on a service with a Volume, and the bridge must run one Minecraft session per account anyway.
 
+## Bridge + Dashboard template
+
+The optional dashboard runs as a second service. The bridge stays private; only the dashboard has a public domain.
+
+| Service | Variable | Value |
+|---|---|---|
+| Bridge | `REST_API_TOKEN` | random, 48 characters |
+| Bridge | `REST_API_PORT` | `3000` |
+| Bridge | `DASHBOARD_API` | `true` |
+| Dashboard | `RAILWAY_DOCKERFILE_PATH` | `dashboard/Dockerfile` |
+| Dashboard | `BRIDGE_URL` | `http://<bridge service>.railway.internal:3000` |
+| Dashboard | `BRIDGE_TOKEN` | the bridge's `REST_API_TOKEN` |
+| Dashboard | `AUTH_SECRET`, `AUTH_DISCORD_ID`, `AUTH_DISCORD_SECRET`, `AUTH_TRUST_HOST` | see [dashboard.md](dashboard.md) |
+
+Give the bridge no public domain. Setup steps and troubleshooting: [dashboard.md](dashboard.md). It adds about \$1–2/month: one guild with the dashboard costs about \$5–6/month (just over the Hobby plan's \$5 included usage).
+
 ## Safety guard
 
 If the bridge runs on Railway (any of `RAILWAY_ENVIRONMENT`, `RAILWAY_ENVIRONMENT_NAME`, `RAILWAY_ENVIRONMENT_ID`, `RAILWAY_PROJECT_ID` set) with SQLite and no Volume (`RAILWAY_VOLUME_MOUNT_PATH` unset), it refuses to start. The message says the data would be wiped on the next redeploy. Fix it by attaching a Volume at `/app/data` or by setting `DATABASE_URL`.

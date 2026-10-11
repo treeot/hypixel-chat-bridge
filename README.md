@@ -22,6 +22,7 @@ Two-way chat bridge between Hypixel guild chat and Discord. One process can serv
 - **Verification:** `/verify` checks the Discord name on the Hypixel profile; optional role and nickname.
 - **Setup in Discord** with `/setup`; only three environment variables are required.
 - **Storage:** SQLite (default), MongoDB or Postgres. See [storage](docs/storage.md), or [use a free database](docs/free-database.md) to drop the Railway Volume.
+- Want a web dashboard? See [docs/dashboard.md](docs/dashboard.md).
 - Optional [REST API](docs/rest-api.md) for sending chat or commands from other tools.
 - Optional [GuildLB](docs/guildlb.md): stored networth for `!nw` and the alliance blacklist (`/alliance blacklist ...`).
 
@@ -106,6 +107,7 @@ Railway's Hobby plan is \$5/month and includes \$5 of usage. Rates: RAM \$10/GB-
 | One guild, SQLite on a Volume (default template)  | ≈ \$3.80         |
 | One guild, Railway Postgres instead of SQLite     | ≈ \$4.65         |
 | One guild, free MongoDB Atlas database, no Volume | ≈ \$3.65         |
+| One guild with the dashboard (adds ≈ \$1–2)       | ≈ \$5–6          |
 | Each extra guild account                          | ≈ +\$1.00        |
 
 These are estimates. They assume the bot uses about 300 MB RAM and 0.03 vCPU (≈ \$3.60), plus about \$0.15 for the Volume and \$0.05 for egress, at the Hobby rates above. The Postgres row drops the Volume (\$0.15) and adds about \$1 for Railway Postgres. If you run the bot, share your Railway usage in an issue so we can replace these with real numbers.
@@ -114,7 +116,7 @@ To trim the bill, use a free hosted database instead of the Volume or Railway Po
 
 ## Docs
 
-[Configuration](docs/configuration.md) · [Commands](docs/commands.md) · [Multiple guilds](docs/multi-guild.md) · [Storage](docs/storage.md) · [Free database](docs/free-database.md) · [Railway](docs/railway.md) · [Safety filter](docs/safety-filter.md) · [REST API](docs/rest-api.md) · [GuildLB](docs/guildlb.md) · [FAQ](docs/faq.md) · [Troubleshooting](docs/troubleshooting.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+[Configuration](docs/configuration.md) · [Commands](docs/commands.md) · [Multiple guilds](docs/multi-guild.md) · [Storage](docs/storage.md) · [Free database](docs/free-database.md) · [Railway](docs/railway.md) · [Dashboard](docs/dashboard.md) · [Safety filter](docs/safety-filter.md) · [REST API](docs/rest-api.md) · [GuildLB](docs/guildlb.md) · [FAQ](docs/faq.md) · [Troubleshooting](docs/troubleshooting.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 ## License
 

@@ -51,6 +51,33 @@ jobs:
       - run: npm run build
       - run: npm run docs:check
 
+  dashboard:
+    name: dashboard typecheck, test, build, e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            dashboard/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: dashboard
+      - run: npm run typecheck
+        working-directory: dashboard
+      - run: npm test
+        working-directory: dashboard
+      - run: npm run build
+        working-directory: dashboard
+      - run: npx playwright install --with-deps chromium
+        working-directory: dashboard
+      - run: npm run e2e
+        working-directory: dashboard
+
   docker:
     name: docker image smoke test
     runs-on: ubuntu-latest
@@ -66,3 +93,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - run: bash scripts/docker-smoke.sh hypixel-chat-bridge:ci
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dashboard/Dockerfile
+          load: true
+          tags: hypixel-chat-bridge-dashboard:ci
+          cache-from: type=gha,scope=dashboard
+          cache-to: type=gha,mode=max,scope=dashboard
+      - run: bash scripts/dashboard-docker-smoke.sh hypixel-chat-bridge-dashboard:ci
