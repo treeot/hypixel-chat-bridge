@@ -3,3 +3,8 @@ dist/
 node_modules/
 package-lock.json
 src/data/constants.json
+dashboard/.next/
+dashboard/node_modules/
+dashboard/test-results/
+dashboard/playwright-report/
+dashboard/next-env.d.ts

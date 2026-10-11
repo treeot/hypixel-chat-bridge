@@ -10,6 +10,13 @@ coverage
 *.log
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
+!**/.env.example
 .minecraft
 docker-compose.yml
+dashboard/node_modules
+dashboard/.next
+dashboard/test-results
+dashboard/playwright-report
