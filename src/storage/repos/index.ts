@@ -1,11 +1,13 @@
 import type { Store } from '../store'
+import { AuditRepo } from './audit'
 import { AuthCacheRepo } from './authCache'
 import { InfoRepository } from './info'
 import { LinkRepo } from './links'
 import { BlacklistRepo, WhitelistRepo } from './lists'
 import { WaitlistRepo } from './waitlist'
 
-export { AuthCacheRepo, BlacklistRepo, InfoRepository, LinkRepo, WaitlistRepo, WhitelistRepo }
+export { AuditRepo, AuthCacheRepo, BlacklistRepo, InfoRepository, LinkRepo, WaitlistRepo, WhitelistRepo }
+export type { AuditEntry, AuditInput } from './audit'
 export type { InfoDoc } from './info'
 export type { LinkEntry } from './links'
 export type { BlacklistEntry, PlayerListEntry, WhitelistEntry } from './lists'
@@ -19,6 +21,7 @@ export interface Repos {
   waitlist: WaitlistRepo
   link: LinkRepo
   authCache: AuthCacheRepo
+  audit: AuditRepo
 }
 
 export function createRepos(store: Store): Repos {
@@ -28,6 +31,7 @@ export function createRepos(store: Store): Repos {
     blacklist: new BlacklistRepo(store),
     waitlist: new WaitlistRepo(store),
     link: new LinkRepo(store),
-    authCache: new AuthCacheRepo(store)
+    authCache: new AuthCacheRepo(store),
+    audit: new AuditRepo(store)
   }
 }

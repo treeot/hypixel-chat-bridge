@@ -44,3 +44,26 @@ describe('docs/railway.md template settings', () => {
     for (const v of ENV_VARS.filter(v => v.required)) expect(deploy, v.name).toContain(`\`${v.name}\``)
   })
 })
+
+describe('dashboard image', () => {
+  const dockerignore = readFileSync('.dockerignore', 'utf8')
+    .split('\n')
+    .map(l => l.trim())
+  it('keeps dashboard build artifacts out of the context', () => {
+    expect(dockerignore).toContain('dashboard/node_modules')
+    expect(dockerignore).toContain('dashboard/.next')
+  })
+  it('does not exclude the dashboard or src from the context', () => {
+    expect(dockerignore).not.toContain('dashboard')
+    expect(dockerignore).not.toContain('src')
+  })
+  it('runs the standalone server as node on $PORT', () => {
+    const file = readFileSync('dashboard/Dockerfile', 'utf8')
+    expect(file).toMatch(/^USER node$/m)
+    expect(file).toContain('CMD ["node", "dashboard/server.js"]')
+    expect(file).toContain('HOSTNAME=0.0.0.0')
+  })
+  it('bridge REST API listens without a host so Railway private networking (IPv6) works', () => {
+    expect(readFileSync('src/app/api/server.ts', 'utf8')).toMatch(/\.listen\(restApi\.port, \(\)/)
+  })
+})

@@ -6,6 +6,8 @@ import type { ExecuteResult } from '../src/core/contracts'
 import { createApiHandler, isAuthorized, parseAccountId, type ApiAccount } from '../src/app/api/server'
 import type { ScreenVerdict } from '../src/app/features/screening'
 import { silentLogger } from './helpers/log'
+import { memoryStore } from './helpers/memoryStore'
+import { AuditRepo } from '../src/storage/repos/audit'
 
 const TOKEN = 'a-long-enough-test-token'
 
@@ -144,6 +146,11 @@ describe('other routes', () => {
     expect((await post('/nope', {})).status).toBe(404)
     expect((await fetch(`${base}/chat`, { headers: { authorization: `Bearer ${TOKEN}` } })).status).toBe(404)
   })
+
+  it('has no dashboard endpoints without dashboard deps (DASHBOARD_API off)', async () => {
+    expect((await fetch(`${base}/accounts`)).status).toBe(401)
+    expect((await fetch(`${base}/accounts`, { headers: { authorization: `Bearer ${TOKEN}` } })).status).toBe(404)
+  })
 })
 
 describe('default account', () => {
@@ -173,5 +180,82 @@ describe('parseAccountId', () => {
     expect(parseAccountId(null, undefined)).toEqual({ ok: true })
     expect(parseAccountId(null, 0)).toEqual({ ok: false, error: 'accountId must be a positive whole number' })
     expect(parseAccountId(null, 1.5).ok).toBe(false)
+  })
+})
+
+describe('legacy routes audit', () => {
+  let auditServer: http.Server
+  let auditBase: string
+  let audit: AuditRepo
+  let acc: ReturnType<typeof fakeAccount>
+
+  beforeEach(async () => {
+    acc = fakeAccount(1)
+    audit = new AuditRepo(memoryStore())
+    const handler = createApiHandler({
+      token: TOKEN,
+      log: silentLogger(),
+      screenInvite: vi.fn(async (): Promise<ScreenVerdict> => ({ action: 'continue' })),
+      accounts: { get: id => (id === 1 ? acc : undefined) },
+      dashboard: { audit } as never
+    })
+    auditServer = http.createServer((req, res) => void handler(req, res))
+    auditServer.listen(0, '127.0.0.1')
+    await once(auditServer, 'listening')
+    auditBase = `http://127.0.0.1:${(auditServer.address() as AddressInfo).port}`
+  })
+
+  afterEach(async () => {
+    auditServer.closeAllConnections()
+    await new Promise<void>(resolve => auditServer.close(() => resolve()))
+  })
+
+  const postWith = (path: string, body: unknown, headers: Record<string, string> = {}) =>
+    fetch(auditBase + path, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json', ...headers },
+      body: JSON.stringify(body)
+    })
+
+  it('audits a dashboard chat send with the author', async () => {
+    const res = await postWith('/chat', { chat: 'guild', message: 'hi', author: 'Ben' }, { 'x-actor': '123456789012345678' })
+    expect(res.status).toBe(200)
+    expect(acc.sendChat).toHaveBeenCalledWith('guild', 'Ben', 'hi')
+    const rows = await audit.page({ limit: 10 })
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ action: 'chat.send', accountId: 1, target: 'guild', actorId: '123456789012345678' })
+  })
+
+  it('does not audit without X-Actor and keeps API as author', async () => {
+    const res = await postWith('/chat', { chat: 'guild', message: 'hi' })
+    expect(res.status).toBe(200)
+    expect(acc.sendChat).toHaveBeenCalledWith('guild', 'API', 'hi')
+    expect(await audit.page({ limit: 10 })).toEqual([])
+  })
+
+  it('still returns 200 when recording the audit entry fails', async () => {
+    const failing = createApiHandler({
+      token: TOKEN,
+      log: silentLogger(),
+      screenInvite: vi.fn(async (): Promise<ScreenVerdict> => ({ action: 'continue' })),
+      accounts: { get: id => (id === 1 ? acc : undefined) },
+      dashboard: { audit: { record: vi.fn().mockRejectedValue(new Error('disk full')), page: vi.fn() } } as never
+    })
+    const srv = http.createServer((req, res) => void failing(req, res))
+    srv.listen(0, '127.0.0.1')
+    await once(srv, 'listening')
+    try {
+      const res = await fetch(`http://127.0.0.1:${(srv.address() as AddressInfo).port}/chat`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json', 'x-actor': '123456789012345678' },
+        body: JSON.stringify({ chat: 'guild', message: 'hi' })
+      })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ ok: true, accountId: 1 })
+      expect(acc.sendChat).toHaveBeenCalledWith('guild', 'API', 'hi')
+    } finally {
+      srv.closeAllConnections()
+      await new Promise<void>(resolve => srv.close(() => resolve()))
+    }
   })
 })

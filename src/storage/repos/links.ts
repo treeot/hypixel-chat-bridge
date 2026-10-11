@@ -27,6 +27,10 @@ export class LinkRepo {
     await this.docs.upsert({ id: entry.id, uuid: entry.uuid, ign: entry.ign })
   }
 
+  async all(): Promise<LinkEntry[]> {
+    return (await this.docs.find()).map(doc => ({ id: doc.id, uuid: doc.uuid, ign: doc.ign }))
+  }
+
   async delete(discordId: string): Promise<boolean> {
     return this.docs.delete(discordId)
   }

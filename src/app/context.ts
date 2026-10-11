@@ -17,6 +17,8 @@ export interface AppContext {
   info: InfoRepository
   settings: SettingsStore
   accountControl: AccountControl
+  /** Republish slash commands after a features change. Absent in tests and before the bridge starts. */
+  republishCommands?: () => Promise<void>
   repos: Omit<Repos, 'info'>
   waitlists(accountId: AccountId): WaitlistRepo
   accounts: AccountManager<Account>

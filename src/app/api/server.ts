@@ -4,6 +4,10 @@ import type { AppContext } from '../context'
 import type { Chat, ExecuteResult } from '../../core/contracts'
 import type { Logger } from '../../core/logger'
 import { runPreAcceptCheck, type ScreenVerdict } from '../features/screening'
+import { recordSafe } from './audit'
+import type { DashboardDeps } from './deps'
+import { dashboardRoutes } from './routes'
+import { ACTOR, matchRoute, type Body, type Route } from './router'
 
 export interface ApiAccount {
   readonly id: number
@@ -23,6 +27,7 @@ export interface ApiDeps {
   accounts: ApiAccounts
   log: Logger
   screenInvite(accountId: number, username: string): Promise<ScreenVerdict>
+  dashboard?: DashboardDeps
 }
 
 const MAX_BODY_BYTES = 16 * 1024
@@ -30,8 +35,7 @@ const MINECRAFT_NAME = /^\w{1,16}$/
 // eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f]/
 
-type Body = Record<string, unknown>
-type Plan = { ok: true; send(account: ApiAccount): ExecuteResult; screen?: string } | { ok: false; error: string }
+type Plan = { ok: true; send(account: ApiAccount): ExecuteResult; screen?: string; audit: { action: string; target: string } } | { ok: false; error: string }
 
 interface ModerationAction {
   build(user: string, extra: string | undefined): string
@@ -56,12 +60,14 @@ const ROUTES: Record<string, (body: Body) => Plan> = {
     const { chat, message } = body
     if ((chat !== 'guild' && chat !== 'officer') || !oneLine(message))
       return { ok: false, error: 'Expected { chat: "guild"|"officer", message: string } (one line)' }
-    return { ok: true, send: account => account.sendChat(chat, 'API', message.trim()) }
+    const { author: rawAuthor } = body
+    const author = oneLine(rawAuthor) && rawAuthor.length <= 32 ? rawAuthor.trim() : 'API'
+    return { ok: true, send: account => account.sendChat(chat, author, message.trim()), audit: { action: 'chat.send', target: chat } }
   },
   '/command': body => {
     const { command } = body
     if (!oneLine(command)) return { ok: false, error: 'Expected { command: string } (one line)' }
-    return { ok: true, send: account => account.execute(command.trim(), { priority: true }) }
+    return { ok: true, send: account => account.execute(command.trim(), { priority: true }), audit: { action: 'guild.command', target: command.trim() } }
   },
   '/moderation': body => {
     const { action, user, extra } = body
@@ -73,6 +79,7 @@ const ROUTES: Record<string, (body: Body) => Plan> = {
     return {
       ok: true,
       send: account => account.execute(spec.build(user, extra as string | undefined), { priority: true }),
+      audit: { action: 'guild.moderation', target: `${action} ${user}` },
       ...(spec.screened ? { screen: user } : {})
     }
   }
@@ -110,6 +117,7 @@ function pickAccount(
 }
 
 export function createApiHandler(deps: ApiDeps): (req: http.IncomingMessage, res: http.ServerResponse) => Promise<void> {
+  const routes = deps.dashboard ? dashboardRoutes(deps.dashboard) : []
   return async (req, res) => {
     const method = req.method ?? 'GET'
     const url = new URL(req.url ?? '/', 'http://localhost')
@@ -128,8 +136,9 @@ export function createApiHandler(deps: ApiDeps): (req: http.IncomingMessage, res
       }
 
       if (!isAuthorized(req.headers.authorization, deps.token)) return finish(401, { ok: false, error: 'Unauthorized' })
-      const route = method === 'POST' && Object.hasOwn(ROUTES, path) ? ROUTES[path] : undefined
-      if (!route) return finish(404, { ok: false, error: 'Not found' })
+      const legacy = method === 'POST' && Object.hasOwn(ROUTES, path) ? ROUTES[path] : undefined
+      if (!legacy) return await handleDashboard(routes, method, url, req, res, finish)
+      const route = legacy
 
       let body: Body
       try {
@@ -152,6 +161,13 @@ export function createApiHandler(deps: ApiDeps): (req: http.IncomingMessage, res
       }
       const sent = plan.send(account)
       if (!sent.ok) return finish(422, { ok: false, error: 'blocked', reason: sent.reason })
+      const actor = req.headers['x-actor']
+      if (deps.dashboard && typeof actor === 'string' && ACTOR.test(actor)) {
+        await recordSafe(
+          { audit: deps.dashboard.audit, log: deps.log },
+          { actorId: actor, action: plan.audit.action, target: plan.audit.target, accountId: account.id }
+        )
+      }
       return finish(200, { ok: true, accountId: account.id })
     } catch (error) {
       deps.log.error('Unhandled error in REST API handler', error)
@@ -160,7 +176,7 @@ export function createApiHandler(deps: ApiDeps): (req: http.IncomingMessage, res
   }
 }
 
-export function createRestApi(ctx: AppContext): { start(): Promise<void>; stop(): Promise<void> } {
+export function createRestApi(ctx: AppContext, dashboard?: DashboardDeps): { start(): Promise<void>; stop(): Promise<void> } {
   const log = ctx.log.child('api')
   let server: http.Server | undefined
 
@@ -175,7 +191,8 @@ export function createRestApi(ctx: AppContext): { start(): Promise<void>; stop()
         token: restApi.token,
         accounts: ctx.accounts,
         log,
-        screenInvite: (accountId, username) => runPreAcceptCheck(ctx, { flow: 'invite', accountId, uuid: '', username })
+        screenInvite: (accountId, username) => runPreAcceptCheck(ctx, { flow: 'invite', accountId, uuid: '', username }),
+        ...(dashboard ? { dashboard } : {})
       })
       const created = http.createServer((req, res) => void handle(req, res))
       server = created
@@ -197,7 +214,34 @@ export function createRestApi(ctx: AppContext): { start(): Promise<void>; stop()
   }
 }
 
-function readJsonObject(req: http.IncomingMessage): Promise<Body> {
+async function handleDashboard(
+  routes: readonly Route[],
+  method: string,
+  url: URL,
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  finish: (status: number, body: unknown) => void
+): Promise<void> {
+  const found = matchRoute(routes, method, url.pathname)
+  if (!found) return finish(404, { ok: false, error: 'Not found' })
+  if (found === 'method') return finish(405, { ok: false, error: 'Method not allowed' })
+  const { route, params } = found
+  const header = req.headers['x-actor']
+  const actor = typeof header === 'string' && ACTOR.test(header) ? header : undefined
+  if (route.write && !actor) return finish(400, { ok: false, error: 'X-Actor header with a Discord user id is required' })
+  let body: Body = {}
+  if (method !== 'GET') {
+    try {
+      body = await readJsonObject(req, route.maxBody)
+    } catch (error) {
+      return finish(400, { ok: false, error: error instanceof Error ? error.message : 'Invalid JSON body' })
+    }
+  }
+  const result = await route.run({ params, query: url.searchParams, body, actor, req, res })
+  if (result !== 'streamed') finish(result.status, result.body)
+}
+
+function readJsonObject(req: http.IncomingMessage, limit = MAX_BODY_BYTES): Promise<Body> {
   return new Promise((resolve, reject) => {
     const contentType = req.headers['content-type']
     if (contentType && !contentType.includes('application/json')) {
@@ -208,7 +252,7 @@ function readJsonObject(req: http.IncomingMessage): Promise<Body> {
     let size = 0
     req.on('data', (chunk: Buffer) => {
       size += chunk.length
-      if (size > MAX_BODY_BYTES) {
+      if (size > limit) {
         reject(new Error('Request body too large'))
         req.destroy()
         return

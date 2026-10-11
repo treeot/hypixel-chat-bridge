@@ -20,12 +20,13 @@ const SERVER = '111111111111111111'
 const OTHER = '222222222222222222'
 
 type Handler = (i: unknown) => Promise<void>
-function ctxWith(env: Record<string, unknown>) {
+function ctxWith(env: Record<string, unknown>, features: Record<string, unknown> = { verify: true, allianceChecks: true, slashCommands: {} }) {
   const handlers: Handler[] = []
   const set = vi.fn(async () => undefined)
   const ctx = {
     env: { ownerId: '1', accounts: [], ...env },
     log: fakeLog(),
+    settings: { read: async () => features },
     accounts: { list: () => [] },
     discord: { ready: Promise.resolve(), client: { application: { commands: { set } }, on: (_: string, h: Handler) => void handlers.push(h) } }
   } as unknown as AppContext
@@ -58,6 +59,17 @@ describe('publishSlashCommands', () => {
     await publishSlashCommands(ctx)
     expect(set).toHaveBeenCalledOnce()
     expect(set.mock.calls[0]).toHaveLength(1)
+  })
+  it('leaves out a command switched off in features', async () => {
+    const names = (set: ReturnType<typeof ctxWith>['set']) => ((set.mock.calls[0] as unknown[])[0] as Array<{ name: string }>).map(c => c.name)
+    const on = ctxWith({ isDev: true })
+    await publishSlashCommands(on.ctx)
+    expect(names(on.set)).toEqual(expect.arrayContaining(['kick', 'link']))
+    const off = ctxWith({ isDev: true }, { verify: false, allianceChecks: true, slashCommands: { kick: false } })
+    await publishSlashCommands(off.ctx)
+    expect(names(off.set)).not.toContain('kick')
+    expect(names(off.set)).not.toContain('link')
+    expect(names(off.set)).toContain('setup')
   })
 })
 

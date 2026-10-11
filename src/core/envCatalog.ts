@@ -129,9 +129,19 @@ export const ENV_VARS: readonly EnvVarDoc[] = [
     required: false,
     readBy: 'bridge',
     secret: true,
-    description: 'Enables the REST API. At least 16 characters; clients send `Authorization: Bearer <token>`. See [REST API](rest-api.md).'
+    description:
+      'Enables the REST API. At least 16 characters; clients send `Authorization: Bearer <token>`. See [REST API](rest-api.md). Also used by the dashboard service as `BRIDGE_TOKEN`.'
   },
   { name: 'REST_API_PORT', group: 'restApi', required: false, readBy: 'bridge', default: '3000', description: 'Port the REST API listens on.' },
+  {
+    name: 'DASHBOARD_API',
+    group: 'restApi',
+    required: false,
+    readBy: 'bridge',
+    default: 'false',
+    description:
+      'Enables the dashboard endpoints on the REST API (settings, lists, audit, live events). Needs REST_API_TOKEN. Leave off unless you run the dashboard service; anyone with the token gets admin access to these endpoints.'
+  },
 
   {
     name: 'GUILDLB_API_KEY',

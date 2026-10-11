@@ -53,8 +53,9 @@ The first login of each account DMs a Microsoft device code to OWNER_ID; the tok
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `REST_API_TOKEN` 🔒 | no | — | Enables the REST API. At least 16 characters; clients send `Authorization: Bearer <token>`. See [REST API](rest-api.md). |
+| `REST_API_TOKEN` 🔒 | no | — | Enables the REST API. At least 16 characters; clients send `Authorization: Bearer <token>`. See [REST API](rest-api.md). Also used by the dashboard service as `BRIDGE_TOKEN`. |
 | `REST_API_PORT` | no | `3000` | Port the REST API listens on. |
+| `DASHBOARD_API` | no | `false` | Enables the dashboard endpoints on the REST API (settings, lists, audit, live events). Needs REST_API_TOKEN. Leave off unless you run the dashboard service; anyone with the token gets admin access to these endpoints. |
 
 ## GuildLB (optional)
 

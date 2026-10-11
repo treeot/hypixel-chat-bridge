@@ -24,6 +24,8 @@ import { handleJoinRequest, handleGuildJoin } from '../app/features/joinRequest'
 import { handleSlotFreed } from '../app/features/waitlist'
 import { matchGuildKick } from '../minecraft/parser'
 import { createRestApi } from '../app/api/server'
+import { ChatFeed } from '../app/api/feed'
+import { createDashboardDeps } from '../app/api/wire'
 import { GuildLbClient } from '../services/guildlb'
 import { allianceCheck } from '../app/features/allianceChecks'
 
@@ -42,6 +44,7 @@ export class Bridge {
   private readonly accountControl: AccountReconciler
   private started = false
   private readonly commandPublisher: CommandPublisher
+  private readonly feed = new ChatFeed(undefined, undefined, error => this.deps.log.warn('Dashboard feed listener failed', { error: String(error) }))
 
   constructor() {
     const env = loadEnv()
@@ -82,6 +85,7 @@ export class Bridge {
       log,
       info,
       settings: this.settings,
+      republishCommands: () => this.commandPublisher.changed(),
       accountControl: this.accountControl,
       repos,
       waitlists: createWaitlists(this.store, repos.waitlist),
@@ -100,7 +104,7 @@ export class Bridge {
       intercept: (accountId, payload) => dispatchChatCommand(this.ctxFor(accountId), payload)
     })
 
-    this.restApi = createRestApi(this.ctx)
+    this.restApi = createRestApi(this.ctx, this.ctx.env.dashboardApi ? createDashboardDeps(this.ctx, this.feed) : undefined)
 
     this.wire()
   }
@@ -144,9 +148,21 @@ export class Bridge {
         boundary(`${scope}:${event}`, log, (payload: T) => (this.accounts.get(id) === account ? handler(payload) : undefined))
       )
     }
-    on('chat', (payload: RelayChat) => this.router.onMinecraftChat(id, payload))
-    on('event', (payload: RelayEvent) => this.router.onMinecraftEvent(id, payload))
-    on('status', (payload: RelayStatus) => this.discord.relayStatus(id, payload))
+    on('chat', (payload: RelayChat) => {
+      const relayed = this.router.onMinecraftChat(id, payload)
+      this.feed.push(id, 'chat', payload)
+      return relayed
+    })
+    on('event', (payload: RelayEvent) => {
+      const relayed = this.router.onMinecraftEvent(id, payload)
+      this.feed.push(id, 'event', payload)
+      return relayed
+    })
+    on('status', (payload: RelayStatus) => {
+      const relayed = this.discord.relayStatus(id, payload)
+      this.feed.push(id, 'status', payload)
+      return relayed
+    })
     on('authCode', (info: AuthCodeInfo) => {
       log.info(`Account ${id} (${label}) needs a Microsoft sign-in: open ${info.link} and enter ${info.code}`)
       return this.discord.sendAuthCode(id, info)

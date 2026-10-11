@@ -57,6 +57,7 @@ async function scammerCheckOn(ctx: AppContext): Promise<boolean> {
 export const allianceCheck: PreAcceptCheck = async (ctx, input) => {
   const client = ctx.guildlb
   if (!client?.hasGuildKey) return { action: 'continue' }
+  if (!(await ctx.settings.read('features')).allianceChecks) return { action: 'continue' }
   const uuid = input.uuid || (await getUUIDFromUsername(input.username, ctx.log))
   if (!uuid) return { action: 'continue' }
   const verdict = await checkAlliance(client, uuid)

@@ -62,6 +62,14 @@ describe('loadEnv', () => {
     expect(loadEnv({ ...base, REST_API_TOKEN: 'x'.repeat(32) }).restApi).toEqual({ port: 3000, token: 'x'.repeat(32) })
   })
 
+  it('keeps the dashboard API off unless DASHBOARD_API is true', () => {
+    expect(loadEnv(base).dashboardApi).toBe(false)
+    expect(loadEnv({ ...base, DASHBOARD_API: '' }).dashboardApi).toBe(false)
+    expect(loadEnv({ ...base, DASHBOARD_API: 'false' }).dashboardApi).toBe(false)
+    expect(loadEnv({ ...base, DASHBOARD_API: 'true' }).dashboardApi).toBe(true)
+    expect(() => loadEnv({ ...base, DASHBOARD_API: 'yes' })).toThrow(/DASHBOARD_API: must be true or false/)
+  })
+
   it.each(['mongodb://localhost:27017/x', 'mongodb+srv://u:p@cluster.example.net/', 'postgres://u:p@localhost:5432/db', 'postgresql://localhost/db'])(
     'accepts DATABASE_URL %s',
     url => expect(loadEnv({ ...base, DATABASE_URL: url }).databaseUrl).toBe(url)

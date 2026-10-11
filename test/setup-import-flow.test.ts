@@ -84,6 +84,15 @@ describe('import confirmation', () => {
     expect(result).toMatchObject({ view: { embeds: [{ title: '✅ Settings imported' }] } })
   })
 
+  it('confirm republishes slash commands when the bundle includes features', async () => {
+    const { services: s, effects } = services()
+    const imports = new PendingImports()
+    const token = imports.add({ settings: { features: { verify: false, allianceChecks: true, slashCommands: { guild: false } } }, notes: [] })
+    const result = await handleImportButton(idOf(`setup:import:-:confirm:${token}`), s, imports)
+    expect(effects).toEqual([{ kind: 'republishCommands' }])
+    expect(result).toMatchObject({ view: { embeds: [{ title: '✅ Settings imported' }] } })
+  })
+
   it('cancel and expired tokens write nothing', async () => {
     const { services: s, docs } = services()
     const imports = new PendingImports()

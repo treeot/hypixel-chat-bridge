@@ -1,20 +1,7 @@
 import { z } from 'zod'
 import { containsProfanity, containsSlur, normalize } from './profanity'
-
-export type Category = 'slurs' | 'profanity' | 'links' | 'advertising' | 'personalInfo'
-export type BlockReason = Category | 'custom'
-
-export interface SafetySettings {
-  categories: Record<Category, boolean>
-  blockedWords: string[]
-  allowedWords: string[]
-}
-
-export const DEFAULT_SAFETY: SafetySettings = {
-  categories: { slurs: true, profanity: true, links: true, advertising: true, personalInfo: true },
-  blockedWords: [],
-  allowedWords: []
-}
+import { DEFAULT_SAFETY, type BlockReason, type SafetySettings } from './types'
+export { DEFAULT_SAFETY, type BlockReason, type Category, type SafetySettings } from './types'
 
 const flag = z.boolean().catch(true)
 const schema = z.object({

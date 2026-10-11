@@ -208,6 +208,6 @@ describe('AuthCacheRepo', () => {
 describe('createRepos', () => {
   it('builds every repo on one store', () => {
     const repos = createRepos(store)
-    expect(Object.keys(repos).sort()).toEqual(['authCache', 'blacklist', 'info', 'link', 'waitlist', 'whitelist'])
+    expect(Object.keys(repos).sort()).toEqual(['audit', 'authCache', 'blacklist', 'info', 'link', 'waitlist', 'whitelist'])
   })
 })

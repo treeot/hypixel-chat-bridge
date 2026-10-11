@@ -48,7 +48,11 @@ export interface SetupState {
 }
 
 export type Effect =
-  { kind: 'reconcileAccounts' } | { kind: 'refreshSafety' } | { kind: 'refreshRanks'; accountId: number } | { kind: 'postApply'; accountId: number }
+  | { kind: 'reconcileAccounts' }
+  | { kind: 'refreshSafety' }
+  | { kind: 'refreshRanks'; accountId: number }
+  | { kind: 'postApply'; accountId: number }
+  | { kind: 'republishCommands' }
 
 export type Outcome =
   | { kind: 'view'; area?: AreaId | 'home'; scope?: string; notice?: string }

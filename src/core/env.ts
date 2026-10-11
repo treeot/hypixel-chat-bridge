@@ -42,6 +42,8 @@ export interface Env {
   discordServerId?: string
   logChannelId?: string
   restApi?: { port: number; token: string }
+  /** DASHBOARD_API=true: the REST API also serves the dashboard endpoints. */
+  dashboardApi: boolean
   minecraftHost: string
   logLevel: 'debug' | 'info' | 'warn' | 'error'
   isDev: boolean
@@ -119,6 +121,7 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): Env {
   }
   const restToken = optional('REST_API_TOKEN', z.string().min(16, 'must be at least 16 characters'))
   const restPort = optional('REST_API_PORT', z.string().regex(/^\d+$/, 'must be a port number'))
+  const dashboardApi = optional('DASHBOARD_API', z.enum(['true', 'false'], { message: 'must be true or false' })) === 'true'
   const logLevel = optional('LOG_LEVEL', z.enum(['debug', 'info', 'warn', 'error'])) as Env['logLevel'] | undefined
 
   const guildlbApiKey = optional('GUILDLB_API_KEY')
@@ -146,6 +149,7 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): Env {
     discordServerId: optional('DISCORD_SERVER_ID', snowflake),
     logChannelId: optional('LOG_CHANNEL_ID', snowflake),
     restApi: restToken ? { port: restPort ? Number(restPort) : 3000, token: restToken } : undefined,
+    dashboardApi,
     minecraftHost: blank(raw.MINECRAFT_HOST) ?? 'mc.hypixel.net',
     logLevel: logLevel ?? 'info',
     isDev: raw.npm_lifecycle_event === 'dev'

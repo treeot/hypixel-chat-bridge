@@ -63,6 +63,7 @@ function setup(
   }
   const ctx = {
     log: fakeLog(),
+    settings: { read: async () => ({ verify: true, allianceChecks: true, slashCommands: {} }) },
     info: { get: async (t: string) => docs[t] ?? null },
     repos: { whitelist: { has: whitelistHas } },
     minecraft: mc,

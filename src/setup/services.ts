@@ -91,7 +91,7 @@ async function postApply(ctx: AppContext, accountId: number): Promise<string> {
   return `Apply button ${result.replaced ? 'reposted' : 'posted'} in <#${result.channelId}> for account #${accountId}.`
 }
 
-async function runEffect(ctx: AppContext, effect: Effect): Promise<string> {
+export async function runEffect(ctx: AppContext, effect: Effect): Promise<string> {
   switch (effect.kind) {
     case 'reconcileAccounts':
       return describeReconcile(await ctx.accountControl.reconcile())
@@ -102,6 +102,9 @@ async function runEffect(ctx: AppContext, effect: Effect): Promise<string> {
       return refreshRanks(ctx, effect.accountId)
     case 'postApply':
       return postApply(ctx, effect.accountId)
+    case 'republishCommands':
+      await ctx.republishCommands?.()
+      return 'Slash commands updated in Discord.'
   }
 }
 

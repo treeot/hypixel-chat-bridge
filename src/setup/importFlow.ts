@@ -111,6 +111,32 @@ export function importPreview(entry: PendingImport, token: string): PanelView {
   }
 }
 
+export async function applyImport(
+  pending: PendingImport,
+  services: Pick<SetupServices, 'loadState' | 'write' | 'writeMany' | 'runEffect' | 'log'>
+): Promise<{ ok: true; written: AreaId[]; notices: string[]; summary: string[] } | { ok: false; error: string }> {
+  const importedIds = Object.keys(pending.overrides?.joinRequests ?? {}).map(Number)
+  const entry = touchesJoinRequests(pending) ? keepLocalApply(pending, await services.loadState('joinRequests', importedIds)) : pending
+  let written: AreaId[]
+  try {
+    written = await services.writeMany(entry.settings)
+    for (const [area, accountId, value] of overrideEntries(entry.overrides)) await services.write(area, value, accountId)
+  } catch (error) {
+    if (error instanceof SettingsValidationError) return { ok: false, error: notSavedMessage(error) }
+    throw error
+  }
+  const notices: string[] = []
+  if (written.includes('accounts')) notices.push(await runEffectSafe(services, { kind: 'reconcileAccounts' }))
+  if (written.includes('filters')) notices.push(await runEffectSafe(services, { kind: 'refreshSafety' }))
+  if (written.includes('features')) notices.push(await runEffectSafe(services, { kind: 'republishCommands' }))
+  const overridden = overrideIds(entry.overrides)
+  const summary = [
+    `Imported: ${written.map(label).join(', ') || 'no shared areas'}.`,
+    ...(overridden.length ? [`Guild overrides: ${overridden.join(', ')}.`] : [])
+  ]
+  return { ok: true, written, notices, summary }
+}
+
 export async function handleImportButton(
   id: SetupId,
   services: Pick<SetupServices, 'loadState' | 'write' | 'writeMany' | 'runEffect' | 'log'>,
@@ -121,23 +147,7 @@ export async function handleImportButton(
   if (id.action !== 'confirm') return { error: STALE }
   if (!taken) return { error: EXPIRED }
 
-  const importedIds = Object.keys(taken.overrides?.joinRequests ?? {}).map(Number)
-  const entry = touchesJoinRequests(taken) ? keepLocalApply(taken, await services.loadState('joinRequests', importedIds)) : taken
-  let written: AreaId[]
-  try {
-    written = await services.writeMany(entry.settings)
-    for (const [area, accountId, value] of overrideEntries(entry.overrides)) await services.write(area, value, accountId)
-  } catch (error) {
-    if (error instanceof SettingsValidationError) return { error: notSavedMessage(error) }
-    throw error
-  }
-  const notices: string[] = []
-  if (written.includes('accounts')) notices.push(await runEffectSafe(services, { kind: 'reconcileAccounts' }))
-  if (written.includes('filters')) notices.push(await runEffectSafe(services, { kind: 'refreshSafety' }))
-  const overridden = overrideIds(entry.overrides)
-  const summary = [
-    `Imported: ${written.map(label).join(', ') || 'no shared areas'}.`,
-    ...(overridden.length ? [`Guild overrides: ${overridden.join(', ')}.`] : [])
-  ]
-  return { view: { embeds: [panelEmbed('✅ Settings imported', [...summary, ...notices])], components: [] } }
+  const result = await applyImport(taken, services)
+  if (!result.ok) return { error: result.error }
+  return { view: { embeds: [panelEmbed('✅ Settings imported', [...result.summary, ...result.notices])], components: [] } }
 }

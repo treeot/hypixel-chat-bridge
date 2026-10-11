@@ -2,6 +2,7 @@ import type { AreaId } from '../../settings/registry'
 import type { SetupArea } from '../types'
 import { accountsArea } from './accounts'
 import { commandsArea } from './commands'
+import { featuresArea } from './features'
 import { filtersArea } from './filters'
 import { formatsArea } from './formats'
 import { gexpArea } from './gexp'
@@ -21,10 +22,23 @@ export const SETUP_AREAS: Record<AreaId, SetupArea> = {
   gexp: gexpArea,
   filters: filtersArea,
   verify: verifyArea,
-  guildlb: guildlbArea
+  guildlb: guildlbArea,
+  features: featuresArea
 }
 
-export const AREA_ORDER: readonly AreaId[] = ['accounts', 'relay', 'formats', 'ranks', 'commands', 'filters', 'joinRequests', 'gexp', 'verify', 'guildlb']
+export const AREA_ORDER: readonly AreaId[] = [
+  'accounts',
+  'relay',
+  'formats',
+  'ranks',
+  'commands',
+  'filters',
+  'joinRequests',
+  'gexp',
+  'verify',
+  'guildlb',
+  'features'
+]
 
 export function isAreaId(value: string): value is AreaId {
   return Object.prototype.hasOwnProperty.call(SETUP_AREAS, value)

@@ -1,5 +1,6 @@
 import { accountsSettings } from './accounts'
 import { commandsSettings } from './commands'
+import { featuresSettings } from './features'
 import { filtersSettings } from './filters'
 import { formatsSettings } from './formats'
 import { gexpSettings } from './gexp'
@@ -20,7 +21,8 @@ export const SETTINGS = {
   gexp: gexpSettings,
   filters: filtersSettings,
   verify: verifySettings,
-  guildlb: guildlbSettings
+  guildlb: guildlbSettings,
+  features: featuresSettings
 } as const
 
 export type AreaId = keyof typeof SETTINGS

@@ -13,6 +13,7 @@ import { statsCommands } from './commands/stats'
 import { extraCommands } from './commands/extra'
 import alliance from './commands/alliance'
 import { setupCommand } from '../setup/command'
+import { slashEnabled, TURNED_OFF } from './features/toggles'
 import { disabledLine, firstMissing, MissingKeyError } from './requirements'
 
 export const HYPIXEL_SLASH: ReadonlySet<string> = new Set(['gexp', 'guildtop', 'inactive', 'reqs', 'verify', 'force-verify', 'link'])
@@ -40,6 +41,11 @@ export function slashGate(command: SlashCommand, env: Env): string | undefined {
 
 const byName = new Map(slashCommands.map(c => [c.name, c]))
 
+export async function commandGate(command: SlashCommand, ctx: Pick<AppContext, 'env' | 'settings'>): Promise<string | undefined> {
+  if (!slashEnabled(command.name, await ctx.settings.read('features'))) return TURNED_OFF
+  return slashGate(command, ctx.env)
+}
+
 /** With DISCORD_SERVER_ID: published to that server (instant) and the global set cleared. Otherwise global. */
 export async function publishSlashCommands(ctx: AppContext): Promise<void> {
   const { discord, env, log } = ctx
@@ -50,8 +56,9 @@ export async function publishSlashCommands(ctx: AppContext): Promise<void> {
     return
   }
 
+  const features = await ctx.settings.read('features')
   const commands = withAccountOption(
-    visibleCommands(env),
+    visibleCommands(env).filter(c => slashEnabled(c.name, features)),
     ctx.accounts.list().map(a => a.config)
   )
   const payload = commands as unknown as ApplicationCommandDataResolvable[]
@@ -116,7 +123,7 @@ async function runCommand(interaction: ChatInputCommandInteraction, ctx: AppCont
   }
   const scoped = withAccount(ctx, choice.account)
 
-  const gated = slashGate(command, ctx.env)
+  const gated = await commandGate(command, ctx)
   if (gated) {
     await interaction.reply({ embeds: [SimpleEmbed('failure', gated)], ephemeral: true })
     return

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { DEFAULT_SAFETY, type Category, type SafetySettings } from '../safety'
+import { DEFAULT_SAFETY, type Category, type SafetySettings } from '../safety/types'
 import { objectModel, wordList } from './schema'
 
 export const FILTER_CATEGORIES = ['slurs', 'profanity', 'links', 'advertising', 'personalInfo'] as const satisfies readonly Category[]

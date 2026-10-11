@@ -26,6 +26,10 @@ export function registerInteractions(ctx: AppContext): void {
         await interaction.reply({ content: gated, ephemeral: true })
         return
       }
+      if (id === 'link-account' && !(await ctx.settings.read('features')).verify) {
+        await interaction.reply({ content: 'Verification is turned off.', ephemeral: true })
+        return
+      }
       if (id === 'link-account') return handleLinkButton(interaction, ctx)
       if (id.startsWith('apply-guild:')) return handleApplyButton(interaction, ctx)
       if (id.startsWith('jr:')) return handleJoinButton(interaction, ctx)
