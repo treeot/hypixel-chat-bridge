@@ -18,11 +18,17 @@ const templatesSchema = z.strictObject(
 const eventsSchema = z.strictObject(
   Object.fromEntries(GUILD_EVENT_TYPES.map(key => [key, z.boolean().optional()])) as Record<GuildEventType, z.ZodOptional<z.ZodBoolean>>
 )
-const overrideSchema = z.strictObject({ mode: mode.optional(), templates: templatesSchema.optional(), events: eventsSchema.optional() })
+const overrideSchema = z.strictObject({
+  mode: mode.optional(),
+  templates: templatesSchema.optional(),
+  events: eventsSchema.optional(),
+  embedTimestamp: z.boolean().optional()
+})
 const formatsSchema = z.strictObject({
   mode: mode.optional(),
   templates: templatesSchema.optional(),
   events: eventsSchema.optional(),
+  embedTimestamp: z.boolean().optional(),
   channels: z.record(snowflake, overrideSchema).optional()
 })
 
@@ -50,6 +56,7 @@ function readOverride(raw: unknown): FormatOverride {
     }
     if (Object.keys(events).length) out.events = events
   }
+  if (typeof raw.embedTimestamp === 'boolean') out.embedTimestamp = raw.embedTimestamp
   return out
 }
 
@@ -78,6 +85,7 @@ export function overrideFor(settings: FormatsSettings, scope: string): FormatOve
     if (settings.mode) out.mode = settings.mode
     if (settings.templates) out.templates = settings.templates
     if (settings.events) out.events = settings.events
+    if (settings.embedTimestamp !== undefined) out.embedTimestamp = settings.embedTimestamp
     return out
   }
   return settings.channels?.[scope] ?? {}
@@ -88,6 +96,7 @@ export function withOverride(settings: FormatsSettings, scope: string, override:
   if (override.mode) clean.mode = override.mode
   if (override.templates && Object.keys(override.templates).length) clean.templates = override.templates
   if (override.events && Object.keys(override.events).length) clean.events = override.events
+  if (override.embedTimestamp !== undefined) clean.embedTimestamp = override.embedTimestamp
 
   if (scope === DEFAULT_SCOPE) {
     const out: FormatsSettings = { ...clean }

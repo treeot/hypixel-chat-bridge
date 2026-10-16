@@ -259,3 +259,40 @@ describe('legacy routes audit', () => {
     }
   })
 })
+
+describe('POST /chat through the relay router', () => {
+  async function withRouter(sendChat: NonNullable<Parameters<typeof createApiHandler>[0]['sendChat']>) {
+    const handler = createApiHandler({ token: TOKEN, log: silentLogger(), screenInvite, sendChat, accounts: { get: id => [a1, a2].find(a => a.id === id) } })
+    const s = http.createServer((req, res) => void handler(req, res))
+    s.listen(0, '127.0.0.1')
+    await once(s, 'listening')
+    const url = `http://127.0.0.1:${(s.address() as AddressInfo).port}`
+    const send = (body: unknown) =>
+      fetch(url + '/chat', { method: 'POST', headers: { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    const close = async () => {
+      s.closeAllConnections()
+      await new Promise<void>(resolve => s.close(() => resolve()))
+    }
+    return { send, close }
+  }
+
+  it('uses the router instead of the bare account send', async () => {
+    const sendChat = vi.fn(async () => ({ ok: true }))
+    const { send, close } = await withRouter(sendChat)
+    expect((await send({ chat: 'guild', message: 'hi', author: 'Benson' })).status).toBe(200)
+    expect(sendChat).toHaveBeenCalledWith(1, 'guild', 'Benson', 'hi')
+    expect(a1.sendChat).not.toHaveBeenCalled()
+    await close()
+  })
+
+  it('says why a line was not sent', async () => {
+    const sendChat = vi.fn(async () => ({ ok: false, reason: 'filtered' as const, filterReason: 'links' as const }))
+    const { send, close } = await withRouter(sendChat)
+    const res = await send({ chat: 'guild', message: 'x.com' })
+    expect(res.status).toBe(422)
+    expect(await res.json()).toEqual({ ok: false, error: 'blocked', reason: 'links', note: 'the safety filter blocked it (link)' })
+    sendChat.mockResolvedValueOnce({ ok: false, reason: 'offline' } as never)
+    expect((await send({ chat: 'guild', message: 'hi' })).status).toBe(503)
+    await close()
+  })
+})

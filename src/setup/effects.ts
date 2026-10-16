@@ -1,10 +1,12 @@
 import type { Logger } from '../core/logger'
+import type { StaffRoles } from '../app/permissions'
 import type { AllSettings, AreaId } from '../settings/registry'
 import type { SettingsValidationError } from '../settings/store'
 import type { Effect, SetupState } from './types'
 
 export interface SetupServices {
-  ownerId: string
+  /** True for the owner and members of the admin role. */
+  canEdit(userId: string, roles: StaffRoles): boolean
   log: Logger
   loadState(area: AreaId | 'home', extraAccountIds?: readonly number[]): Promise<SetupState>
   write(area: AreaId, value: unknown, accountId?: number): Promise<void>

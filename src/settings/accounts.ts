@@ -88,11 +88,20 @@ export function envVarFor(index: number, field: AccountField): string {
   return field === 'label' ? 'ACCOUNT_LABEL' : ENV_SUFFIX[field]
 }
 
+/** The fields the environment sets for an account (the guild channel is always one); a settings overlay cannot change them. */
+export function lockedFields(env: AccountEnv): AccountField[] {
+  return ACCOUNT_FIELDS.filter(field => field === 'guildChannelId' || Boolean(env[field]))
+}
+
+/** Where an account comes from and which of its fields the environment sets; accounts without env vars come from settings. */
+export function accountOrigin(envAccounts: readonly AccountEnv[], id: number): { source: 'env' | 'settings'; locked: AccountField[] } {
+  const env = envAccounts.find(a => a.index === id)
+  return env ? { source: 'env', locked: lockedFields(env) } : { source: 'settings', locked: [] }
+}
+
 function envLocks(env: AccountEnv): Partial<Record<AccountField, string>> {
   const locked: Partial<Record<AccountField, string>> = {}
-  for (const field of ACCOUNT_FIELDS) {
-    if (field === 'guildChannelId' || env[field]) locked[field] = envVarFor(env.index, field)
-  }
+  for (const field of lockedFields(env)) locked[field] = envVarFor(env.index, field)
   return locked
 }
 
@@ -191,9 +200,8 @@ export function stripLocked(settings: AccountsSettings, envAccounts: readonly Ac
     const env = envAccounts.find(a => a.index === entry.id)
     if (!env) return entry
     const out: AccountEntry = { ...entry }
-    for (const field of ACCOUNT_FIELDS) {
-      const envSet = field === 'guildChannelId' || Boolean(env[field])
-      if (envSet && out[field] !== undefined) {
+    for (const field of lockedFields(env)) {
+      if (out[field] !== undefined) {
         delete out[field]
         dropped.push(`account #${entry.id} ${field} (set by ${envVarFor(entry.id, field)})`)
       }

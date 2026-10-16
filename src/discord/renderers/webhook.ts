@@ -19,5 +19,5 @@ export const webhookRenderer: Renderer = {
       }
     ]
   },
-  event: event => [renderEventEmbed(event)]
+  event: (event, format) => [renderEventEmbed(event, format?.embedTimestamp)]
 }

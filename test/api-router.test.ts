@@ -21,10 +21,22 @@ describe('dashboard routes over HTTP', () => {
   afterEach(() => api.close())
 
   it('lists accounts', async () => {
-    api = await startApi({ accounts: () => [{ id: 1, label: 'G1', enabled: true, online: true, username: 'Bot', relayGroup: null }] })
+    const account = {
+      id: 1,
+      label: 'G1',
+      enabled: true,
+      online: true,
+      username: 'Bot',
+      relayGroup: null,
+      guildChannelId: '900000000000000201',
+      officerChannelId: null,
+      source: 'env' as const,
+      locked: ['guildChannelId' as const]
+    }
+    api = await startApi({ accounts: () => [account] })
     expect(await (await api.call('GET', '/accounts')).json()).toEqual({
       ok: true,
-      accounts: [{ id: 1, label: 'G1', enabled: true, online: true, username: 'Bot', relayGroup: null }]
+      accounts: [account]
     })
   })
 

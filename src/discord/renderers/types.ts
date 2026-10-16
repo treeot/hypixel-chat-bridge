@@ -24,7 +24,7 @@ export interface OutboundMessage {
 export interface Renderer {
   readonly mode: RenderMode
   chat(input: RenderInput, format: ChannelFormat): Promise<OutboundMessage[]>
-  event(event: RelayEvent): OutboundMessage[]
+  event(event: RelayEvent, format?: ChannelFormat): OutboundMessage[]
 }
 
 export interface RenderSink {

@@ -25,7 +25,7 @@ async function setup() {
       afterWrite,
       runAction: vi.fn(async () => 'ok'),
       importBundle: vi.fn(async () => ({ ok: true as const, written: ['relay' as const], notices: [] })),
-      catalog: () => ({ chatCommands: [], slashCommands: [], missingEnv: { hypixel: null, guildlbGuild: 'GUILDLB_GUILD_KEY' } })
+      catalog: () => ({ chatCommands: [], slashCommands: [], missingEnv: { hypixel: null, guildlbGuild: 'GUILDLB_GUILD_KEY', guildlbApi: null } })
     }
   })
   return { store, audit, afterWrite }
@@ -93,6 +93,17 @@ describe('settings routes', () => {
     await setup()
     expect((await (await api.call('GET', '/settings/export')).json()).format).toBe('hypixel-chat-bridge/settings')
     expect((await (await api.call('GET', '/features/catalog')).json()).missingEnv.guildlbGuild).toBe('GUILDLB_GUILD_KEY')
+  })
+
+  it('serves the dashboard branding and still requires the token', async () => {
+    const { store } = await setup()
+    expect(await (await api.call('GET', '/dashboard/branding')).json()).toEqual({ ok: true, branding: {} })
+    await store.write('branding', { name: 'Fancy', accent: '#8b5cf6' })
+    expect(await (await api.call('GET', '/dashboard/branding', undefined, { 'x-actor': '' })).json()).toEqual({
+      ok: true,
+      branding: { name: 'Fancy', accent: '#8b5cf6' }
+    })
+    expect((await api.call('GET', '/dashboard/branding', undefined, { authorization: 'Bearer wrong' })).status).toBe(401)
   })
 
   it('accepts a large relay body and 405s DELETE /settings', async () => {

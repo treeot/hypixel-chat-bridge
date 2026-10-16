@@ -28,11 +28,12 @@ describe('formats area', () => {
       `setup:formats:${G1}:tg:0`,
       `setup:formats:${G1}:cs:0`,
       `setup:formats:${G1}:ed:0`,
+      `setup:formats:${G1}:ed:1`,
       `setup:formats:${G1}:reset:-`,
       'setup:formats:-:list:-',
       'setup:home:-:open:-'
     ])
-    expect((view.components[0].components[0] as { options: unknown[] }).options).toHaveLength(12)
+    expect((view.components[0].components[0] as { options: unknown[] }).options).toHaveLength(13)
   })
 
   it('warns when the bot lacks Manage Webhooks', () => {
@@ -57,6 +58,14 @@ describe('formats area', () => {
     const outcome = formatsArea.handle(state, idOf(`setup:formats:${G1}:tg:0`), sel(...all))
     expect(outcome).toMatchObject({ kind: 'save', value: { channels: { [G1]: { events: { login: false, quest: true } } } } })
     if (outcome.kind === 'save') expect(Object.keys((outcome.value as { channels: Record<string, object> }).channels[G1])).toEqual(['events'])
+  })
+
+  it('the timestamp switch is stored only when turned on, and passes the schema', () => {
+    const state = makeState({}, { envAccounts: env })
+    const events = ['login', 'logout', 'join', 'leave', 'kick', 'promote', 'demote', 'mute', 'unmute', 'levelUp', 'quest', 'other'].map(e => `events.${e}`)
+    const outcome = formatsArea.handle(state, idOf('setup:formats:default:tg:0'), sel(...events, 'embedTimestamp'))
+    expect(outcome).toMatchObject({ kind: 'save', value: { embedTimestamp: true } })
+    if (outcome.kind === 'save') expect(formatsSettings.schema.safeParse(outcome.value).success).toBe(true)
   })
 
   it('templates: blank inherits, filled overrides, and the result passes the schema', () => {

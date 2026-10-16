@@ -1,6 +1,7 @@
 import type { AreaId } from '../../settings/registry'
 import type { SetupArea } from '../types'
 import { accountsArea } from './accounts'
+import { brandingArea } from './branding'
 import { commandsArea } from './commands'
 import { featuresArea } from './features'
 import { filtersArea } from './filters'
@@ -23,7 +24,8 @@ export const SETUP_AREAS: Record<AreaId, SetupArea> = {
   filters: filtersArea,
   verify: verifyArea,
   guildlb: guildlbArea,
-  features: featuresArea
+  features: featuresArea,
+  branding: brandingArea
 }
 
 export const AREA_ORDER: readonly AreaId[] = [
@@ -37,7 +39,8 @@ export const AREA_ORDER: readonly AreaId[] = [
   'gexp',
   'verify',
   'guildlb',
-  'features'
+  'features',
+  'branding'
 ]
 
 export function isAreaId(value: string): value is AreaId {

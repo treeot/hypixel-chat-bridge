@@ -16,6 +16,7 @@ describe('createDashboardDeps catalog', () => {
         .sort()
     ).toEqual(['help', 'setup'])
     expect(catalog.missingEnv.hypixel).toBe('HYPIXEL_API_KEY')
+    expect(catalog.missingEnv.guildlbApi).toBe('GUILDLB_API_KEY')
   })
 
   it('tags commands owned by a feature switch', () => {

@@ -39,6 +39,7 @@ export interface Env {
   sqlitePath: string
   onRailway: boolean
   staffRoleId?: string
+  adminRoleId?: string
   discordServerId?: string
   logChannelId?: string
   restApi?: { port: number; token: string }
@@ -146,6 +147,7 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): Env {
     sqlitePath,
     onRailway,
     staffRoleId: optional('STAFF_ROLE_ID', snowflake),
+    adminRoleId: optional('ADMIN_ROLE_ID', snowflake),
     discordServerId: optional('DISCORD_SERVER_ID', snowflake),
     logChannelId: optional('LOG_CHANNEL_ID', snowflake),
     restApi: restToken ? { port: restPort ? Number(restPort) : 3000, token: restToken } : undefined,

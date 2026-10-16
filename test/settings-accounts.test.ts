@@ -4,6 +4,7 @@ import type { AccountEnv } from '../src/core/env'
 import {
   accountsSettings,
   addAccount,
+  accountOrigin,
   envVarFor,
   mergeAccounts,
   removeAccount,
@@ -135,5 +136,14 @@ describe('accounts model', () => {
     expect(accountsSettings.schema.safeParse({ nextId: 3, list: [{ ...entry, relayGroup: 'Main Group' }] }).success).toBe(false)
     expect(accountsSettings.schema.safeParse({ nextId: 3, list: [entry, entry] }).success).toBe(false)
     expect(accountsSettings.read({ nextId: 'x', list: [entry, { id: 'bad' }, entry] })).toEqual({ nextId: 3, list: [entry] })
+  })
+})
+
+describe('accountOrigin', () => {
+  it('reports env accounts with the fields env sets, and others as settings', () => {
+    const envs: AccountEnv[] = [{ index: 1, guildChannelId: G1, label: 'Main', relayGroup: 'ally' }]
+    expect(accountOrigin(envs, 1)).toEqual({ source: 'env', locked: ['guildChannelId', 'relayGroup', 'label'] })
+    expect(accountOrigin([{ index: 2, guildChannelId: G2 }], 2)).toEqual({ source: 'env', locked: ['guildChannelId'] })
+    expect(accountOrigin(envs, 3)).toEqual({ source: 'settings', locked: [] })
   })
 })

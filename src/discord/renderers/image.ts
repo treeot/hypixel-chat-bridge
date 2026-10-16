@@ -113,6 +113,6 @@ export function createImageRenderer(log: Logger, load: () => Promise<CanvasModul
       if (links.length) out.push({ via: 'bot', content: truncate(links.join('\n'), LIMITS.content), allowedMentions: NO_MENTIONS })
       return out
     },
-    event: event => [renderEventEmbed(event)]
+    event: (event, format) => [renderEventEmbed(event, format?.embedTimestamp)]
   }
 }

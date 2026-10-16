@@ -32,12 +32,24 @@ describe('renderTemplate', () => {
   it('builds values from a render input', () => {
     expect(templateValues({ account: { id: '1' }, kind: 'officer', sender: 'Steve', message: 'x', sourceLabel: 'GuildA' })).toEqual({
       source: '[GuildA]',
+      sourceName: 'GuildA',
       chat: 'Officer',
       rank: undefined,
+      rankName: undefined,
       name: 'Steve',
       guildRank: undefined,
+      guildRankName: undefined,
       message: 'x'
     })
+  })
+
+  it('has bracket-free versions, and an empty one takes brackets typed around it', () => {
+    const input = { account: { id: '1' }, kind: 'guild' as const, sender: 'Steve', message: 'hi', rank: 'MVP+', guildRank: 'Officer', sourceLabel: 'Main' }
+    expect(renderTemplate('{sourceName} | {name} ({guildRankName}) {rankName}', templateValues(input))).toBe('Main | Steve (Officer) MVP+')
+    const bare = templateValues({ ...input, rank: undefined, guildRank: undefined, sourceLabel: undefined })
+    expect(renderTemplate('{name} ({guildRankName}) <{rankName}> said', bare)).toBe('Steve said')
+    expect(renderTemplate('[{sourceName}] {name}', bare)).toBe('Steve')
+    expect(renderTemplate('{name} ({guildRankName}', bare)).toBe('Steve (')
   })
 })
 

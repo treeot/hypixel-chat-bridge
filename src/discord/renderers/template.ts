@@ -1,64 +1,8 @@
 import { escapeMarkdown } from 'discord.js'
-import type { RenderInput } from '../../core/contracts'
 
-export const LIMITS = { content: 2000, embedDescription: 4096, embedAuthor: 256, webhookUsername: 80, attachmentDescription: 1024 } as const
+export const LIMITS = { content: 2000, embedDescription: 4096, embedAuthor: 256, embedFooter: 2048, webhookUsername: 80, attachmentDescription: 1024 } as const
 
-export type Placeholder = 'source' | 'chat' | 'rank' | 'name' | 'guildRank' | 'message'
-export type TemplateValues = Record<Placeholder, string | undefined>
-
-export function templateValues(input: RenderInput): TemplateValues {
-  return {
-    source: input.sourceLabel ? `[${input.sourceLabel}]` : undefined,
-    chat: input.kind === 'guild' ? 'Guild' : 'Officer',
-    rank: input.rank ? `[${input.rank}]` : undefined,
-    name: input.sender,
-    guildRank: input.guildRank ? `[${input.guildRank}]` : undefined,
-    message: input.message
-  }
-}
-
-const TOKEN = /\{\{|\}\}|\{(\w+)\}/g
-
-/** An empty placeholder swallows one adjacent space; only substituted values are escaped. */
-export function renderTemplate(template: string, values: TemplateValues, escape: (value: string) => string = value => value): string {
-  let out = ''
-  let last = 0
-  let skipSpace = false
-
-  for (const match of template.matchAll(TOKEN)) {
-    const index = match.index ?? 0
-    let literal = template.slice(last, index)
-    if (skipSpace && literal.startsWith(' ')) literal = literal.slice(1)
-    skipSpace = false
-    out += literal
-    last = index + match[0].length
-
-    if (match[0] === '{{') {
-      out += '{'
-      continue
-    }
-    if (match[0] === '}}') {
-      out += '}'
-      continue
-    }
-    const key = match[1]
-    if (!Object.prototype.hasOwnProperty.call(values, key)) {
-      out += match[0]
-      continue
-    }
-    const value = values[key as Placeholder]
-    if (value) {
-      out += escape(value)
-      continue
-    }
-    if (template[last] === ' ') skipSpace = true
-    else if (out.endsWith(' ')) out = out.slice(0, -1)
-  }
-
-  let tail = template.slice(last)
-  if (skipSpace && tail.startsWith(' ')) tail = tail.slice(1)
-  return (out + tail).trim()
-}
+export { renderTemplate, templateValues, type Placeholder, type TemplateValues } from './placeholders'
 
 export function escapeMd(text: string): string {
   return escapeMarkdown(text, { heading: true, bulletedList: true, numberedList: true, maskedLink: true })

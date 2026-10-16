@@ -22,6 +22,11 @@ export function settingsRoutes(deps: Pick<DashboardDeps, 'settings' | 'audit' | 
   return [
     {
       method: 'GET',
+      path: '/dashboard/branding',
+      run: async () => ok({ branding: await deps.settings.store.read('branding') })
+    },
+    {
+      method: 'GET',
       path: '/settings',
       run: async () => ok({ settings: await deps.settings.store.readAll(), overrides: await deps.settings.store.readOverrides(deps.settings.accountIds()) })
     },

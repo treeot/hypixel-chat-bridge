@@ -1,7 +1,8 @@
 import http from 'node:http'
 import crypto from 'node:crypto'
 import type { AppContext } from '../context'
-import type { Chat, ExecuteResult } from '../../core/contracts'
+import type { Chat, ExecuteResult, SendResult } from '../../core/contracts'
+import { describeBlock } from '../features/guildCommand'
 import type { Logger } from '../../core/logger'
 import { runPreAcceptCheck, type ScreenVerdict } from '../features/screening'
 import { recordSafe } from './audit'
@@ -27,6 +28,8 @@ export interface ApiDeps {
   accounts: ApiAccounts
   log: Logger
   screenInvite(accountId: number, username: string): Promise<ScreenVerdict>
+  /** Chat through the relay router (split, filtered, posted to Discord and the relay group); without it /chat only says the line in game. */
+  sendChat?(accountId: number, chat: Chat, author: string, content: string): Promise<SendResult>
   dashboard?: DashboardDeps
 }
 
@@ -35,7 +38,16 @@ const MINECRAFT_NAME = /^\w{1,16}$/
 // eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f]/
 
-type Plan = { ok: true; send(account: ApiAccount): ExecuteResult; screen?: string; audit: { action: string; target: string } } | { ok: false; error: string }
+type Plan =
+  | {
+      ok: true
+      send(account: ApiAccount): ExecuteResult
+      /** Set for /chat, so the handler can route it through the relay router when it has one. */
+      chat?: { chat: Chat; author: string; message: string }
+      screen?: string
+      audit: { action: string; target: string }
+    }
+  | { ok: false; error: string }
 
 interface ModerationAction {
   build(user: string, extra: string | undefined): string
@@ -62,7 +74,12 @@ const ROUTES: Record<string, (body: Body) => Plan> = {
       return { ok: false, error: 'Expected { chat: "guild"|"officer", message: string } (one line)' }
     const { author: rawAuthor } = body
     const author = oneLine(rawAuthor) && rawAuthor.length <= 32 ? rawAuthor.trim() : 'API'
-    return { ok: true, send: account => account.sendChat(chat, author, message.trim()), audit: { action: 'chat.send', target: chat } }
+    return {
+      ok: true,
+      send: account => account.sendChat(chat, author, message.trim()),
+      chat: { chat, author, message: message.trim() },
+      audit: { action: 'chat.send', target: chat }
+    }
   },
   '/command': body => {
     const { command } = body
@@ -82,6 +99,22 @@ const ROUTES: Record<string, (body: Body) => Plan> = {
       audit: { action: 'guild.moderation', target: `${action} ${user}` },
       ...(spec.screened ? { screen: user } : {})
     }
+  }
+}
+
+/** Why a chat line wasn't sent, in words for the dashboard. */
+function sendNote(result: SendResult): string {
+  if (result.reason === 'filtered' && result.filterReason) return describeBlock(result.filterReason)
+  switch (result.reason) {
+    case 'muted':
+      return 'the account is muted in game'
+    case 'timeout':
+      return "Hypixel didn't confirm it"
+
+    case 'repeat':
+      return 'Hypixel blocks sending the same message twice in a row'
+    default:
+      return 'the safety filter blocked it'
   }
 }
 
@@ -159,8 +192,17 @@ export function createApiHandler(deps: ApiDeps): (req: http.IncomingMessage, res
         const verdict = await deps.screenInvite(account.id, plan.screen)
         if (verdict.action !== 'continue') return finish(409, { ok: false, error: 'screened', note: verdict.note })
       }
-      const sent = plan.send(account)
-      if (!sent.ok) return finish(422, { ok: false, error: 'blocked', reason: sent.reason })
+      if (plan.chat && deps.sendChat) {
+        const result = await deps.sendChat(account.id, plan.chat.chat, plan.chat.author, plan.chat.message)
+        if (!result.ok && result.reason === 'offline') return finish(503, { ok: false, error: `Account ${account.id} is offline` })
+        if (!result.ok) {
+          const reason = result.reason === 'filtered' && result.filterReason ? result.filterReason : (result.reason ?? 'blocked')
+          return finish(422, { ok: false, error: 'blocked', reason, note: sendNote(result) })
+        }
+      } else {
+        const sent = plan.send(account)
+        if (!sent.ok) return finish(422, { ok: false, error: 'blocked', reason: sent.reason })
+      }
       const actor = req.headers['x-actor']
       if (deps.dashboard && typeof actor === 'string' && ACTOR.test(actor)) {
         await recordSafe(
@@ -176,7 +218,7 @@ export function createApiHandler(deps: ApiDeps): (req: http.IncomingMessage, res
   }
 }
 
-export function createRestApi(ctx: AppContext, dashboard?: DashboardDeps): { start(): Promise<void>; stop(): Promise<void> } {
+export function createRestApi(ctx: AppContext, dashboard?: DashboardDeps, sendChat?: ApiDeps['sendChat']): { start(): Promise<void>; stop(): Promise<void> } {
   const log = ctx.log.child('api')
   let server: http.Server | undefined
 
@@ -192,6 +234,7 @@ export function createRestApi(ctx: AppContext, dashboard?: DashboardDeps): { sta
         accounts: ctx.accounts,
         log,
         screenInvite: (accountId, username) => runPreAcceptCheck(ctx, { flow: 'invite', accountId, uuid: '', username }),
+        ...(sendChat ? { sendChat } : {}),
         ...(dashboard ? { dashboard } : {})
       })
       const created = http.createServer((req, res) => void handle(req, res))

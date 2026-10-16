@@ -7,6 +7,7 @@ import { guildSnapshot, snapshotError } from '../features/guildState'
 import { ALLIANCE_COMMANDS, VERIFY_COMMANDS } from '../features/toggles'
 import { has, MissingKeyError, REQUIREMENT_ENV, type Requirement } from '../requirements'
 import { ALWAYS_ON_COMMANDS } from '../../settings/features'
+import { accountOrigin } from '../../settings/accounts'
 import { parseBundle } from '../../settings/bundle'
 import type { AreaId } from '../../settings/registry'
 import { getUsernameFromUUID, getUUIDFromUsername } from '../../services/mojang'
@@ -14,6 +15,7 @@ import { runEffectSafe } from '../../setup/effects'
 import { applyImport } from '../../setup/importFlow'
 import { createSetupServices, runEffect } from '../../setup/services'
 import type { Effect } from '../../setup/types'
+import { directoryFromGuild, type DiscordDirectory } from './discordDirectory'
 import { roleFor } from './access'
 import type { DashboardDeps, FeatureCatalog, ListsDeps } from './deps'
 import type { ChatFeed } from './feed'
@@ -55,7 +57,41 @@ function catalog(ctx: AppContext): FeatureCatalog {
         ...(feature ? { feature } : {})
       }
     }),
-    missingEnv: { hypixel: missing('hypixel'), guildlbGuild: missing('guildlbGuild') }
+    missingEnv: { hypixel: missing('hypixel'), guildlbGuild: missing('guildlbGuild'), guildlbApi: ctx.env.guildlb?.apiKey ? null : 'GUILDLB_API_KEY' }
+  }
+}
+
+/** The bot's server: DISCORD_SERVER_ID, else the server of account 1's guild channel. */
+async function resolveServerId(ctx: AppContext): Promise<string | undefined> {
+  if (ctx.env.discordServerId) return ctx.env.discordServerId
+  const first = ctx.accounts.list()[0]
+  const channel = first ? await ctx.discord.client.channels.fetch(first.config.guildChannelId) : null
+  return channel && 'guildId' in channel ? (channel.guildId ?? undefined) : undefined
+}
+
+/** Channels and roles of the bot's server, cached for a minute. Null while Discord is not ready or the server cannot be resolved. */
+function directoryFetcher(ctx: AppContext): () => Promise<DiscordDirectory | null> {
+  let cache: { value: DiscordDirectory; at: number } | undefined
+  return async () => {
+    if (cache && Date.now() - cache.at < ROLE_TTL_MS) return cache.value
+    const client = ctx.discord.client
+    if (!client.isReady()) return null
+    try {
+      const serverId = await resolveServerId(ctx)
+      if (!serverId) return null
+      const guild = await client.guilds.fetch(serverId)
+      const [channels, roles] = await Promise.all([guild.channels.fetch(), guild.roles.fetch()])
+      const value = directoryFromGuild({
+        id: guild.id,
+        name: guild.name,
+        channels: [...channels.values()].filter((c): c is NonNullable<typeof c> => c !== null),
+        roles: roles.values()
+      })
+      cache = { value, at: Date.now() }
+      return value
+    } catch {
+      return null
+    }
   }
 }
 
@@ -66,12 +102,7 @@ function roleFetcher(ctx: AppContext): (discordId: string) => Promise<readonly s
     const hit = cache.get(discordId)
     if (hit && Date.now() - hit.at < ROLE_TTL_MS) return hit.roles
     const client = ctx.discord.client
-    let serverId = ctx.env.discordServerId
-    if (!serverId) {
-      const first = ctx.accounts.list()[0]
-      const channel = first ? await client.channels.fetch(first.config.guildChannelId) : null
-      serverId = channel && 'guildId' in channel ? (channel.guildId ?? undefined) : undefined
-    }
+    const serverId = await resolveServerId(ctx)
     if (!serverId) throw new Error('Could not resolve the bot server')
     const guild = await client.guilds.fetch(serverId)
     let roles: readonly string[] | null
@@ -147,7 +178,7 @@ export function createDashboardDeps(ctx: AppContext, feed: ChatFeed): DashboardD
     now: Date.now,
     log: ctx.log.child('dashboard'),
     audit: ctx.repos.audit,
-    access: discordId => roleFor({ ownerId: ctx.env.ownerId, staffRoleId: ctx.env.staffRoleId, fetchRoles }, discordId),
+    access: discordId => roleFor({ ownerId: ctx.env.ownerId, staffRoleId: ctx.env.staffRoleId, adminRoleId: ctx.env.adminRoleId, fetchRoles }, discordId),
     accounts: () =>
       ctx.accounts.list().map(a => ({
         id: a.id,
@@ -155,7 +186,10 @@ export function createDashboardDeps(ctx: AppContext, feed: ChatFeed): DashboardD
         enabled: a.config.enabled,
         online: a.online,
         username: a.username ?? null,
-        relayGroup: a.config.relayGroup ?? null
+        relayGroup: a.config.relayGroup ?? null,
+        guildChannelId: a.config.guildChannelId,
+        officerChannelId: a.config.officerChannelId ?? null,
+        ...accountOrigin(ctx.env.accounts, a.id)
       })),
     settings: {
       store: ctx.settings,
@@ -180,6 +214,7 @@ export function createDashboardDeps(ctx: AppContext, feed: ChatFeed): DashboardD
       catalog: () => catalog(ctx)
     },
     lists,
+    discordDirectory: directoryFetcher(ctx),
     guild: { members: accountId => members(ctx, names, accountId) },
     feed
   }

@@ -25,4 +25,12 @@ describe('roleFor', () => {
     ).toBe('none')
     expect(await roleFor({ ownerId: OWNER, staffRoleId: STAFF_ROLE, fetchRoles: async () => null }, '200000000000000002')).toBe('none')
   })
+  it('admin role member is admin, with or without a staff role set', async () => {
+    const ADMIN_ROLE = '100000000000000008'
+    expect(await roleFor({ ownerId: OWNER, adminRoleId: ADMIN_ROLE, fetchRoles: async () => [ADMIN_ROLE] }, '200000000000000002')).toBe('admin')
+    expect(
+      await roleFor({ ownerId: OWNER, staffRoleId: STAFF_ROLE, adminRoleId: ADMIN_ROLE, fetchRoles: async () => [STAFF_ROLE] }, '200000000000000002')
+    ).toBe('staff')
+    expect(await roleFor({ ownerId: OWNER, adminRoleId: ADMIN_ROLE, fetchRoles: async () => [STAFF_ROLE] }, '200000000000000002')).toBe('none')
+  })
 })

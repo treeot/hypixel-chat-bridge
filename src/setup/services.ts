@@ -1,4 +1,5 @@
 import { describeReconcile } from '../app/accountControl'
+import { isAdmin } from '../app/permissions'
 import { chatCommands } from '../app/chat'
 import type { AppContext } from '../app/context'
 import { postApplyMessage } from '../app/interactions/application'
@@ -110,7 +111,7 @@ export async function runEffect(ctx: AppContext, effect: Effect): Promise<string
 
 export function createSetupServices(ctx: AppContext): SetupServices {
   return {
-    ownerId: ctx.env.ownerId,
+    canEdit: (userId, roles) => isAdmin(userId, roles, ctx.env),
     log: ctx.log.child('setup'),
     loadState: (area, extraAccountIds) => loadState(ctx, area, extraAccountIds),
     write: async (area, value, accountId) => {

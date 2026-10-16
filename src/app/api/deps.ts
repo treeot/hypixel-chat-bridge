@@ -1,6 +1,8 @@
+import type { DiscordDirectory } from './discordDirectory'
 import type { ChatFeed } from './feed'
 import type { MembersResult } from './members'
 import type { Logger } from '../../core/logger'
+import type { AccountField } from '../../settings/accounts'
 import type { AreaId } from '../../settings/registry'
 import type { SettingsStore } from '../../settings/store'
 import type { GuildLbClient } from '../../services/guildlb'
@@ -15,6 +17,13 @@ export interface AccountInfo {
   online: boolean
   username: string | null
   relayGroup: string | null
+  /** The Discord channels the account relays to, so the dashboard can name the ones the config sets. */
+  guildChannelId: string
+  officerChannelId: string | null
+  /** env: set up in the bot's environment config; settings: added in the dashboard. */
+  source: 'env' | 'settings'
+  /** Fields the environment sets for this account; a settings overlay cannot change them. */
+  locked: AccountField[]
 }
 
 export interface FeatureCatalog {
@@ -22,7 +31,8 @@ export interface FeatureCatalog {
   /** feature: the features switch that also turns this command off (verify or allianceChecks), when there is one. */
   slashCommands: { name: string; description: string; requires: string[]; alwaysOn: boolean; feature?: 'verify' | 'allianceChecks' }[]
   /** Env var name when missing, else null. */
-  missingEnv: Record<'hypixel' | 'guildlbGuild', string | null>
+  /** Env var name for each key the bot lacks, null when set. guildlbApi is the GuildLB website key (networth for !nw). */
+  missingEnv: Record<'hypixel' | 'guildlbGuild' | 'guildlbApi', string | null>
 }
 
 export interface SettingsDeps {
@@ -62,6 +72,8 @@ export interface DashboardDeps {
   audit: Pick<AuditRepo, 'record' | 'page'>
   access(discordId: string): Promise<DashboardRole>
   accounts(): AccountInfo[]
+  /** Channels and roles of the bot's server; null when Discord is not ready or the server cannot be resolved. */
+  discordDirectory(): Promise<DiscordDirectory | null>
   settings: SettingsDeps
   lists: ListsDeps
   guild: GuildDeps

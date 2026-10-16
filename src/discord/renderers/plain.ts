@@ -10,5 +10,5 @@ export const plainRenderer: Renderer = {
     const content = truncate(renderTemplate(format.templates.plain, templateValues(input), escapeMd), LIMITS.content) || '​'
     return [{ via: 'bot', content, allowedMentions: NO_MENTIONS }]
   },
-  event: event => [renderEventEmbed(event)]
+  event: (event, format) => [renderEventEmbed(event, format?.embedTimestamp)]
 }

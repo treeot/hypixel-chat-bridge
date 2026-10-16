@@ -5,7 +5,7 @@ import { GUILD_EVENT_TYPES, type GuildEventType } from '../../core/contracts'
 export const RENDER_MODES = ['webhook', 'embed', 'plain', 'image'] as const
 export type RenderMode = (typeof RENDER_MODES)[number]
 
-export const TEMPLATE_KEYS = ['webhookName', 'webhookContent', 'embedAuthor', 'embedDescription', 'plain'] as const
+export const TEMPLATE_KEYS = ['webhookName', 'webhookContent', 'embedAuthor', 'embedDescription', 'plain', 'embedFooter'] as const
 export type TemplateKey = (typeof TEMPLATE_KEYS)[number]
 export type Templates = Record<TemplateKey, string>
 
@@ -15,12 +15,15 @@ export interface ChannelFormat {
   mode: RenderMode
   templates: Templates
   events: EventToggles
+  /** Show the send time on embeds (Embed style and guild events). */
+  embedTimestamp: boolean
 }
 
 export interface FormatOverride {
   mode?: RenderMode
   templates?: Partial<Templates>
   events?: Partial<EventToggles>
+  embedTimestamp?: boolean
 }
 
 export interface RenderSettings {
@@ -33,13 +36,16 @@ export const DEFAULT_TEMPLATES: Templates = {
   webhookContent: '{message}',
   embedAuthor: '{source} {rank} {name} {guildRank}',
   embedDescription: '{message}',
+  // Blank: no footer.
+  embedFooter: '',
   plain: '{source} **{rank} {name}:** {message}'
 }
 
 export const DEFAULT_FORMAT: ChannelFormat = {
   mode: 'webhook',
   templates: DEFAULT_TEMPLATES,
-  events: Object.fromEntries(GUILD_EVENT_TYPES.map(type => [type, true])) as EventToggles
+  events: Object.fromEntries(GUILD_EVENT_TYPES.map(type => [type, true])) as EventToggles,
+  embedTimestamp: false
 }
 
 export const DEFAULT_RENDER_SETTINGS: RenderSettings = { default: DEFAULT_FORMAT, channels: {} }
@@ -75,6 +81,8 @@ function parseOverride(value: unknown): FormatOverride {
     if (Object.keys(events).length) out.events = events
   }
 
+  if (typeof value.embedTimestamp === 'boolean') out.embedTimestamp = value.embedTimestamp
+
   return out
 }
 
@@ -83,7 +91,8 @@ function applyOverride(base: ChannelFormat, override: FormatOverride | undefined
   return {
     mode: override.mode ?? base.mode,
     templates: { ...base.templates, ...override.templates },
-    events: { ...base.events, ...override.events }
+    events: { ...base.events, ...override.events },
+    embedTimestamp: override.embedTimestamp ?? base.embedTimestamp
   }
 }
 

@@ -1,4 +1,5 @@
 import { ComponentType, MessageFlags, type MessageComponentInteraction, type ModalSubmitInteraction } from 'discord.js'
+import type { StaffRoles } from '../app/permissions'
 import type { AreaId } from '../settings/registry'
 import { SettingsValidationError } from '../settings/store'
 import { isAreaId, SETUP_AREAS } from './areas'
@@ -9,7 +10,7 @@ import { handleImportButton } from './importFlow'
 import type { ModalView, Outcome, PanelView, SetupInput, SetupState } from './types'
 import { toModalBuilder, withNotice } from './ui'
 
-export const NOT_OWNER = 'Only the bot owner can change these settings.'
+export const NOT_OWNER = 'Only the bot owner and admins can change these settings.'
 const STALE = 'This panel is out of date. Run /setup panel again.'
 const FAILED = '❌ Something went wrong. Nothing else was changed.'
 const NO_MENTIONS = { parse: [] as [] }
@@ -55,9 +56,9 @@ async function execute(
 }
 
 /** The owner gate runs before the id is decoded, so no forged or stale `setup:` id reads or writes anything for anyone else. */
-export async function prepareSetup(userId: string, customId: string, input: SetupInput, services: SetupServices): Promise<Prepared> {
+export async function prepareSetup(userId: string, customId: string, input: SetupInput, services: SetupServices, roles?: StaffRoles): Promise<Prepared> {
   if (!customId.startsWith(`${SETUP_PREFIX}:`)) return { kind: 'ignore' }
-  if (!services.ownerId || userId !== services.ownerId) return { kind: 'reply', content: NOT_OWNER }
+  if (!services.canEdit(userId, roles)) return { kind: 'reply', content: NOT_OWNER }
   const id = decodeId(customId)
   if (!id) return { kind: 'reply', content: STALE }
   if (id.area === 'import') return { kind: 'update', run: () => handleImportButton(id, services) }
@@ -90,7 +91,7 @@ const ephemeral = (content: string) => ({ content, flags: MessageFlags.Ephemeral
 export async function handleSetupInteraction(interaction: SetupInteraction, services: SetupServices): Promise<void> {
   let prepared: Prepared
   try {
-    prepared = await prepareSetup(interaction.user.id, interaction.customId, toInput(interaction), services)
+    prepared = await prepareSetup(interaction.user.id, interaction.customId, toInput(interaction), services, interaction.member?.roles)
   } catch (error) {
     services.log.error('Setup action failed', error)
     await interaction.reply(ephemeral(FAILED)).catch(() => undefined)

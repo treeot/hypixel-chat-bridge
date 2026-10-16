@@ -93,6 +93,22 @@ export class Router {
     return results.find(r => !r.ok) ?? results.find(r => r.truncated) ?? results[0]
   }
 
+  /**
+   * A line typed on the dashboard: said in game like a Discord line (split, filtered, confirmed), then
+   * posted to the account's Discord channel (the bot skips its own echo there) and relayed to its group.
+   */
+  async onDashboardChat(accountId: AccountId, chat: Chat, author: string, content: string): Promise<SendResult> {
+    const source = this.accounts().find(a => a.config.id === accountId)
+    if (!source || !source.config.enabled) return { ok: false, reason: 'offline' }
+    const result = await this.send(source, chat, author, content)
+    if (!result.ok) return result
+    const payload: RelayChat = { chat, username: author, message: content }
+    const own = channelFor(source.config, chat)
+    if (own) await this.guarded(`Discord post for account ${accountId}`, () => this.discord.postChat(own, renderInputFor(source.config, payload)))
+    await this.fanOut(source, payload, [own], [accountId])
+    return result
+  }
+
   private async fanOut(source: RouterAccount, payload: RelayChat, alreadyPosted: Array<string | undefined>, skip: AccountId[]): Promise<void> {
     const group = source.config.relayGroup
     if (!group) return

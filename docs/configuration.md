@@ -20,6 +20,7 @@ Everything else (formats, ranks, commands, join requirements, filters) is config
 |---|---|---|---|
 | `OFFICER_CHANNEL_ID` | no | — | Discord channel bridged to officer chat for account 1. Officer relay is off when unset. |
 | `STAFF_ROLE_ID` | no | — | Role allowed to run staff commands. When unset, staff commands are owner-only. |
+| `ADMIN_ROLE_ID` | no | — | Role whose members can do what the owner can: change settings in `/setup` and the dashboard, and run owner-only commands. They also count as staff. Minecraft sign-in codes still go only to the owner. |
 | `DISCORD_SERVER_ID` | no | — | Restrict the bot to one Discord server and publish slash commands there instantly. Interactions and messages from any other server are ignored. |
 | `LOG_CHANNEL_ID` | no | — | Channel for error and alert logs. |
 

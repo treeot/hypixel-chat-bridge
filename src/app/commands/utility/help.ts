@@ -1,6 +1,7 @@
-import { APIEmbed, APIEmbedField, GuildMemberRoleManager, inlineCode } from 'discord.js'
+import { APIEmbed, APIEmbedField, inlineCode } from 'discord.js'
 import type { SlashCommand } from '../../context'
 import { visibleCommands } from '../../commands'
+import { isStaff } from '../../permissions'
 import { version } from '../../../../package.json'
 
 const FIELD_VALUE_LIMIT = 1024
@@ -25,12 +26,8 @@ function chunkField(name: string, lines: string[]): APIEmbedField[] {
   return fields
 }
 
-function isStaff(interaction: Parameters<SlashCommand['execute']>[0], ctx: Parameters<SlashCommand['execute']>[1], staffRole: string | undefined): boolean {
-  if (interaction.user.id === ctx.env.ownerId) return true
-  if (!staffRole) return false
-  const roles = interaction.member?.roles
-  if (roles instanceof GuildMemberRoleManager) return roles.cache.has(staffRole)
-  return Array.isArray(roles) ? roles.includes(staffRole) : false
+function canSeeStaffCommands(interaction: Parameters<SlashCommand['execute']>[0], ctx: Parameters<SlashCommand['execute']>[1]): boolean {
+  return isStaff(interaction.user.id, interaction.member?.roles, ctx.env)
 }
 
 const help: SlashCommand = {
@@ -43,7 +40,7 @@ const help: SlashCommand = {
   async execute(interaction, ctx) {
     const account = ctx.env.accounts[0]
     const discordCommandLines = visibleCommands(ctx.env)
-      .filter(command => command.displayHelp !== false && (command.permission === 'all' || isStaff(interaction, ctx, ctx.env.staffRoleId)))
+      .filter(command => command.displayHelp !== false && (command.permission === 'all' || canSeeStaffCommands(interaction, ctx)))
       .map(command => `${inlineCode(command.name)}: ${command.description}`)
       .sort()
 
@@ -107,6 +104,7 @@ const help: SlashCommand = {
             `Guild Channel: <#${account.guildChannelId}>`,
             ...(account.officerChannelId ? [`Officer Channel: <#${account.officerChannelId}>`] : []),
             ...(ctx.env.staffRoleId ? [`Staff Role: <@&${ctx.env.staffRoleId}>`] : []),
+            ...(ctx.env.adminRoleId ? [`Admin Role: <@&${ctx.env.adminRoleId}>`] : []),
             `Version: ${inlineCode(version)}`
           ].join('\n')
         }

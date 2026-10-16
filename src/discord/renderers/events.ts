@@ -20,8 +20,9 @@ export function classifyEvent(event: RelayEvent): GuildEventType {
   return 'other'
 }
 
-export function renderEventEmbed(event: RelayEvent): OutboundMessage {
+export function renderEventEmbed(event: RelayEvent, timestamp = false): OutboundMessage {
   const embed: APIEmbed = { color: Colours[event.tone] }
+  if (timestamp) embed.timestamp = new Date().toISOString()
   const heading = event.title ?? event.username
   if (heading) {
     embed.author = event.username

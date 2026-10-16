@@ -18,8 +18,11 @@ export const embedRenderer: Renderer = {
       },
       description: truncate(renderTemplate(format.templates.embedDescription, values, escapeMd), LIMITS.embedDescription) || '​'
     }
+    if (format.embedTimestamp) embed.timestamp = new Date().toISOString()
+    const footer = truncate(renderTemplate(format.templates.embedFooter, values), LIMITS.embedFooter)
+    if (footer) embed.footer = { text: footer }
     if (input.imageUrl) embed.image = { url: input.imageUrl }
     return [{ via: 'bot', embeds: [embed], allowedMentions: NO_MENTIONS }]
   },
-  event: event => [renderEventEmbed(event)]
+  event: (event, format) => [renderEventEmbed(event, format?.embedTimestamp)]
 }

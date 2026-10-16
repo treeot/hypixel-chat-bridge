@@ -272,3 +272,34 @@ describe('DedupCache', () => {
     expect(d.size).toBe(1)
   })
 })
+
+describe('Router: dashboard chat', () => {
+  it('says the line in game, posts it to the own channel and relays it to the group', async () => {
+    const a = acct(1, 'GA', 'ca', { relayGroup: 'ally' })
+    const b = acct(2, 'GB', 'cb', { relayGroup: 'ally' })
+    const { router, posts } = setup([a, b])
+    expect(await router.onDashboardChat(1, 'guild', 'Benson', 'hi all')).toEqual({ ok: true })
+    expect(a.sent).toEqual([{ chat: 'guild', author: 'Benson', content: 'hi all' }])
+    expect(posts.map(p => [p.to, p.input.sender, p.input.message])).toEqual([
+      ['ca', 'Benson', 'hi all'],
+      ['cb', 'Benson', 'hi all']
+    ])
+    expect(b.sent).toHaveLength(1)
+  })
+
+  it('posts nothing and returns the reason when the line is not sent', async () => {
+    const a = acct(1, 'GA', 'ca', { relayGroup: 'ally' })
+    const b = acct(2, 'GB', 'cb', { relayGroup: 'ally' })
+    a.result = { ok: false, reason: 'filtered', filterReason: 'links' }
+    const { router, posts } = setup([a, b])
+    expect(await router.onDashboardChat(1, 'guild', 'Benson', 'x.com')).toEqual({ ok: false, reason: 'filtered', filterReason: 'links' })
+    expect(posts).toEqual([])
+    expect(b.sent).toEqual([])
+  })
+
+  it('treats a missing or disabled account as offline', async () => {
+    const { router } = setup([acct(1, 'GA', 'ca', { enabled: false })])
+    expect(await router.onDashboardChat(1, 'guild', 'Benson', 'hi')).toEqual({ ok: false, reason: 'offline' })
+    expect(await router.onDashboardChat(9, 'guild', 'Benson', 'hi')).toEqual({ ok: false, reason: 'offline' })
+  })
+})

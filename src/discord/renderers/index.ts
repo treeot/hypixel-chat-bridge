@@ -89,7 +89,7 @@ export class RenderService {
     try {
       const format = await this.formatFor(channelId)
       if (!format.events[classifyEvent(event)]) return
-      for (const message of this.renderers[format.mode].event(event)) await this.deps.sink.postAsBot(channelId, message)
+      for (const message of this.renderers[format.mode].event(event, format)) await this.deps.sink.postAsBot(channelId, message)
     } catch (error) {
       this.deps.log.error('Could not relay a guild event to Discord', error, { channelId })
     }

@@ -1,4 +1,5 @@
 import { MessageFlags } from 'discord.js'
+import { isAdmin } from '../src/app/permissions'
 import { describe, expect, it, vi } from 'vitest'
 import { isOverridable } from '../src/settings/overrides'
 import { SettingsStore } from '../src/settings/store'
@@ -12,12 +13,14 @@ import { click, G1, G2, makeState, modal, sel } from './helpers/setupState'
 const OWNER = '100000000000000042'
 const OTHER = '100000000000000043'
 
+const ADMIN_ROLE = '300000000000000003'
+
 function harness(opts: { effectError?: string } = {}) {
   const docs = new Map<string, Record<string, unknown>>()
   const store = new SettingsStore({ get: async t => docs.get(t) ?? null, set: async (t, v) => void docs.set(t, v) })
   const effects: Effect[] = []
   const services: SetupServices = {
-    ownerId: OWNER,
+    canEdit: (userId, roles) => isAdmin(userId, roles, { ownerId: OWNER, adminRoleId: ADMIN_ROLE }),
     log: silentLogger(),
     loadState: vi.fn(async () => makeState(await store.readAll())),
     write: async (area, value, accountId) => {
@@ -41,11 +44,13 @@ async function run(userId: string, customId: string, input: Parameters<typeof pr
 }
 
 describe('prepareSetup', () => {
-  it('rejects everyone but the owner', async () => {
+  it('rejects everyone but the owner and the admin role', async () => {
     const { services, docs } = harness()
     expect(await prepareSetup(OTHER, 'setup:relay:-:tg:0', sel('guild'), services)).toEqual({ kind: 'reply', content: NOT_OWNER })
+    expect(await prepareSetup(OTHER, 'setup:relay:-:tg:0', sel('guild'), services, ['999999999999999999'])).toEqual({ kind: 'reply', content: NOT_OWNER })
     expect(services.loadState).not.toHaveBeenCalled()
     expect(docs.size).toBe(0)
+    expect((await prepareSetup(OTHER, 'setup:home:-:open:-', click, services, [ADMIN_ROLE])).kind).not.toBe('reply')
   })
 
   it('gates every setup id before any state is read: modals, home, import, stale and malformed ids', async () => {

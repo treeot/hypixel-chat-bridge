@@ -3,6 +3,7 @@ import type { Route } from '../router'
 import { accessRoutes } from './access'
 import { accountRoutes } from './accounts'
 import { auditRoutes } from './audit'
+import { discordRoutes } from './discord'
 import { eventRoutes } from './events'
 import { featureRoutes } from './features'
 import { guildRoutes } from './guild'
@@ -17,6 +18,7 @@ export function dashboardRoutes(deps: DashboardDeps): Route[] {
     ...featureRoutes(deps),
     ...listRoutes(deps),
     ...guildRoutes(deps),
+    ...discordRoutes(deps),
     ...eventRoutes(deps),
     ...auditRoutes(deps)
   ]

@@ -1,6 +1,7 @@
 import { ButtonStyle, StringSelectMenuBuilder } from 'discord.js'
 import { GUILD_EVENT_TYPES, type GuildEventType } from '../../core/contracts'
 import {
+  DEFAULT_FORMAT,
   DEFAULT_TEMPLATES,
   parseRenderSettings,
   RENDER_MODES,
@@ -49,10 +50,12 @@ export const TEMPLATE_LABELS: Record<TemplateKey, string> = {
   webhookContent: 'Webhook message',
   embedAuthor: 'Embed author line',
   embedDescription: 'Embed text',
+  embedFooter: 'Embed footer',
   plain: 'Plain text line'
 }
 
-const PLACEHOLDER_HELP = 'Placeholders: `{source}` `{chat}` `{rank}` `{name}` `{guildRank}` `{message}`'
+const PLACEHOLDER_HELP =
+  'Placeholders: `{source}` `{chat}` `{rank}` `{name}` `{guildRank}` `{message}`. Without brackets: `{sourceName}` `{rankName}` `{guildRankName}`.'
 
 export function bridgedChannels(accounts: readonly AccountView[]): Array<{ channelId: string; label: string }> {
   const labels = new Map<string, string[]>()
@@ -82,6 +85,7 @@ function scopeSpecs(settings: FormatsSettings, scope: string): FieldSpec[] {
   return [
     { kind: 'choice', key: 'mode', label: 'Format', options: RENDER_MODES.map(mode => ({ value: mode, label: MODE_LABELS[mode] })) },
     ...GUILD_EVENT_TYPES.map((type): FieldSpec => ({ kind: 'toggle', key: `events.${type}`, label: `Post ${EVENT_LABELS[type]}` })),
+    { kind: 'toggle', key: 'embedTimestamp', label: 'Show the time on embeds' },
     ...TEMPLATE_KEYS.map((key): FieldSpec => ({
       kind: 'text',
       key: `templates.${key}`,
@@ -89,7 +93,7 @@ function scopeSpecs(settings: FormatsSettings, scope: string): FieldSpec[] {
       maxLength: 500,
       optional: true,
       paragraph: true,
-      placeholder: `Blank = ${inherited[key]}`,
+      placeholder: inherited[key] ? `Blank = ${inherited[key]}` : 'Blank = no footer',
       emptyText: 'inherited'
     }))
   ]
@@ -98,12 +102,18 @@ function scopeSpecs(settings: FormatsSettings, scope: string): FieldSpec[] {
 interface ScopeValue {
   mode: RenderMode
   events: Record<GuildEventType, boolean>
+  embedTimestamp: boolean
   templates: Partial<Templates>
 }
 
 function scopeValue(settings: FormatsSettings, scope: string): ScopeValue {
   const format = effective(settings, scope)
-  return { mode: format.mode, events: { ...format.events }, templates: { ...(overrideFor(settings, scope).templates ?? {}) } }
+  return {
+    mode: format.mode,
+    events: { ...format.events },
+    embedTimestamp: format.embedTimestamp,
+    templates: { ...(overrideFor(settings, scope).templates ?? {}) }
+  }
 }
 
 const isScope = (state: SetupState, scope: string) => scope === DEFAULT_SCOPE || bridgedChannels(state.accounts).some(c => c.channelId === scope)
@@ -198,7 +208,12 @@ export const formatsArea: SetupArea = {
     const next = applied.value as ScopeValue
     const override: FormatOverride = { ...overrideFor(settings, id.scope) }
     if (id.action === 'cs') override.mode = next.mode
-    if (id.action === 'tg') override.events = next.events
+    if (id.action === 'tg') {
+      override.events = next.events
+      // Stored only when it differs from what this scope would inherit, so a plain event change saves just the events.
+      const inherited = id.scope === DEFAULT_SCOPE ? DEFAULT_FORMAT.embedTimestamp : parseRenderSettings(settings).default.embedTimestamp
+      override.embedTimestamp = next.embedTimestamp === inherited ? undefined : next.embedTimestamp
+    }
     if (id.action === 'md') override.templates = Object.keys(next.templates ?? {}).length ? next.templates : undefined
     return save(state, id.scope, withOverride(settings, id.scope, override), 'Format saved.')
   }

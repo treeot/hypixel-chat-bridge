@@ -60,6 +60,14 @@ export const ENV_VARS: readonly EnvVarDoc[] = [
     description: 'Role allowed to run staff commands. When unset, staff commands are owner-only.'
   },
   {
+    name: 'ADMIN_ROLE_ID',
+    group: 'discord',
+    required: false,
+    readBy: 'bridge',
+    description:
+      'Role whose members can do what the owner can: change settings in `/setup` and the dashboard, and run owner-only commands. They also count as staff. Minecraft sign-in codes still go only to the owner.'
+  },
+  {
     name: 'DISCORD_SERVER_ID',
     group: 'discord',
     required: false,

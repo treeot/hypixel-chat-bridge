@@ -4,7 +4,7 @@ import { inBotServer, type Env } from '../core/env'
 import { SimpleEmbed } from '../discord/format'
 import type { AppContext } from './context'
 import type { SlashCommand } from './context'
-import { isStaff } from './permissions'
+import { isAdmin, isStaff } from './permissions'
 import { ACCOUNT_OPTION, resolveAccount, withAccount, withAccountOption } from './accountScope'
 import { moderationCommands } from './commands/moderation'
 import { utilityCommands } from './commands/utility'
@@ -77,7 +77,7 @@ function hasPermission(interaction: ChatInputCommandInteraction, command: SlashC
     case 'all':
       return true
     case 'owner':
-      return interaction.user.id === ctx.env.ownerId
+      return isAdmin(interaction.user.id, interaction.member?.roles, ctx.env)
     case 'staff':
       return isStaff(interaction.user.id, interaction.member?.roles, ctx.env)
   }
@@ -108,7 +108,9 @@ async function runCommand(interaction: ChatInputCommandInteraction, ctx: AppCont
   if (!hasPermission(interaction, command, ctx)) {
     const required =
       command.permission === 'owner'
-        ? `Required user: <@!${ctx.env.ownerId}>`
+        ? ctx.env.adminRoleId
+          ? `Required permission: <@&${ctx.env.adminRoleId}>`
+          : `Required user: <@!${ctx.env.ownerId}>`
         : staffRole
           ? `Required permission: <@&${staffRole}>`
           : `Required user: <@!${ctx.env.ownerId}>`

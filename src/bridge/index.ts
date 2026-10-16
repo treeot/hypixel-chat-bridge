@@ -104,7 +104,11 @@ export class Bridge {
       intercept: (accountId, payload) => dispatchChatCommand(this.ctxFor(accountId), payload)
     })
 
-    this.restApi = createRestApi(this.ctx, this.ctx.env.dashboardApi ? createDashboardDeps(this.ctx, this.feed) : undefined)
+    this.restApi = createRestApi(
+      this.ctx,
+      this.ctx.env.dashboardApi ? createDashboardDeps(this.ctx, this.feed) : undefined,
+      (accountId, chat, author, content) => this.router.onDashboardChat(accountId, chat, author, content)
+    )
 
     this.wire()
   }

@@ -56,6 +56,7 @@ describe('renderEventEmbed', () => {
     expect(embed.author).toEqual({ name: 'Member Joined', icon_url: 'https://mc-heads.net/avatar/Steve' })
     expect(embed.description).toBe('Steve joined the guild!')
     expect(embed).not.toHaveProperty('timestamp')
+    expect(new Date(renderEventEmbed(event('[MVP+] Steve joined the guild!'), true).embeds![0].timestamp!).getTime()).not.toBeNaN()
     expect(embed).not.toHaveProperty('footer')
   })
 

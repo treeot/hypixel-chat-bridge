@@ -121,3 +121,20 @@ describe('every text renderer', () => {
     }
   }
 })
+
+describe('embed footer and timestamp', () => {
+  it('adds the send time only when the timestamp switch is on', async () => {
+    const [off] = await embedRenderer.chat(input(), DEFAULT_FORMAT)
+    expect(off.embeds![0]).not.toHaveProperty('timestamp')
+    const [on] = await embedRenderer.chat(input(), { ...DEFAULT_FORMAT, embedTimestamp: true })
+    expect(new Date(on.embeds![0].timestamp!).getTime()).not.toBeNaN()
+  })
+
+  it('adds a footer only when the footer template is set', async () => {
+    const [plain] = await embedRenderer.chat(input(), DEFAULT_FORMAT)
+    expect(plain.embeds![0]).not.toHaveProperty('footer')
+    const format: ChannelFormat = { ...DEFAULT_FORMAT, templates: { ...DEFAULT_FORMAT.templates, embedFooter: '{chat} chat' } }
+    const [m] = await embedRenderer.chat(input(), format)
+    expect(m.embeds![0].footer).toEqual({ text: 'Guild chat' })
+  })
+})
