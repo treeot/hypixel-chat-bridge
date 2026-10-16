@@ -1,14 +1,23 @@
 # Railway
 
-The one-click template deploys **one service** (this repo, built from its `Dockerfile`) with **a Volume at `/app/data`**. Data lives in SQLite on that Volume unless you set `DATABASE_URL`. Estimated cost for one guild is about \$3.80/month, inside the Hobby plan's \$5 of included usage (see the cost table in the README).
+The one-click template deploys **two services** from this repo:
+
+- **`bridge`**: the bot, built from the root `Dockerfile`, with **a Volume at `/app/data`**. Data lives in SQLite on that Volume unless you set `DATABASE_URL`. It has no public domain.
+- **`dashboard`**: the web dashboard, built from `dashboard/Dockerfile`, with a public domain. It's optional: [remove it](#remove-the-dashboard) if you don't want it.
+
+Estimated cost for one guild is about \$5–6/month with the dashboard (just over the Hobby plan's \$5 of included usage), or about \$3.80 without it (see the cost table in the README).
 
 ## Deploy
 
 1. Click **Deploy on Railway** in the README.
 2. Fill in `DISCORD_TOKEN`, `OWNER_ID` and `GUILD_CHANNEL_ID` (see the README quickstart for where to find them). `HYPIXEL_API_KEY` is optional: without it, live stat commands, join requirements, GEXP, verify/link and Apply are disabled (get a key at <https://developer.hypixel.net>). Leave everything else as it is.
-3. Click **Deploy**. The bot DMs `OWNER_ID` an embed titled `Sign in to Minecraft` (falling back to a mention in the officer channel if the DM fails). Open the link in it, enter the code, and sign in with the bot's Minecraft account.
+3. For the dashboard, fill in `AUTH_DISCORD_ID` and `AUTH_DISCORD_SECRET`: the Client ID and Client Secret from the same Discord application as your bot (Developer Portal → OAuth2). Skip the dashboard? [Remove it](#remove-the-dashboard) after deploying.
+4. Click **Deploy**. The bot DMs `OWNER_ID` an embed titled `Sign in to Minecraft` (falling back to a mention in the officer channel if the DM fails). Open the link in it, enter the code, and sign in with the bot's Minecraft account.
+5. Dashboard only: in the Developer Portal → OAuth2 → Redirects, add `https://<your dashboard domain>/api/auth/callback/discord` (the domain is on the `dashboard` service in Railway). Then open that domain and log in with Discord.
 
 ## Template settings
+
+### `bridge` service
 
 Railway auto-detects the `Dockerfile` in the repo root and builds it, and its default restart policy is **On Failure**. The template sets the rest:
 
@@ -28,24 +37,32 @@ Railway auto-detects the `Dockerfile` in the repo root and builds it, and its de
 | `GUILDLB_GUILD_KEY` | empty | optional | GuildLB guild-api key bound to your guild: alliance blacklist checks and `/alliance`. Must differ from `GUILDLB_API_KEY`. |
 | `NODE_OPTIONS` | `--max-old-space-size=256` | preset | Caps the heap so memory use stays low on the Hobby plan |
 | `RAILWAY_RUN_UID` | `0` | preset | Railway mounts Volumes as root; the image runs as uid 1000 and could not write otherwise ([Railway docs](https://docs.railway.com/volumes#permissions)) |
+| `REST_API_TOKEN` | `${{secret(48)}}` | preset | Password for the REST API; the dashboard uses it. |
+| `REST_API_PORT` | `3000` | preset | Port the REST API listens on (private network only). |
+| `DASHBOARD_API` | `true` | preset | Turns on the dashboard endpoints. Set `false` if you remove the dashboard. |
 
 Do not add replicas: Railway does not allow replicas on a service with a Volume, and the bridge must run one Minecraft session per account anyway.
 
-## Bridge + Dashboard template
+### `dashboard` service
 
-The optional dashboard runs as a second service. The bridge stays private; only the dashboard has a public domain.
+| Setting | Value | Required | Description |
+|---|---|---|---|
+| `RAILWAY_DOCKERFILE_PATH` | `dashboard/Dockerfile` | preset | Builds the dashboard instead of the bridge. |
+| `BRIDGE_URL` | `http://${{bridge.RAILWAY_PRIVATE_DOMAIN}}:3000` | preset | Where the dashboard reaches the bridge (private network). |
+| `BRIDGE_TOKEN` | `${{bridge.REST_API_TOKEN}}` | preset | Must equal the bridge's `REST_API_TOKEN`. |
+| `AUTH_SECRET` | `${{secret(32)}}` | preset | Signs the login cookie. |
+| `AUTH_TRUST_HOST` | `true` | preset | Lets the login work behind Railway's proxy. |
+| `AUTH_DISCORD_ID` | *(you fill in)* | required for the dashboard | Client ID of your bot's Discord application. |
+| `AUTH_DISCORD_SECRET` | *(you fill in)* | required for the dashboard | Client Secret of the same application. |
 
-| Service | Variable | Value |
-|---|---|---|
-| Bridge | `REST_API_TOKEN` | random, 48 characters |
-| Bridge | `REST_API_PORT` | `3000` |
-| Bridge | `DASHBOARD_API` | `true` |
-| Dashboard | `RAILWAY_DOCKERFILE_PATH` | `dashboard/Dockerfile` |
-| Dashboard | `BRIDGE_URL` | `http://<bridge service>.railway.internal:3000` |
-| Dashboard | `BRIDGE_TOKEN` | the bridge's `REST_API_TOKEN` |
-| Dashboard | `AUTH_SECRET`, `AUTH_DISCORD_ID`, `AUTH_DISCORD_SECRET`, `AUTH_TRUST_HOST` | see [dashboard.md](dashboard.md) |
+`${{bridge.…}}` refers to the bridge service by its name. If you rename the bridge service, update both references. Setup details and troubleshooting: [dashboard.md](dashboard.md).
 
-Give the bridge no public domain. Setup steps and troubleshooting: [dashboard.md](dashboard.md). It adds about \$1–2/month: one guild with the dashboard costs about \$5–6/month (just over the Hobby plan's \$5 included usage).
+## Remove the dashboard
+
+1. Delete the `dashboard` service (its card → Settings → Delete service).
+2. On the `bridge` service, set `DASHBOARD_API=false`.
+
+The bridge keeps running with all its data. This brings one guild back to about \$3.80/month.
 
 ## Safety guard
 

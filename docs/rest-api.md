@@ -82,7 +82,7 @@ curl -X POST https://your-bridge.example/moderation \
 
 ## Responses
 
-A successful request returns `200` with `{"ok":true,"accountId":1}`. For `POST /chat`, that means the bridge queued the message behind any earlier chat messages. `POST /command` and `POST /moderation` jump ahead of queued chat and go out next.
+A successful request returns `200` with `{"ok":true,"accountId":1}`. For `POST /chat`, that means Hypixel showed the message in chat: like a line typed in Discord, it is split into up to 4 lines if long, posted to the account's Discord channel, and relayed to accounts in the same relay group. `POST /command` and `POST /moderation` jump ahead of queued chat and go out next.
 
 | Status | Body | Meaning |
 |---|---|---|
@@ -93,7 +93,7 @@ A successful request returns `200` with `{"ok":true,"accountId":1}`. For `POST /
 | 405 | `{"ok":false,"error":"Method not allowed"}` | A dashboard path (below) called with the wrong method. Only with `DASHBOARD_API=true`. |
 | 404 | `{"ok":false,"error":"Unknown account 7"}` | No account with that `accountId`. |
 | 409 | `{"ok":false,"error":"screened","note":"…"}` | `invite` only: the alliance screen held the player; `note` says why. |
-| 422 | `{"ok":false,"error":"blocked","reason":"…"}` | The safety filter blocked it; `reason` says why. |
+| 422 | `{"ok":false,"error":"blocked","reason":"…","note":"…"}` | Not sent: the safety filter blocked it, the account is muted, or Hypixel didn't confirm it. `reason` is a short code; `note` (on `/chat`) says it in words. |
 | 503 | `{"ok":false,"error":"Account 1 is offline"}` | That account is disabled or not connected. |
 | 500 | `{"ok":false,"error":"Internal server error"}` | Unexpected failure; check the bridge logs. |
 
@@ -110,7 +110,8 @@ Every endpoint marked **write** below needs an `X-Actor` header holding the Disc
 | Method | Path | Body | Response | Write |
 |---|---|---|---|---|
 | GET | `/dashboard/access?discordId=<id>` | | `{ role: "admin" \| "staff" \| "none" }`. Owner is admin; `STAFF_ROLE_ID` holders in the bot's server are staff (checked live, cached 60 s). | |
-| GET | `/accounts` | | `{ accounts: [{ id, label, enabled, online, username, relayGroup }] }` | |
+| GET | `/dashboard/discord` | | `{ server: { id, name }, channels: [{ id, name, category, type }], roles: [{ id, name, color }] }`: the bot's server. Text and announcement channels in category then channel order; roles highest first, without @everyone and bot-managed roles. Cached 60 s. `503` while Discord is not connected. | |
+| GET | `/accounts` | | `{ accounts: [{ id, label, enabled, online, username, relayGroup, guildChannelId, officerChannelId, source, locked }] }`: `source` is `env` (set up in the bot's environment) or `settings`; `locked` lists the fields the environment sets, which a settings overlay cannot change. | |
 | GET | `/settings` | | `{ settings, overrides }`: every settings area plus per-account overrides. | |
 | GET | `/settings/export` | | The settings bundle, the same file `/setup export` produces. | |
 | POST | `/settings/import` | `{ bundle: string }` (up to 256 KB) | `{ written, notices }`; `400` with `issues` when the bundle is invalid. | yes |

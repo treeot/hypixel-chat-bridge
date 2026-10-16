@@ -2,7 +2,7 @@
 
 ## What it is
 
-A web page for running the bridge without editing variables or typing slash commands. You log in with Discord. It talks to the bridge over its REST API. Pages: Overview, Chat, Guild, Lists, Features, Settings, Audit.
+A web page for running the bridge without editing variables or typing slash commands. The Railway template includes it as a second service; it's optional. You log in with Discord. It talks to the bridge over its REST API. Pages: Overview, Chat, Guild, Lists, Settings (including Features), Audit.
 
 **Staff** (members of `STAFF_ROLE_ID`) can use:
 
@@ -13,21 +13,33 @@ A web page for running the bridge without editing variables or typing slash comm
 - Features and Settings, read-only
 - Audit
 
-**Owner** (`OWNER_ID`) can do everything staff can, plus edit Features and Settings, use the raw `/command` box, and import or export settings.
+**Admins** (`OWNER_ID`, plus members of `ADMIN_ROLE_ID` if set) can do everything staff can, plus edit Features and Settings, use the raw `/command` box, and import or export settings. Admin-role members can also use `/setup` in Discord.
 
-If `STAFF_ROLE_ID` is unset, only the owner can log in.
+If neither `STAFF_ROLE_ID` nor `ADMIN_ROLE_ID` is set, only the owner can log in. Access is checked against the member's Discord roles on every page, so removing a role takes effect right away.
 
 ## Deploy on Railway
 
-Add the dashboard as a second service next to your bridge. A one-click "Bridge + Dashboard" template link will be added here once the template is published. Until then, follow the steps below.
+The template in the README deploys the bridge and the dashboard together. Before you click **Deploy**, fill in `AUTH_DISCORD_ID` and `AUTH_DISCORD_SECRET` (Developer Portal → your bot's application → OAuth2 → Client ID and Client Secret). After it deploys:
+
+1. Copy the `dashboard` service's domain from Railway.
+2. Developer Portal → OAuth2 → Redirects → add `https://<your dashboard domain>/api/auth/callback/discord` and save.
+3. Open the domain and log in with the Discord account set as `OWNER_ID`.
+
+Already running the bridge from before the dashboard existed? See the next section.
 
 ## Add the dashboard to an existing bridge
 
-1. On the **bridge** service, set `REST_API_TOKEN` (any random string of 48 characters, or `${{secret(48)}}` in Railway), `REST_API_PORT=3000` and `DASHBOARD_API=true`. Without `DASHBOARD_API=true`, every dashboard request gets a 404.
-2. In the same Railway project, click **New → GitHub repo** and pick the same repo.
-3. In the new service's **Variables**, set the dashboard variables from the table below, plus `RAILWAY_DOCKERFILE_PATH=dashboard/Dockerfile`.
-4. In **Settings → Networking**, click **Generate domain**. Do not give the bridge a public domain.
-5. Add the redirect URL: Discord Developer Portal → your application → OAuth2 → Redirects → add `https://<your dashboard domain>/api/auth/callback/discord` and save. The dashboard asks for the `identify` scope only.
+1. Note your bridge service's exact name: the title on its card in Railway. Below it's called `NAME`.
+2. On the bridge service, set `REST_API_TOKEN` = `${{secret(48)}}`, `REST_API_PORT` = `3000` and `DASHBOARD_API` = `true`. Without `DASHBOARD_API=true`, every dashboard request gets a 404.
+3. In the same Railway project, click **New → GitHub repo** and pick the same repo.
+4. In the new service's **Variables**, set:
+   - `RAILWAY_DOCKERFILE_PATH` = `dashboard/Dockerfile`
+   - `BRIDGE_URL` = `http://${{NAME.RAILWAY_PRIVATE_DOMAIN}}:3000`
+   - `BRIDGE_TOKEN` = `${{NAME.REST_API_TOKEN}}`
+   - `AUTH_SECRET` = `${{secret(32)}}`, `AUTH_TRUST_HOST` = `true`
+   - `AUTH_DISCORD_ID` and `AUTH_DISCORD_SECRET`: Client ID and Client Secret from your bot's application (Developer Portal → OAuth2)
+5. In **Settings → Networking**, click **Generate domain**. Do not give the bridge a public domain.
+6. Add the redirect URL: Discord Developer Portal → your application → OAuth2 → Redirects → add `https://<your dashboard domain>/api/auth/callback/discord` and save. The dashboard asks for the `identify` scope only.
 
 ## Variables
 
@@ -36,27 +48,49 @@ Add the dashboard as a second service next to your bridge. A one-click "Bridge +
 | `DASHBOARD_API` | bridge | required | `true` | Turns on the dashboard endpoints. Default is off. |
 | `REST_API_TOKEN` | bridge | required | random, 16+ characters | Password for the REST API. |
 | `REST_API_PORT` | bridge | required | `3000` | Port the REST API listens on. |
-| `BRIDGE_URL` | dashboard | required | `http://<bridge service>.railway.internal:3000` | Where the dashboard reaches the bridge (private network). |
-| `BRIDGE_TOKEN` | dashboard | required | `${{<bridge service>.REST_API_TOKEN}}` | Must equal the bridge's `REST_API_TOKEN`. |
+| `BRIDGE_URL` | dashboard | required | `http://${{bridge.RAILWAY_PRIVATE_DOMAIN}}:3000` | Where the dashboard reaches the bridge (private network). |
+| `BRIDGE_TOKEN` | dashboard | required | `${{bridge.REST_API_TOKEN}}` | Must equal the bridge's `REST_API_TOKEN`. |
 | `AUTH_DISCORD_ID` | dashboard | required | Application ID | Client ID of your Discord application. |
 | `AUTH_DISCORD_SECRET` | dashboard | required | Client Secret | Lets the dashboard confirm who logged in. |
 | `AUTH_SECRET` | dashboard | required | random string | Signs the login cookie. The template generates it. |
 | `AUTH_TRUST_HOST` | dashboard | required | `true` | Lets the login work behind Railway's proxy. |
 
+`bridge` in the two references is the bridge service's name in Railway; use yours if it differs.
+
+## Remove the dashboard
+
+1. Delete the `dashboard` service in Railway (its card → Settings → Delete service).
+2. On the bridge service, set `DASHBOARD_API=false`.
+
+The bridge keeps running with all its data.
+
 ## Turning features off
 
-The Features page lists the bridge's features in groups. Only the owner can switch features. Slash commands you switch off disappear from Discord within about a minute. `/setup` and `/help` always stay on.
+**Settings → Features** lists the bridge's features in groups. Only the owner can switch features. Slash commands you switch off disappear from Discord within about a minute. `/setup` and `/help` always stay on.
+
+## Branding
+
+The owner can change how the dashboard looks in **Settings → Branding** (or the Branding panel in `/setup`). No redeploy is needed. Every field is optional; leave one empty to keep the default.
+
+- **Name**: replaces "Bridge Dashboard" in the browser tab and on the login page, and "Bridge" in the top bar. Up to 40 characters.
+- **Tagline**: small text next to the name in the top bar, hidden on narrow screens. Up to 80 characters.
+- **Logo URL**: an `https://` image, shown in the top bar and on the login page.
+- **Accent colour**: a hex colour like `#8b5cf6`, used for highlights and focus rings.
+- **Login text**: replaces the sentence under the title on the login page. Up to 300 characters.
+
+If the bridge is offline, the dashboard shows its defaults.
 
 ## Troubleshooting
 
 - **Discord says `Invalid OAuth2 redirect_uri`:** add `https://<your dashboard domain>/api/auth/callback/discord` under OAuth2 → Redirects in the Developer Portal.
 - **"Your Discord account is not the owner and does not have the staff role.":** check `OWNER_ID` is your Discord user ID, or give your account the role set in `STAFF_ROLE_ID`.
 - **"The bridge is offline, so your access can't be checked. Try again in a minute.":** the bridge is down or restarting.
-- **Banner "Bridge offline: can't reach the bridge. Check BRIDGE_URL and that the bridge is running.":** the bridge service is down, or `BRIDGE_URL` is wrong.
+- **Banner "Bridge offline: can't reach the bridge. Check BRIDGE_URL and that the bridge is running.":** the bridge service is down, or `BRIDGE_URL` is wrong. Right after setup, check that the service name inside `BRIDGE_URL` and `BRIDGE_TOKEN` matches your bridge service's name exactly.
 - **Banner "Bridge API rejected the token: check BRIDGE_TOKEN matches the bridge's REST_API_TOKEN.":** make `BRIDGE_TOKEN` equal the bridge's `REST_API_TOKEN`.
 - **Banner "Dashboard API is off: set DASHBOARD_API=true on the bridge.":** add that variable to the bridge and redeploy it.
-- **Login loops back with `error=Configuration`:** `AUTH_SECRET` is missing, or `BRIDGE_URL` or `BRIDGE_TOKEN` is missing. Check the dashboard's logs: the dashboard names a missing bridge variable there at startup.
+- **Login loops back with `error=Configuration`:** `AUTH_SECRET`, `AUTH_DISCORD_ID` or `AUTH_DISCORD_SECRET` is missing or wrong.
+- **Every page shows a server error:** `BRIDGE_URL` or `BRIDGE_TOKEN` is missing. The dashboard's startup logs name the missing variable.
 
 ## Cost
 
-About \$1–2/month extra. One guild with the dashboard costs about \$5–6/month (just over the Hobby plan's \$5 included usage). You can delete the dashboard service at any time; the bridge keeps working.
+The dashboard adds about \$1–2/month: one guild with it costs about \$5–6/month (just over the Hobby plan's \$5 included usage). [Remove it](#remove-the-dashboard) to get back to about \$3.80.
