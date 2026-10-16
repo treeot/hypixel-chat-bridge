@@ -4,7 +4,7 @@
 
 @layer base {
   /* Near-monochrome neutrals tinted a few degrees toward the accent, with one violet reserved
-     for state. --danger and --success are for destructive actions and health tiles. */
+     for state. --danger, --success and --warning are for destructive actions, health and soft alerts. */
   :root {
     --background: 258 14% 6%;
     --surface: 258 12% 9%;
@@ -18,6 +18,7 @@
     --ring: 256 70% 60%;
     --danger: 358 72% 62%;
     --success: 152 55% 50%;
+    --warning: 38 90% 62%;
     --radius: 0.5rem;
   }
 
@@ -25,131 +26,153 @@
     @apply border-border;
   }
 
+  html {
+    color-scheme: dark;
+    /* Always keep room for the scrollbar, so the centred layout doesn't jump sideways between short and long pages. */
+    scrollbar-gutter: stable;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-    letter-spacing: -0.011em;
+    letter-spacing: -0.006em;
   }
 
   h1,
   h2,
   h3 {
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
   }
 
   :focus-visible {
     @apply outline-none ring-2 ring-offset-2;
-    --tw-ring-color: hsl(var(--ring) / 0.7);
+    --tw-ring-color: hsl(var(--ring) / 0.8);
     --tw-ring-offset-color: hsl(var(--background));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
   }
 }
 
 @layer components {
   /* ---------- shell ---------- */
   .shell {
-    @apply mx-auto w-full max-w-5xl px-6 pb-24 pt-10;
+    @apply mx-auto w-full max-w-5xl px-4 pb-24 pt-8 sm:px-6 sm:pt-10;
   }
   .topbar {
-    @apply sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md;
+    @apply sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md;
   }
   .topbar-inner {
-    @apply mx-auto flex h-14 max-w-5xl items-center justify-between gap-6 px-6;
+    @apply mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 px-4 sm:px-6;
   }
   .brand {
-    @apply font-mono text-sm font-medium tracking-tight text-foreground;
+    @apply text-[15px] font-semibold tracking-[-0.02em] text-foreground;
   }
-  .nav-link {
-    @apply rounded-md px-2.5 py-1.5 font-mono text-[13px] text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground;
-  }
-  .nav-link-active {
-    @apply bg-surface-2 text-foreground;
+  .brand-mark {
+    @apply grid size-7 shrink-0 place-items-center rounded-md text-background;
+    background: hsl(var(--accent));
   }
 
-  /* ---------- type ---------- */
-  .eyebrow {
-    @apply font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground;
+  /* Primary navigation: full-height links with an accent rule on the active one. */
+  .topnav {
+    @apply order-3 -mx-4 flex h-11 basis-[calc(100%+2rem)] items-stretch gap-1 overflow-x-auto border-t border-border px-2 sm:-mx-6 sm:basis-[calc(100%+3rem)] sm:px-4 lg:order-2 lg:mx-0 lg:h-14 lg:basis-auto lg:border-0 lg:px-0;
+    scrollbar-width: none;
   }
-  .page-title {
-    @apply mt-3 text-3xl font-semibold tracking-[-0.035em] text-foreground;
-  }
-  .page-note {
-    @apply mt-3 max-w-2xl text-sm leading-6 text-muted-foreground;
-  }
-  .section-heading {
-    @apply flex items-center gap-4 pb-4 pt-12;
-  }
-  .section-heading h2 {
-    @apply shrink-0 text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground;
-  }
-  .section-heading::after {
-    content: '';
-    @apply h-px flex-1 bg-border;
-  }
-
-  /* ---------- collapsible sections ---------- */
-  /* The same heading rule as above, with the whole row as the click target. `relative`
-     anchors the action slot, which sits outside <summary> so its button does not toggle. */
-  .section-fold {
-    @apply relative;
-  }
-  .section-fold-summary {
-    @apply flex cursor-pointer list-none items-center gap-3 pb-4 pt-12;
-  }
-  /* Safari draws its own triangle on a summary unless this pseudo-element is cleared. */
-  .section-fold-summary::-webkit-details-marker {
+  .topnav::-webkit-scrollbar {
     display: none;
   }
-  .section-fold-summary h2 {
-    @apply shrink-0 text-sm font-medium uppercase tracking-[0.12em] text-muted-foreground;
+  /* Below lg the nav scrolls sideways; fade the right edge so the cut-off reads as more. */
+  @media (max-width: 1023px) {
+    .topnav,
+    .scroll-fade {
+      mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+    }
   }
-  .section-fold-summary::after {
+  .topnav-link {
+    @apply relative inline-flex shrink-0 items-center whitespace-nowrap px-2.5 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground;
+  }
+  .topnav-link::after {
     content: '';
-    @apply h-px flex-1 bg-border;
+    @apply absolute inset-x-2.5 bottom-0 h-0.5 rounded-full opacity-0 transition-opacity duration-150;
+    background: hsl(var(--accent));
   }
-  .section-fold-summary:hover h2 {
-    @apply text-foreground;
+  .topnav-link[aria-current='page'] {
+    @apply font-medium text-foreground;
   }
-  /* Keyboard focus lands on the summary; without this the ring is the only cue and the
-     browser default sits awkwardly across the full-width row. */
-  .section-fold-summary:focus-visible {
-    @apply outline-none;
+  .topnav-link[aria-current='page']::after {
+    @apply opacity-100;
   }
-  .section-fold-summary:focus-visible h2 {
-    @apply text-foreground underline underline-offset-4;
-  }
-  .section-fold-caret {
-    @apply w-3 shrink-0 text-center text-[13px] leading-none text-muted-foreground transition-transform;
-  }
-  .section-fold[open] .section-fold-caret {
-    @apply rotate-90;
-  }
-  /* Pinned to the heading row rather than flowing after it, so an action button lines up
-     with the title instead of pushing the panel down. */
-  .section-fold-action {
-    @apply absolute right-0 top-12 -translate-y-1/2 pt-2;
+  .avatar {
+    @apply grid size-7 shrink-0 place-items-center rounded-[0.4rem] text-xs font-semibold uppercase;
+    background: hsl(var(--accent) / 0.16);
+    color: hsl(var(--accent));
   }
 
-  /* ---------- panels ---------- */
-  /* gap-px over a bordered container: the container colour shows through as hairline
-     dividers, so a grid of tiles costs one border instead of one per cell. */
-  .tile-grid {
-    @apply grid gap-px overflow-hidden rounded-lg border border-border bg-border;
-    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  /* ---------- page header ---------- */
+  .page-header {
+    @apply mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between;
   }
-  .tile {
-    @apply bg-surface px-5 py-4;
+  .page-title {
+    @apply text-2xl font-semibold tracking-[-0.025em] text-foreground;
   }
-  .tile dt {
-    @apply font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground;
+  .page-description {
+    @apply mt-1.5 max-w-[65ch] text-sm leading-6 text-muted-foreground;
   }
-  .tile dd {
-    @apply mt-2 text-2xl font-semibold tabular-nums tracking-[-0.03em] text-foreground;
+  .section-title {
+    @apply text-sm font-semibold text-foreground;
+  }
+  .section-note {
+    @apply mt-0.5 text-[13px] text-muted-foreground;
+  }
+  .eyebrow {
+    @apply text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground;
+  }
+
+  /* ---------- cards ---------- */
+  .card {
+    @apply rounded-xl border border-border bg-surface;
   }
   .panel {
-    @apply overflow-hidden rounded-lg border border-border bg-surface;
+    @apply card overflow-hidden;
   }
-  .panel-empty {
-    @apply px-5 py-12 text-center font-mono text-xs text-muted-foreground;
+  .card-header {
+    @apply flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5;
+  }
+  .card-toolbar {
+    @apply flex flex-wrap items-center gap-2 border-b border-border px-4 py-3 sm:px-5;
+  }
+  .row-list > * + * {
+    @apply border-t border-border;
+  }
+  .stat {
+    @apply card px-5 py-4;
+  }
+  .stat-label {
+    @apply text-[13px] font-medium text-muted-foreground;
+  }
+  .stat-value {
+    @apply mt-2 flex items-center gap-2 text-2xl font-semibold tabular-nums tracking-[-0.025em] text-foreground;
+  }
+  .stat-note {
+    @apply mt-1 text-xs text-muted-foreground;
+  }
+
+  /* ---------- empty states ---------- */
+  .empty {
+    @apply flex items-center gap-3 px-4 py-6 text-sm text-muted-foreground sm:px-5;
+  }
+  .empty-icon {
+    @apply grid size-8 shrink-0 place-items-center rounded-lg border border-border bg-surface-2 text-muted-foreground;
+  }
+  .empty-centered {
+    @apply flex-col justify-center py-14 text-center;
   }
 
   /* ---------- table ---------- */
@@ -157,19 +180,25 @@
     @apply w-full border-collapse text-sm;
   }
   .table th {
-    @apply border-b border-border px-5 py-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground;
+    @apply h-10 whitespace-nowrap border-b border-border bg-surface-2/40 px-4 text-left text-xs font-medium text-muted-foreground first:pl-5 last:pr-5;
   }
   .table td {
-    @apply border-b border-border px-5 py-3.5 align-middle text-foreground;
+    @apply border-b border-border px-4 py-3 align-middle text-foreground first:pl-5 last:pr-5;
   }
   .table tbody tr:last-child td {
     @apply border-b-0;
   }
   .table tbody tr {
-    @apply transition-colors hover:bg-surface-2;
+    @apply transition-colors duration-150 hover:bg-surface-2/50;
+  }
+  .table .num {
+    @apply text-right font-mono tabular-nums;
+  }
+  .sort-button {
+    @apply -mx-1.5 inline-flex items-center gap-1 rounded px-1.5 py-1 transition-colors duration-150 hover:text-foreground;
   }
   .cell-mono {
-    @apply font-mono text-[12px] tabular-nums text-muted-foreground;
+    @apply font-mono text-[13px] tabular-nums text-muted-foreground;
   }
   .cell-num {
     @apply font-mono tabular-nums text-foreground;
@@ -177,40 +206,124 @@
 
   /* ---------- controls ---------- */
   .btn {
-    @apply inline-flex h-8 items-center justify-center gap-1.5 rounded-md px-3 text-[13px] font-medium transition-colors disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex h-9 shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3.5 text-sm font-medium transition-[background-color,border-color,color,transform] duration-150 active:translate-y-px disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-sm {
+    @apply h-8 px-3 text-[13px];
+  }
+  .btn-icon {
+    @apply w-9 px-0;
   }
   .btn-primary {
     @apply btn bg-foreground text-background hover:bg-foreground/90;
   }
+  .btn-secondary {
+    @apply btn border border-border bg-surface-2 text-foreground hover:border-border-strong hover:bg-muted;
+  }
   .btn-ghost {
-    @apply btn border border-border bg-surface-2 text-muted-foreground hover:border-border-strong hover:text-foreground;
+    @apply btn text-muted-foreground hover:bg-surface-2 hover:text-foreground;
   }
   .btn-danger {
     @apply btn border text-[hsl(var(--danger))] hover:bg-[hsl(var(--danger)/0.12)];
-    border-color: hsl(var(--danger) / 0.35);
+    border-color: hsl(var(--danger) / 0.4);
+    background: hsl(var(--danger) / 0.06);
   }
   .input {
-    @apply w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground;
+    @apply h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground transition-colors duration-150 placeholder:text-muted-foreground/70 hover:border-border-strong disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .input:focus-visible {
+    @apply border-[hsl(var(--ring))];
+  }
+  select.input {
+    @apply appearance-none pr-8;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239d98a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.55rem center;
+    background-repeat: no-repeat;
+    background-size: 14px;
+  }
+  .input-sm {
+    @apply h-8 text-[13px];
   }
   textarea.input {
-    @apply min-h-[5rem] resize-y leading-6;
+    @apply h-auto min-h-[5rem] resize-y py-2 leading-6;
+  }
+  .input-icon {
+    @apply relative;
+  }
+  .input-icon > svg {
+    @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground;
+  }
+  .input-icon > .input {
+    @apply pl-9;
+  }
+
+  /* Segmented control (chat filters). */
+  .segmented {
+    @apply inline-flex items-center gap-0.5 rounded-lg border border-border bg-background p-0.5;
+  }
+  .segment {
+    @apply inline-flex h-7 items-center rounded-md px-2.5 text-[13px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground;
+  }
+  .segment[aria-selected='true'] {
+    @apply bg-surface-2 text-foreground shadow-sm;
+  }
+
+  /* Underlined tabs (lists, per-account settings). */
+  .tabs {
+    @apply mb-6 flex items-stretch gap-1 overflow-x-auto border-b border-border;
+    scrollbar-width: none;
+  }
+  .tab {
+    @apply relative -mb-px inline-flex h-10 shrink-0 items-center whitespace-nowrap border-b-2 border-transparent px-3 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground;
+  }
+  .tab[aria-selected='true'] {
+    @apply font-medium text-foreground;
+    border-bottom-color: hsl(var(--accent));
+  }
+
+  /* Settings sidebar. */
+  .subnav-heading {
+    @apply mb-1 px-2.5 text-xs font-medium text-muted-foreground;
+  }
+  .subnav-link {
+    @apply flex h-8 shrink-0 items-center whitespace-nowrap rounded-md px-2.5 text-sm text-muted-foreground transition-colors duration-150 hover:bg-surface-2/60 hover:text-foreground;
+  }
+  .subnav-link[aria-current='page'] {
+    @apply bg-surface-2 font-medium text-foreground;
   }
 
   /* ---------- status ---------- */
   .dot {
-    @apply inline-block h-1.5 w-1.5 shrink-0 rounded-full;
+    @apply inline-block size-2 shrink-0 rounded-full;
   }
   .dot-up {
     background: hsl(var(--success));
+    box-shadow: 0 0 0 3px hsl(var(--success) / 0.15);
   }
   .dot-down {
     background: hsl(var(--danger));
+    box-shadow: 0 0 0 3px hsl(var(--danger) / 0.15);
   }
-  .status {
-    @apply inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground;
+  .badge {
+    @apply inline-flex h-5 shrink-0 items-center whitespace-nowrap rounded-[0.3rem] border border-border bg-surface-2 px-1.5 text-[11px] font-medium text-muted-foreground;
+  }
+  .badge-warning {
+    color: hsl(var(--warning));
+    border-color: hsl(var(--warning) / 0.25);
+    background: hsl(var(--warning) / 0.08);
+  }
+  .badge-success {
+    color: hsl(var(--success));
+    border-color: hsl(var(--success) / 0.25);
+    background: hsl(var(--success) / 0.08);
+  }
+  .badge-danger {
+    color: hsl(var(--danger));
+    border-color: hsl(var(--danger) / 0.25);
+    background: hsl(var(--danger) / 0.08);
   }
   .flash {
-    @apply mt-4 rounded-md border px-3 py-2 font-mono text-[12px];
+    @apply mt-4 flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5 text-[13px] leading-5;
     border-color: hsl(var(--success) / 0.35);
     color: hsl(var(--success));
     background: hsl(var(--success) / 0.08);
@@ -220,24 +333,70 @@
     color: hsl(var(--danger));
     background: hsl(var(--danger) / 0.08);
   }
+  .flash-info {
+    @apply border-border bg-surface text-muted-foreground;
+  }
+
+  /* ---------- settings form ---------- */
+  .setting-row {
+    @apply grid gap-3 px-4 py-4 sm:px-5 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-8;
+  }
+  /* Top-aligned so an error under the switch doesn't push the switch off the label's line. */
+  .setting-row-inline {
+    @apply flex items-start justify-between gap-6 px-4 py-4 sm:px-5;
+  }
+  .setting-row-stacked {
+    @apply grid gap-3 px-4 py-4 sm:px-5;
+  }
+  .setting-label {
+    @apply text-sm font-medium text-foreground;
+  }
+  .setting-help {
+    @apply mt-0.5 max-w-[65ch] text-xs leading-5 text-muted-foreground;
+  }
+  /* Fields that belong together: plain, no inner box (a box inside the settings card reads as a table in a table). */
+  .setting-group {
+    @apply grid gap-4;
+  }
+  /* One of a repeated list (a rank, a rule, a channel): separated by a line, not boxed. */
+  .setting-item {
+    @apply grid gap-4 border-t border-border pt-4 first:border-t-0 first:pt-0;
+  }
+  .setting-footer {
+    @apply sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-b-xl border-t border-border bg-surface/95 px-4 py-3 backdrop-blur sm:px-5;
+  }
 
   /* ---------- bridge dashboard additions ---------- */
   .switch {
-    @apply relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border border-border bg-muted transition-colors;
+    @apply relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border border-border-strong bg-muted transition-colors duration-150;
   }
   .switch[aria-checked='true'] {
-    @apply bg-accent;
+    @apply border-transparent bg-accent;
   }
   .switch-thumb {
-    @apply absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-foreground transition-transform;
+    @apply absolute left-0.5 top-0.5 size-3.5 rounded-full bg-foreground shadow transition-transform duration-200;
   }
   .switch[aria-checked='true'] .switch-thumb {
     @apply translate-x-4;
   }
   .table-wrap {
-    @apply w-full overflow-x-auto;
+    @apply relative w-full overflow-x-auto;
   }
   .field-error {
-    @apply mt-1 text-xs text-danger;
+    @apply mt-1.5 text-xs text-danger;
+  }
+
+  /* ---------- confirm dialog ---------- */
+  .confirm-dialog {
+    @apply m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border border-border bg-surface p-0 text-foreground shadow-xl;
+  }
+  .confirm-dialog::backdrop {
+    background: hsl(0 0% 0% / 0.5);
+  }
+  .host-detail {
+    @apply mt-2 text-xs text-muted-foreground;
+  }
+  .host-detail > summary {
+    @apply cursor-pointer select-none;
   }
 }

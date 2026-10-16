@@ -9,6 +9,9 @@ const form = (f: Record<string, string>) => Object.entries(f).reduce((d, [k, v])
 describe('sendChat', () => {
   it('tells the sender why the chat filter blocked the message', async () => {
     const { sendChat } = await import('@/app/(app)/chat/actions')
-    expect(await sendChat(form({ accountId: '1', chat: 'guild', message: 'hi' }))).toEqual({ ok: false, error: 'Blocked by the chat filter (profanity)' })
+    expect(await sendChat(form({ accountId: '1', chat: 'guild', message: 'hi' }))).toEqual({
+      ok: false,
+      error: 'Not sent: the safety filter blocked it (profanity).'
+    })
   })
 })

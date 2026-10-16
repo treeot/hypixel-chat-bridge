@@ -4,8 +4,10 @@ import type {
   AccountInfo,
   AllianceEntry,
   AuditEntry,
+  Branding,
   BridgeResult,
   DashboardRole,
+  DiscordDirectory,
   FeatureCatalog,
   LinkEntry,
   MemberRow,
@@ -15,9 +17,11 @@ import type {
 
 const READ_TIMEOUT_MS = 5_000
 const WRITE_TIMEOUT_MS = 20_000 // saves wait on reconcile/republish
+/** Branding is read by the root layout on every page, so a hung bridge must not hold the page for the full read timeout. */
+export const BRANDING_TIMEOUT_MS = 1_500
 const seg = (value: string | number) => encodeURIComponent(String(value))
 
-async function call<T>(method: string, path: string, opts: { actor?: string; body?: unknown } = {}): Promise<BridgeResult<T>> {
+async function call<T>(method: string, path: string, opts: { actor?: string; body?: unknown; timeoutMs?: number } = {}): Promise<BridgeResult<T>> {
   let res: Response
   try {
     const { url, token } = bridgeEnv()
@@ -28,7 +32,7 @@ async function call<T>(method: string, path: string, opts: { actor?: string; bod
       method,
       headers,
       body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
-      signal: AbortSignal.timeout(method === 'GET' ? READ_TIMEOUT_MS : WRITE_TIMEOUT_MS),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? (method === 'GET' ? READ_TIMEOUT_MS : WRITE_TIMEOUT_MS)),
       cache: 'no-store'
     })
   } catch (err) {
@@ -66,6 +70,8 @@ export function bridgeAuthHeader(): Record<string, string> {
 
 export const bridge = {
   access: (discordId: string) => call<{ role: DashboardRole }>('GET', `/dashboard/access?discordId=${seg(discordId)}`),
+  branding: () => call<{ branding: Branding }>('GET', '/dashboard/branding', { timeoutMs: BRANDING_TIMEOUT_MS }),
+  discordDirectory: () => call<DiscordDirectory>('GET', '/dashboard/discord'),
   accounts: () => call<{ accounts: AccountInfo[] }>('GET', '/accounts'),
   settings: () => call<{ settings: Record<string, unknown>; overrides: Record<string, Record<string, unknown>> }>('GET', '/settings'),
   putSettings: (actor: string, area: string, value: unknown) =>

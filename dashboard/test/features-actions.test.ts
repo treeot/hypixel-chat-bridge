@@ -13,7 +13,7 @@ vi.mock('@/lib/session', () => ({
 
 describe('toggleFeature', () => {
   it('refuses staff without calling the bridge', async () => {
-    const { toggleFeature } = await import('@/app/(app)/features/actions')
+    const { toggleFeature } = await import('@/app/(app)/settings/features/actions')
     await expect(toggleFeature('relay', ['guild'], false)).rejects.toThrow('Admins only')
     expect(settings).not.toHaveBeenCalled()
     expect(putSettings).not.toHaveBeenCalled()

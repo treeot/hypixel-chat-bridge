@@ -1,5 +1,9 @@
 import type { AreaId } from '@bridge/settings/registry'
+import { fieldCopy } from './settings-copy'
 import type { FeatureCatalog } from './types'
+
+/** The settings page's label for a field, so both pages name a switch the same way. */
+const copyLabel = (area: AreaId, path: string) => fieldCopy(area, path)?.label ?? path
 
 export interface Switch {
   id: string
@@ -29,20 +33,72 @@ function read(settings: Record<string, unknown>, area: string, path: string[]): 
 
 function make(settings: Record<string, unknown>, area: AreaId, path: string[], label: string, fallback: boolean, extra: Partial<Switch> = {}): Switch {
   const value = read(settings, area, path)
-  return { id: [area, ...path].join('.'), label, area, path, on: typeof value === 'boolean' ? value : fallback, ...extra }
+  const id = [area, ...path].join('.')
+  return { id, label, area, path, on: typeof value === 'boolean' ? value : fallback, ...(DESCRIPTIONS[id] ? { description: DESCRIPTIONS[id] } : {}), ...extra }
 }
 
 const FOLLOWS = {
   verify: { area: 'features', path: ['verify'], note: 'Follows the Verify switch' },
-  allianceChecks: { area: 'features', path: ['allianceChecks'], note: 'Follows the Alliance checks switch' }
+  allianceChecks: { area: 'features', path: ['allianceChecks'], note: 'Follows the GuildLB alliance checks switch' }
 } as const
+
+/** One line under each fixed switch, keyed by switch id. Commands bring their own description from the catalog. */
+export const DESCRIPTIONS: Record<string, string> = {
+  'relay.guild': 'Copies guild chat between Hypixel and Discord.',
+  'relay.officer': 'Copies officer chat between Hypixel and Discord.',
+  'features.verify': 'Members can link their Minecraft account with /verify.',
+  'features.allianceChecks': 'Check applicants against the GuildLB alliance list.'
+}
+
+/** Switches that live on their own settings page, next to the rest of that feature's settings; Features links to them. */
+export const ELSEWHERE: { label: string; href: string; what: string }[] = [
+  { label: 'Join requests', href: '/settings/joinRequests', what: 'Join requirements and the waitlist, per account' },
+  { label: 'GEXP', href: '/settings/gexp', what: 'Weekly GEXP tracking, per account' },
+  { label: 'Safety filters', href: '/settings/filters', what: 'What the bot blocks in game' },
+  { label: 'GuildLB', href: '/settings/guildlb', what: 'Sharing your blacklist and the scammer check' },
+  { label: 'In-game commands', href: '/settings/commands', what: 'Which ! commands members can use' }
+]
+
+export interface ApiKey {
+  name: string
+  /** True when the bot has it. */
+  set: boolean
+  unlocks: string
+  /** The bot's variable name, for whoever hosts it. */
+  envVar: string
+}
+
+/** The keys the bot can use and what each turns on; a key an older bot doesn't report is left out. */
+export function apiKeys(catalog: FeatureCatalog): ApiKey[] {
+  const { hypixel, guildlbGuild, guildlbApi } = catalog.missingEnv
+  const keys: ApiKey[] = [
+    {
+      name: 'Hypixel API key',
+      set: hypixel === null,
+      unlocks: 'Join requirements and auto-accept, the Apply button, GEXP, Verify and live stat commands.',
+      envVar: 'HYPIXEL_API_KEY'
+    },
+    {
+      name: 'GuildLB alliance key',
+      set: guildlbGuild === null,
+      unlocks: 'The GuildLB alliance blacklist, the scammer check, /alliance and !scammer.',
+      envVar: 'GUILDLB_GUILD_KEY'
+    }
+  ]
+  if (guildlbApi !== undefined)
+    keys.push({ name: 'GuildLB website key', set: guildlbApi === null, unlocks: 'Stored networth for !nw.', envVar: 'GUILDLB_API_KEY' })
+  return keys
+}
+
+/** What a missing-setup badge says. `missing` is the env var name the catalog reports; it never reaches the screen. */
+export function unavailableLabel(missing: string): string {
+  return /GUILDLB/i.test(missing) ? 'Not set up: needs a GuildLB key' : 'Not set up: needs a Hypixel API key'
+}
+export const UNAVAILABLE_HINT = 'Ask whoever hosts the bot to add it.'
 
 export function buildGroups(settings: Record<string, unknown>, catalog: FeatureCatalog): SwitchGroup[] {
   const { hypixel, guildlbGuild } = catalog.missingEnv
   const unavail = (v: string | null): Partial<Switch> => (v ? { unavailable: v } : {})
-
-  const categories = read(settings, 'filters', ['categories'])
-  const categoryKeys = typeof categories === 'object' && categories !== null ? Object.keys(categories) : []
 
   return [
     {
@@ -50,33 +106,11 @@ export function buildGroups(settings: Record<string, unknown>, catalog: FeatureC
       switches: [make(settings, 'relay', ['guild'], 'Guild chat relay', true), make(settings, 'relay', ['officer'], 'Officer chat relay', true)]
     },
     {
-      title: 'Members',
+      title: 'Members & alliance',
       switches: [
-        make(settings, 'joinRequests', ['enabled'], 'Join requests', true),
-        make(settings, 'joinRequests', ['waitlist'], 'Waitlist', true),
-        make(settings, 'features', ['verify'], 'Verify', true),
-        make(settings, 'gexp', ['enabled'], 'GEXP tracking', true, unavail(hypixel))
+        make(settings, 'features', ['verify'], 'Verify', true, unavail(hypixel)),
+        make(settings, 'features', ['allianceChecks'], copyLabel('features', 'allianceChecks'), true, unavail(guildlbGuild))
       ]
-    },
-    {
-      title: 'Safety',
-      switches: categoryKeys.map(key => make(settings, 'filters', ['categories', key], key, true))
-    },
-    {
-      title: 'GuildLB',
-      switches: [
-        make(settings, 'features', ['allianceChecks'], 'Alliance checks', true, unavail(guildlbGuild)),
-        make(settings, 'guildlb', ['syncBlacklist'], 'Sync blacklist', true, unavail(guildlbGuild))
-      ]
-    },
-    {
-      title: 'In-game commands',
-      switches: catalog.chatCommands.map(c =>
-        make(settings, 'commands', ['toggles', c.toggle], c.usage, true, {
-          description: c.description,
-          ...unavail(c.requires.includes('hypixel') ? hypixel : null)
-        })
-      )
     },
     {
       title: 'Discord commands',

@@ -28,6 +28,46 @@ describe('bridge client', () => {
     expect(JSON.parse(init.body as string)).toEqual({ value: { guild: true, officer: true } })
   })
 
+  it('reads the dashboard branding', async () => {
+    const fetchMock = vi.fn(async () => json(200, { ok: true, branding: { name: 'Fancy' } }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { bridge } = await import('@/lib/bridge')
+    const spy = vi.spyOn(AbortSignal, 'timeout')
+    expect(await bridge.branding()).toEqual({ ok: true, data: { branding: { name: 'Fancy' } } })
+    // Every page waits on this read, so it gets a shorter budget than other GETs.
+    expect(spy.mock.calls.map(([ms]) => ms)).toEqual([1_500])
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('http://bridge.test:3000/dashboard/branding')
+    expect(init.method).toBe('GET')
+  })
+
+  it('reads the Discord directory with the read timeout', async () => {
+    const directory = {
+      server: { id: '1', name: 'Treeot Guild' },
+      channels: [{ id: '2', name: 'guild-chat', category: 'Guild', type: 'text' }],
+      roles: [{ id: '3', name: 'Staff', color: 0 }]
+    }
+    const fetchMock = vi.fn(async () => json(200, { ok: true, ...directory }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { bridge } = await import('@/lib/bridge')
+    const spy = vi.spyOn(AbortSignal, 'timeout')
+    expect(await bridge.discordDirectory()).toEqual({ ok: true, data: directory })
+    expect(spy.mock.calls.map(([ms]) => ms)).toEqual([5_000])
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('http://bridge.test:3000/dashboard/discord')
+    expect(init.method).toBe('GET')
+    expect(new Headers(init.headers).get('authorization')).toBe('Bearer tok')
+  })
+
+  it('reports a disconnected Discord client as a failure', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => json(503, { ok: false, error: 'Discord is not connected' }))
+    )
+    const { bridge } = await import('@/lib/bridge')
+    expect(await bridge.discordDirectory()).toEqual({ ok: false, status: 503, error: 'Discord is not connected' })
+  })
+
   it('maps validation errors with issues', async () => {
     vi.stubGlobal(
       'fetch',

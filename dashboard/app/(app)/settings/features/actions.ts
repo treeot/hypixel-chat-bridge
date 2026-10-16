@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { bridge } from '@/lib/bridge'
 import type { AreaId } from '@bridge/settings/registry'
 import { applySwitch } from '@/lib/features'
+import { actionError } from '@/lib/bridge-errors'
 import { requireRole } from '@/lib/session'
 
 const AREAS: AreaId[] = ['relay', 'joinRequests', 'gexp', 'filters', 'guildlb', 'commands', 'features']
@@ -14,10 +15,10 @@ export async function toggleFeature(area: string, path: string[], on: boolean): 
     return { ok: false, error: 'Unknown setting' }
   }
   const current = await bridge.settings()
-  if (!current.ok) return { ok: false, error: current.error, issues: current.issues }
+  if (!current.ok) return { ...actionError(current), issues: current.issues }
   const next = applySwitch(current.data.settings, { area: area as AreaId, path }, on)
   const res = await bridge.putSettings(user.discordId, next.area, next.value)
-  if (!res.ok) return { ok: false, error: res.error, issues: res.issues }
-  revalidatePath('/features')
+  if (!res.ok) return { ...actionError(res), issues: res.issues }
+  revalidatePath('/settings/features')
   return { ok: true }
 }

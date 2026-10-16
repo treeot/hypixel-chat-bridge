@@ -8,11 +8,14 @@ export function ActionForm({
   action,
   className,
   success = 'Saved',
+  disabled = false,
   children
 }: {
   action: (formData: FormData) => Promise<Result>
   className?: string
   success?: string
+  /** Greys out and blocks every control inside, e.g. when the list isn't set up. */
+  disabled?: boolean
   children: React.ReactNode
 }) {
   const push = useToast()
@@ -25,7 +28,9 @@ export function ActionForm({
         else push(res.error, 'error')
       }}
     >
-      {children}
+      <fieldset disabled={disabled} className="contents">
+        {children}
+      </fieldset>
     </form>
   )
 }

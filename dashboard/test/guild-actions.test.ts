@@ -29,11 +29,14 @@ describe('guild actions', () => {
   it('maps offline and chat-filter errors', async () => {
     const { moderate } = await import('@/app/(app)/guild/actions')
     moderation.mockResolvedValueOnce({ ok: false, status: 503, error: 'offline' })
-    expect(await moderate(form({ accountId: '1', action: 'mute', user: 'Steve', extra: '1h' }))).toEqual({ ok: false, error: 'Account is offline' })
+    expect(await moderate(form({ accountId: '1', action: 'mute', user: 'Steve', extra: '1h' }))).toEqual({
+      ok: false,
+      error: "That account isn't connected to Hypixel right now. It retries automatically; try again in a minute."
+    })
     moderation.mockResolvedValueOnce({ ok: false, status: 422, error: 'blocked', note: 'slur' })
     expect(await moderate(form({ accountId: '1', action: 'kick', user: 'Steve', extra: 'bad' }))).toEqual({
       ok: false,
-      error: 'Blocked by the chat filter (slur)'
+      error: 'Not sent: the safety filter blocked it (slur).'
     })
   })
   it('validates mute duration', async () => {

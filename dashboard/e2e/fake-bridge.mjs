@@ -1,8 +1,45 @@
 import { createServer } from 'node:http'
 
 const state = {
-  settings: { relay: { guild: true, officer: true }, features: {} },
-  accounts: [{ id: 1, label: 'Main', enabled: true, online: true, username: 'Bot', relayGroup: 'default' }]
+  settings: {
+    relay: { guild: true, officer: true },
+    features: {},
+    branding: {},
+    accounts: { nextId: 2, list: [{ id: 1, enabled: true, label: 'Main', guildChannelId: '900000000000000201' }] },
+    verify: {}
+  },
+  accounts: [
+    {
+      id: 1,
+      label: 'Main',
+      enabled: true,
+      online: true,
+      username: 'Bot',
+      relayGroup: 'default',
+      guildChannelId: '900000000000000201',
+      officerChannelId: null,
+      source: 'env',
+      locked: ['guildChannelId']
+    }
+  ]
+}
+
+const discord = {
+  server: { id: '900000000000000001', name: 'Treeot Guild' },
+  channels: [
+    { id: '900000000000000101', name: 'announcements', category: 'Information', type: 'announcement' },
+    { id: '900000000000000102', name: 'rules', category: 'Information', type: 'text' },
+    { id: '900000000000000201', name: 'guild-chat', category: 'Guild', type: 'text' },
+    { id: '900000000000000202', name: 'officer-chat', category: 'Guild', type: 'text' },
+    { id: '900000000000000203', name: 'apply', category: 'Guild', type: 'text' },
+    { id: '900000000000000204', name: 'bridge-logs', category: 'Guild', type: 'text' }
+  ],
+  roles: [
+    { id: '900000000000000301', name: 'Staff', color: 0xe67e22 },
+    { id: '900000000000000302', name: 'Officer', color: 0x3498db },
+    { id: '900000000000000303', name: 'Verified', color: 0x2ecc71 },
+    { id: '900000000000000304', name: 'Member', color: 0 }
+  ]
 }
 
 const send = (res, status, body) => {
@@ -22,6 +59,8 @@ createServer(async (req, res) => {
   const path = url.pathname
   if (req.method === 'GET') {
     if (path === '/dashboard/access') return send(res, 200, { ok: true, role: 'admin' })
+    if (path === '/dashboard/discord') return send(res, 200, { ok: true, ...discord })
+    if (path === '/dashboard/branding') return send(res, 200, { ok: true, branding: state.settings.branding })
     if (path === '/accounts') return send(res, 200, { ok: true, accounts: state.accounts })
     if (path === '/settings') return send(res, 200, { ok: true, settings: state.settings, overrides: {} })
     if (path === '/features/catalog')

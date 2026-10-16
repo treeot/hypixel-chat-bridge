@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 
 import { sendChat } from '@/app/(app)/chat/actions'
+import { EmptyState } from '@/components/empty-state'
+import { IconChat, IconSend } from '@/components/icons'
 import { useToast } from '@/components/toast'
 import { appendLine, lineId, nextBackoff, toLine, type ChatLine } from '@/lib/chat-lines'
 
@@ -92,58 +94,64 @@ export function ChatFeed({ accountId, label, initialOnline }: { accountId: numbe
   }
 
   return (
-    <div className="panel">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-        <div role="tablist" className="flex items-center gap-1">
+    <div className="panel flex h-[calc(100dvh-15rem)] min-h-[420px] flex-col lg:h-[calc(100dvh-14rem)]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-2.5 sm:px-4">
+        <div role="tablist" aria-label="Filter chat" className="segmented">
           {FILTERS.map(f => (
-            <button
-              key={f.id}
-              type="button"
-              role="tab"
-              aria-selected={f.id === filter}
-              onClick={() => setFilter(f.id)}
-              className={`nav-link${f.id === filter ? ' nav-link-active' : ''}`}
-            >
+            <button key={f.id} type="button" role="tab" aria-selected={f.id === filter} onClick={() => setFilter(f.id)} className="segment">
               {f.label}
             </button>
           ))}
         </div>
-        <span className="flex items-center gap-2 font-mono text-[12px] text-muted-foreground">
+        <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
           <span className={`dot ${online ? 'dot-up' : 'dot-down'}`} />
-          {label} {online ? 'online' : 'offline'}
-          {reconnecting ? <span> · Reconnecting…</span> : null}
+          <span>
+            <span className="font-medium text-foreground">{label}</span> {online ? 'online' : 'offline'}
+          </span>
+          {reconnecting ? <span className="badge badge-warning">Reconnecting…</span> : null}
         </span>
       </div>
       <div
         ref={scroller}
+        role="log"
+        aria-live="polite"
         onScroll={e => {
           const el = e.currentTarget
           stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40
         }}
-        className="h-[60vh] overflow-y-auto px-4 py-3 font-mono text-[13px]"
+        className="min-h-0 flex-1 overflow-y-auto py-2"
       >
         {visible.length === 0 ? (
-          <p className="panel-empty">No messages yet</p>
+          <EmptyState centered icon={<IconChat />} title="No messages yet. New guild and officer chat appears here live." />
         ) : (
-          visible.map(l => (
-            <div key={l.id} className={l.kind === 'chat' ? '' : 'text-muted-foreground'}>
-              <span className="text-muted-foreground">{new Date(l.at).toLocaleTimeString()} </span>
-              {l.chat ? <span className="text-muted-foreground">[{l.chat === 'officer' ? 'O' : 'G'}] </span> : null}
-              {l.kind === 'chat' ? (
-                <>
-                  {l.rank ? <span>{l.rank} </span> : null}
-                  <strong>{l.username ?? 'unknown'}</strong>: {l.text}
-                </>
-              ) : (
-                l.text
-              )}
-            </div>
-          ))
+          visible.map(l =>
+            l.kind === 'chat' ? (
+              <div key={l.id} className="group flex items-baseline gap-3 px-3 py-1.5 text-sm transition-colors hover:bg-surface-2/50 sm:px-4">
+                <time dateTime={new Date(l.at).toISOString()} className="w-[4.5rem] shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+                  {new Date(l.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </time>
+                <p className="min-w-0 flex-1 break-words leading-6">
+                  {l.chat === 'officer' ? <span className="badge badge-warning mr-2 align-[1px]">Officer</span> : null}
+                  {l.rank ? <span className="mr-1 text-muted-foreground">{l.rank}</span> : null}
+                  <span className="font-medium text-foreground">{l.username ?? 'unknown'}</span>
+                  <span className="text-muted-foreground">: </span>
+                  <span>{l.text}</span>
+                </p>
+              </div>
+            ) : (
+              <div key={l.id} className="flex items-baseline gap-3 px-3 py-1.5 text-[13px] text-muted-foreground sm:px-4">
+                <time dateTime={new Date(l.at).toISOString()} className="w-[4.5rem] shrink-0 font-mono text-[11px] tabular-nums">
+                  {new Date(l.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </time>
+                <p className="min-w-0 flex-1 italic">{l.text}</p>
+              </div>
+            )
+          )
         )}
       </div>
-      <form ref={formRef} action={action} className="flex items-center gap-2 border-t border-border p-3">
+      <form ref={formRef} action={action} className="flex items-center gap-2 border-t border-border bg-surface-2/30 p-3">
         <input type="hidden" name="accountId" value={accountId} />
-        <select name="chat" defaultValue="guild" aria-label="Chat" className="input w-28" disabled={!online}>
+        <select name="chat" defaultValue="guild" aria-label="Chat" className="input w-[6.5rem] shrink-0 sm:w-28" disabled={!online}>
           <option value="guild">Guild</option>
           <option value="officer">Officer</option>
         </select>
@@ -156,7 +164,7 @@ export function ChatFeed({ accountId, label, initialOnline }: { accountId: numbe
           placeholder={online ? 'Send a message' : 'Account is offline'}
           title={online ? undefined : 'The account is offline, so it cannot send chat'}
           disabled={!online}
-          className="input flex-1"
+          className="input min-w-0 flex-1"
         />
         <SendButton disabled={!online} />
       </form>
@@ -167,8 +175,15 @@ export function ChatFeed({ accountId, label, initialOnline }: { accountId: numbe
 function SendButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus()
   return (
-    <button type="submit" className="btn" disabled={disabled || pending} title={disabled ? 'The account is offline, so it cannot send chat' : undefined}>
-      {pending ? 'sending…' : 'Send'}
+    <button
+      type="submit"
+      className="btn-primary px-3 sm:px-3.5"
+      disabled={disabled || pending}
+      title={disabled ? 'The account is offline, so it cannot send chat' : undefined}
+    >
+      <span className="hidden sm:inline">{pending ? 'Sending…' : 'Send'}</span>
+      <IconSend className="sm:hidden" />
+      <span className="sr-only sm:hidden">Send</span>
     </button>
   )
 }

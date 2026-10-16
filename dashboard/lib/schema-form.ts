@@ -123,7 +123,16 @@ export const AREA_LABELS: Record<AreaId, string> = {
   filters: 'Safety filters',
   verify: 'Verify',
   guildlb: 'GuildLB',
-  features: 'Features'
+  features: 'Features',
+  branding: 'Branding'
+}
+
+/** The toast after an import: "Imported Accounts, Ranks and Join requests". */
+export function importedMessage(written: readonly string[]): string {
+  if (written.length === 0) return 'The file had no settings to import'
+  const names = written.map(a => AREA_LABELS[a as AreaId] ?? a)
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+  return `Imported ${list}`
 }
 
 /** Optional booleans edit as a tri-state select: '' (inherit/absent), 'on', 'off'. */

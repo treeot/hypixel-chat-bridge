@@ -6,20 +6,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        surface: 'hsl(var(--surface))',
-        'surface-2': 'hsl(var(--surface-2))',
+        background: 'hsl(var(--background) / <alpha-value>)',
+        foreground: 'hsl(var(--foreground) / <alpha-value>)',
+        surface: 'hsl(var(--surface) / <alpha-value>)',
+        'surface-2': 'hsl(var(--surface-2) / <alpha-value>)',
         muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))'
+          DEFAULT: 'hsl(var(--muted) / <alpha-value>)',
+          foreground: 'hsl(var(--muted-foreground) / <alpha-value>)'
         },
-        accent: 'hsl(var(--accent))',
-        border: 'hsl(var(--border))',
-        'border-strong': 'hsl(var(--border-strong))',
-        ring: 'hsl(var(--ring))',
-        danger: 'hsl(var(--danger))',
-        success: 'hsl(var(--success))'
+        accent: 'hsl(var(--accent) / <alpha-value>)',
+        border: 'hsl(var(--border) / <alpha-value>)',
+        'border-strong': 'hsl(var(--border-strong) / <alpha-value>)',
+        ring: 'hsl(var(--ring) / <alpha-value>)',
+        danger: 'hsl(var(--danger) / <alpha-value>)',
+        success: 'hsl(var(--success) / <alpha-value>)',
+        warning: 'hsl(var(--warning) / <alpha-value>)'
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],

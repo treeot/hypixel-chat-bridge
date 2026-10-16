@@ -73,3 +73,13 @@ describe('contentVersion', () => {
     expect(contentVersion({ big: 'x'.repeat(10_000) })).toMatch(/^[0-9a-z]{1,8}$/)
   })
 })
+
+describe('importedMessage', () => {
+  it('names the areas an import wrote', async () => {
+    const { importedMessage } = await import('@/lib/schema-form')
+    expect(importedMessage(['accounts', 'ranks', 'joinRequests'])).toBe('Imported Accounts, Ranks and Join requests')
+    expect(importedMessage(['relay'])).toBe('Imported Chat relay')
+    expect(importedMessage([])).toBe('The file had no settings to import')
+    expect(importedMessage(['mystery'])).toBe('Imported mystery')
+  })
+})

@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { IconAlert, IconCheck } from '@/components/icons'
 
 type Toast = { id: number; message: string; tone: 'ok' | 'error' }
 
@@ -53,11 +54,12 @@ function ToastItem({ toast, onDone }: { toast: Toast; onDone: (id: number) => vo
   return (
     <div
       role="status"
-      className={`pointer-events-auto rounded-md border bg-surface px-4 py-2.5 text-[13px] shadow-lg transition-all duration-200 ${
+      className={`pointer-events-auto flex max-w-sm items-start gap-2.5 rounded-lg border bg-surface-2 px-3.5 py-2.5 text-[13px] leading-5 shadow-xl shadow-black/40 transition-all duration-200 ${
         shown ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'
-      } ${toast.tone === 'error' ? 'border-[hsl(var(--danger)/0.4)] text-[hsl(var(--danger))]' : 'border-border text-foreground'}`}
+      } ${toast.tone === 'error' ? 'border-[hsl(var(--danger)/0.4)]' : 'border-border-strong'}`}
     >
-      {toast.message}
+      {toast.tone === 'error' ? <IconAlert className="mt-0.5 shrink-0 text-danger" /> : <IconCheck className="mt-0.5 shrink-0 text-success" />}
+      <span className="text-foreground">{toast.message}</span>
     </div>
   )
 }

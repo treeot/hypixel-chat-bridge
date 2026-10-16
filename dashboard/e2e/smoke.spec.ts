@@ -12,7 +12,6 @@ for (const [label, heading] of [
   ['Chat', 'Chat'],
   ['Guild', 'Guild'],
   ['Lists', 'Lists'],
-  ['Features', 'Features'],
   ['Settings', 'Accounts'],
   ['Audit', 'Audit']
 ] as const) {
@@ -22,9 +21,9 @@ for (const [label, heading] of [
   })
 }
 
-test('saving relay settings round-trips', async ({ page }) => {
-  await page.goto('/settings/relay')
-  await page.getByRole('switch', { name: 'Officer' }).click()
+test('saving GuildLB settings round-trips', async ({ page }) => {
+  await page.goto('/settings/guildlb')
+  await page.getByRole('switch').first().click()
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByText('Saved')).toBeVisible()
 })

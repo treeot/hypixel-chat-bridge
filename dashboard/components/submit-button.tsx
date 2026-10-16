@@ -13,17 +13,14 @@ import { useToast } from '@/components/toast'
  */
 export function SubmitButton({
   children,
-  pendingLabel = 'working…',
+  pendingLabel = 'Working…',
   className = 'btn-ghost',
-  confirm,
   formAction,
   toast = 'Saved'
 }: {
   children: React.ReactNode
   pendingLabel?: string
   className?: string
-  /** When set, the click must be confirmed before the form submits. */
-  confirm?: string
   /** Overrides the parent form's action — lets one form carry save and delete. */
   formAction?: (formData: FormData) => void | Promise<void>
   /** Confirmation shown bottom-right once the action settles. null suppresses it. */
@@ -55,11 +52,7 @@ export function SubmitButton({
       disabled={pending}
       className={className}
       formAction={formAction}
-      onClick={event => {
-        if (confirm && !window.confirm(confirm)) {
-          event.preventDefault()
-          return
-        }
+      onClick={() => {
         clicked.current = true
       }}
     >

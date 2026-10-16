@@ -1,17 +1,23 @@
 import { SubmitButton } from '@/components/submit-button'
-import { ConfirmButton } from '@/components/confirm-button'
+import { ErrorText } from '@/components/error-copy'
+import { EmptyState } from '@/components/empty-state'
+import { IconAlert, IconPlus, IconUsers } from '@/components/icons'
+import { PageHeader } from '@/components/page-header'
 import { Tabs } from '@/components/tabs'
 import { selectedAccount } from '@/lib/account'
 import { bridge } from '@/lib/bridge'
+import { accountName } from '@/lib/labels'
+import { listError, tabNote, type ListTab } from '@/lib/lists-copy'
+import { setupError } from '@/lib/bridge-errors'
 import { requireRole } from '@/lib/session'
-import type { BridgeResult } from '@/lib/types'
 import { ActionForm } from './action-form'
+import { RemoveForm } from './remove-form'
 import { addAlliance, addToList, removeAlliance, removeFromList, removeLink, removeWaitlist } from './actions'
 
 const TABS = [
   { id: 'whitelist', label: 'Whitelist' },
   { id: 'blacklist', label: 'Blacklist' },
-  { id: 'alliance', label: "Alliance (your guild's GuildLB list)" },
+  { id: 'alliance', label: 'GuildLB alliance list' },
   { id: 'waitlist', label: 'Waitlist' },
   { id: 'links', label: 'Links' }
 ]
@@ -21,28 +27,51 @@ function Head({ uuid }: { uuid: string }) {
   // eslint-disable-next-line @next/next/no-img-element
   return (
     <img
-      src={`https://mc-heads.net/avatar/${encodeURIComponent(uuid)}/20`}
+      src={`https://mc-heads.net/avatar/${encodeURIComponent(uuid)}/24`}
       alt=""
-      width={20}
-      height={20}
+      width={24}
+      height={24}
       loading="lazy"
-      className="mr-2 inline-block rounded-sm align-middle"
+      className="size-6 shrink-0 rounded-[0.3rem] bg-surface-2"
     />
   )
 }
 
-function Empty({ res, what }: { res: BridgeResult<unknown>; what: string }) {
-  return <p className="panel-empty">{res.ok ? `No ${what}` : res.error}</p>
+type Read = { ok: true } | { ok: false; status: number; error: string }
+
+function Empty({ res, what, tab }: { res: Read; what: string; tab: ListTab }) {
+  return res.ok ? (
+    <EmptyState icon={<IconUsers />} title={`No ${what} yet.`} />
+  ) : (
+    <EmptyState icon={<IconAlert />} title={<ErrorText copy={listError(tab, res)} />} />
+  )
 }
 
+function Player({ uuid, children }: { uuid?: string; children: React.ReactNode }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      {uuid ? <Head uuid={uuid} /> : null}
+      {children}
+    </span>
+  )
+}
+
+const FORM = 'card-toolbar'
+const ADD = (
+  <SubmitButton className="btn-primary" toast={null} pendingLabel="Adding…">
+    <IconPlus />
+    Add
+  </SubmitButton>
+)
 export default async function ListsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   await requireRole('staff')
   const { tab: rawTab } = await searchParams
   const tab = TABS.some(t => t.id === rawTab) ? (rawTab as string) : 'blacklist'
   return (
     <>
-      <h1 className="page-title">Lists</h1>
+      <PageHeader title="Lists" description="Players the bot treats specially: always allowed, refused, queued for a slot or linked to Discord." />
       <Tabs tabs={TABS} current={tab} hrefFor={id => `/lists?tab=${id}`} />
+      {tab === 'waitlist' ? <WaitlistNote /> : <p className="-mt-2 mb-4 text-[13px] text-muted-foreground">{tabNote(tab as ListTab)}</p>}
       {tab === 'whitelist' || tab === 'blacklist' ? <PlayerList name={tab} /> : null}
       {tab === 'alliance' ? <Alliance /> : null}
       {tab === 'waitlist' ? <Waitlist /> : null}
@@ -51,21 +80,29 @@ export default async function ListsPage({ searchParams }: { searchParams: Promis
   )
 }
 
+async function WaitlistNote() {
+  const accounts = await bridge.accounts()
+  const account = accounts.ok ? await selectedAccount(accounts.data.accounts) : undefined
+  return (
+    <p className="-mt-2 mb-4 text-[13px] text-muted-foreground">
+      {tabNote('waitlist', account ? accountName(account, accounts.ok ? accounts.data.accounts : undefined) : undefined)}
+    </p>
+  )
+}
+
 async function PlayerList({ name }: { name: 'whitelist' | 'blacklist' }) {
   const res = await bridge.list(name)
   const entries = res.ok ? res.data.entries : []
   return (
     <div className="panel">
-      <ActionForm action={addToList} success="Added" className="mb-4 flex flex-wrap items-center gap-2">
+      <ActionForm action={addToList} success="Added" className={FORM}>
         <input type="hidden" name="list" value={name} />
-        <input name="player" className="input" placeholder="Player" required />
-        <input name="reason" className="input" placeholder="Reason (optional)" />
-        <SubmitButton className="btn-primary" toast={null}>
-          Add
-        </SubmitButton>
+        <input name="player" className="input min-w-0 basis-full sm:basis-48" placeholder="Player name" aria-label="Player" required />
+        <input name="reason" className="input min-w-0 flex-[2] basis-40" placeholder="Reason (optional)" aria-label="Reason" />
+        {ADD}
       </ActionForm>
       {entries.length === 0 ? (
-        <Empty res={res} what="entries" />
+        <Empty res={res} what="entries" tab={name} />
       ) : (
         <div className="table-wrap">
           <table className="table">
@@ -74,24 +111,23 @@ async function PlayerList({ name }: { name: 'whitelist' | 'blacklist' }) {
                 <th>Player</th>
                 <th>Reason</th>
                 <th>Added by</th>
-                <th />
+                <th className="w-0">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {entries.map(e => (
                 <tr key={e.uuid}>
-                  <td className="cell-mono">
-                    <Head uuid={e.uuid} />
-                    {e.uuid}
+                  <td>
+                    <Player uuid={e.uuid}>
+                      <span className="cell-mono">{e.uuid}</span>
+                    </Player>
                   </td>
-                  <td>{e.reason}</td>
+                  <td className="text-muted-foreground">{e.reason || '—'}</td>
                   <td className="cell-mono">{e.addedBy}</td>
                   <td>
-                    <ActionForm action={removeFromList} success="Removed">
-                      <input type="hidden" name="list" value={name} />
-                      <input type="hidden" name="uuid" value={e.uuid} />
-                      <SubmitButton toast={null}>Remove</SubmitButton>
-                    </ActionForm>
+                    <RemoveForm tab={name} action={removeFromList} fields={{ list: name, uuid: e.uuid }} />
                   </td>
                 </tr>
               ))}
@@ -108,27 +144,25 @@ const str = (v: unknown) => (typeof v === 'string' || typeof v === 'number' ? St
 async function Alliance() {
   const res = await bridge.alliance()
   const entries = res.ok ? res.data.entries : []
-  const missingKey = !res.ok && res.status === 409
+  const notSetUp = !res.ok && (res.status === 409 || setupError(res.error) !== null)
   return (
     <div className="panel">
-      {missingKey ? <p className="panel-empty">missing GUILDLB_GUILD_KEY</p> : null}
-      <ActionForm action={addAlliance} success="Added" className="mb-4 flex flex-wrap items-center gap-2">
-        <input name="player" className="input" placeholder="Player" required />
-        <select name="category" className="input" defaultValue="OTHER">
+      {notSetUp ? <EmptyState icon={<IconAlert />} title={<ErrorText copy={listError('alliance', res as { status: number; error: string })} />} /> : null}
+      <ActionForm action={addAlliance} success="Added" className={FORM} disabled={notSetUp}>
+        <input name="player" className="input min-w-0 basis-full sm:basis-48" placeholder="Player name" aria-label="Player" required />
+        <select name="category" className="input w-auto flex-1 sm:flex-none" defaultValue="OTHER" aria-label="Category">
           {CATEGORIES.map(c => (
             <option key={c} value={c}>
-              {c}
+              {c.charAt(0) + c.slice(1).toLowerCase().replace('_', ' ')}
             </option>
           ))}
         </select>
-        <input name="reason" className="input" placeholder="Reason (optional)" />
-        <SubmitButton className="btn-primary" toast={null}>
-          Add
-        </SubmitButton>
+        <input name="reason" className="input min-w-0 flex-[2] basis-40" placeholder="Reason (optional)" aria-label="Reason" />
+        {ADD}
       </ActionForm>
       {entries.length === 0 ? (
-        missingKey ? null : (
-          <Empty res={res} what="entries" />
+        notSetUp ? null : (
+          <Empty res={res} what="entries" tab="alliance" />
         )
       ) : (
         <div className="table-wrap">
@@ -138,7 +172,9 @@ async function Alliance() {
                 <th>Player</th>
                 <th>Category</th>
                 <th>Reason</th>
-                <th />
+                <th className="w-0">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -146,18 +182,16 @@ async function Alliance() {
                 const uuid = str(e.uuid ?? e.id)
                 return (
                   <tr key={uuid || i}>
-                    <td className="cell-mono">
-                      {uuid ? <Head uuid={uuid} /> : null}
-                      {str(e.username ?? e.ign ?? e.name) || uuid}
+                    <td>
+                      <Player uuid={uuid || undefined}>
+                        <span className="font-medium">{str(e.username ?? e.ign ?? e.name) || uuid}</span>
+                      </Player>
                     </td>
-                    <td>{str(e.category)}</td>
-                    <td>{str(e.reason)}</td>
+                    <td>{e.category ? <span className="badge">{str(e.category)}</span> : null}</td>
+                    <td className="text-muted-foreground">{str(e.reason) || '—'}</td>
                     <td>
                       {uuid ? (
-                        <ActionForm action={removeAlliance} success="Removed">
-                          <input type="hidden" name="uuid" value={uuid} />
-                          <ConfirmButton message="Remove this player from the alliance list?">Remove</ConfirmButton>
-                        </ActionForm>
+                        <RemoveForm tab="alliance" who={str(e.username ?? e.ign ?? e.name) || undefined} action={removeAlliance} fields={{ uuid }} />
                       ) : null}
                     </td>
                   </tr>
@@ -177,7 +211,7 @@ async function Waitlist() {
   if (!account)
     return (
       <div className="panel">
-        <p className="panel-empty">No account selected</p>
+        <EmptyState icon={<IconUsers />} title="No account selected. Pick one from the account menu in the top bar." />
       </div>
     )
   const res = await bridge.waitlist(account.id)
@@ -185,7 +219,7 @@ async function Waitlist() {
   return (
     <div className="panel">
       {entries.length === 0 ? (
-        <Empty res={res} what="waitlist entries" />
+        <Empty res={res} what="waitlist entries" tab="waitlist" />
       ) : (
         <div className="table-wrap">
           <table className="table">
@@ -193,23 +227,22 @@ async function Waitlist() {
               <tr>
                 <th>Player</th>
                 <th>Added</th>
-                <th />
+                <th className="w-0">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {entries.map(e => (
                 <tr key={e.id}>
                   <td>
-                    <Head uuid={e.uuid} />
-                    {e.ign}
+                    <Player uuid={e.uuid}>
+                      <span className="font-medium">{e.ign}</span>
+                    </Player>
                   </td>
                   <td className="cell-mono">{new Date(e.createdAt).toLocaleString()}</td>
                   <td>
-                    <ActionForm action={removeWaitlist} success="Removed">
-                      <input type="hidden" name="accountId" value={account.id} />
-                      <input type="hidden" name="id" value={e.id} />
-                      <SubmitButton toast={null}>Remove</SubmitButton>
-                    </ActionForm>
+                    <RemoveForm tab="waitlist" who={e.ign} action={removeWaitlist} fields={{ accountId: String(account.id), id: e.id }} />
                   </td>
                 </tr>
               ))}
@@ -227,7 +260,7 @@ async function Links() {
   return (
     <div className="panel">
       {entries.length === 0 ? (
-        <Empty res={res} what="links" />
+        <Empty res={res} what="links" tab="links" />
       ) : (
         <div className="table-wrap">
           <table className="table">
@@ -235,22 +268,22 @@ async function Links() {
               <tr>
                 <th>Player</th>
                 <th>Discord id</th>
-                <th />
+                <th className="w-0">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {entries.map(e => (
                 <tr key={e.id}>
                   <td>
-                    <Head uuid={e.uuid} />
-                    {e.ign}
+                    <Player uuid={e.uuid}>
+                      <span className="font-medium">{e.ign}</span>
+                    </Player>
                   </td>
                   <td className="cell-mono">{e.id}</td>
                   <td>
-                    <ActionForm action={removeLink} success="Removed">
-                      <input type="hidden" name="discordId" value={e.id} />
-                      <SubmitButton toast={null}>Remove</SubmitButton>
-                    </ActionForm>
+                    <RemoveForm tab="links" who={e.ign} action={removeLink} fields={{ discordId: e.id }} success="Unlinked" />
                   </td>
                 </tr>
               ))}

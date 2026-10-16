@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applySwitch, buildGroups } from '@/lib/features'
+import { apiKeys, applySwitch, buildGroups, unavailableLabel } from '@/lib/features'
 import type { FeatureCatalog } from '@/lib/types'
 
 const settings = {
@@ -26,17 +26,21 @@ const catalog: FeatureCatalog = {
 describe('buildGroups', () => {
   const groups = buildGroups(settings, catalog)
   const find = (id: string) => groups.flatMap(g => g.switches).find(s => s.id === id)!
-  it('orders the groups', () =>
-    expect(groups.map(g => g.title)).toEqual(['Chat relay', 'Members', 'Safety', 'GuildLB', 'In-game commands', 'Discord commands']))
+  it('orders the groups', () => expect(groups.map(g => g.title)).toEqual(['Chat relay', 'Members & alliance', 'Discord commands']))
+  it('leaves out switches that live on their own settings page', () => {
+    const ids = groups.flatMap(g => g.switches).map(s => s.id)
+    for (const area of ['joinRequests', 'gexp', 'filters', 'guildlb', 'commands'])
+      expect(
+        ids.some(id => id.startsWith(`${area}.`)),
+        area
+      ).toBe(false)
+  })
   it('reads current values with defaults for missing keys', () => {
     expect(find('relay.officer').on).toBe(false)
-    expect(find('commands.toggles.networth').on).toBe(false)
-    expect(find('commands.toggles.skills').on).toBe(true)
     expect(find('features.slashCommands.kick').on).toBe(false)
   })
   it('marks unavailable and always-on switches', () => {
-    expect(find('commands.toggles.skills').unavailable).toBe('HYPIXEL_API_KEY')
-    expect(find('gexp.enabled').unavailable).toBe('HYPIXEL_API_KEY')
+    expect(find('features.verify').unavailable).toBe('HYPIXEL_API_KEY')
     expect(find('features.slashCommands.setup').alwaysOn).toBe(true)
   })
   it('locks slash commands whose feature switch is off', () => {
@@ -54,15 +58,35 @@ describe('buildGroups', () => {
     expect(f('features.slashCommands.ally').note).toBeUndefined()
     expect(f('features.slashCommands.free').note).toBeUndefined()
     const g2 = buildGroups({ ...settings, features: { verify: true, allianceChecks: false } }, cat)
-    expect(g2.flatMap(x => x.switches).find(s => s.id === 'features.slashCommands.ally')!.note).toBe('Follows the Alliance checks switch')
+    expect(g2.flatMap(x => x.switches).find(s => s.id === 'features.slashCommands.ally')!.note).toBe('Follows the GuildLB alliance checks switch')
   })
   it('uses the guildlb env var for the alliance command and GuildLB switches', () => {
     const missing = { ...catalog.missingEnv, guildlbGuild: 'GUILDLB_GUILD_ID' }
     const g = buildGroups(settings, { ...catalog, missingEnv: missing, slashCommands: [{ name: 'alliance', description: 'A', requires: [], alwaysOn: false }] })
     const all = g.flatMap(x => x.switches)
     expect(all.find(s => s.id === 'features.allianceChecks')!.unavailable).toBe('GUILDLB_GUILD_ID')
-    expect(all.find(s => s.id === 'guildlb.syncBlacklist')!.unavailable).toBe('GUILDLB_GUILD_ID')
     expect(all.find(s => s.id === 'features.slashCommands.alliance')!.unavailable).toBe('GUILDLB_GUILD_ID')
+  })
+})
+
+describe('switch copy', () => {
+  const all = buildGroups(settings, catalog).flatMap(g => g.switches)
+  it('gives every switch a description', () => {
+    for (const sw of all) expect(sw.description, sw.id).toBeTruthy()
+  })
+  it('lists the API keys with what is set, and skips one an older bot does not report', () => {
+    expect(apiKeys(catalog).map(k => [k.envVar, k.set])).toEqual([
+      ['HYPIXEL_API_KEY', false],
+      ['GUILDLB_GUILD_KEY', true]
+    ])
+    expect(apiKeys({ ...catalog, missingEnv: { ...catalog.missingEnv, guildlbApi: 'GUILDLB_API_KEY' } }).at(-1)).toMatchObject({
+      envVar: 'GUILDLB_API_KEY',
+      set: false
+    })
+  })
+  it('words the missing-setup badge without env var names', () => {
+    expect(unavailableLabel('HYPIXEL_API_KEY')).toBe('Not set up: needs a Hypixel API key')
+    expect(unavailableLabel('GUILDLB_GUILD_ID')).toBe('Not set up: needs a GuildLB key')
   })
 })
 

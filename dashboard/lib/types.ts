@@ -6,6 +6,11 @@ export interface AccountInfo {
   online: boolean
   username: string | null
   relayGroup: string | null
+  /** The channels the account relays to (absent from older bots). */
+  guildChannelId?: string
+  officerChannelId?: string | null
+  source: 'env' | 'settings'
+  locked: ('guildChannelId' | 'officerChannelId' | 'relayGroup' | 'label')[]
 }
 export interface AuditEntry {
   id: string
@@ -48,6 +53,26 @@ export interface MemberRow {
 export interface FeatureCatalog {
   chatCommands: { toggle: string; usage: string; description: string; requires: string[] }[]
   slashCommands: { name: string; description: string; requires: string[]; alwaysOn: boolean; feature?: 'verify' | 'allianceChecks' }[]
-  missingEnv: Record<'hypixel' | 'guildlbGuild', string | null>
+  /** guildlbApi is missing from bots older than the API keys section. */
+  missingEnv: Record<'hypixel' | 'guildlbGuild', string | null> & { guildlbApi?: string | null }
+}
+export interface DiscordChannel {
+  id: string
+  name: string
+  category: string | null
+  type: 'text' | 'announcement'
+}
+export interface DiscordRole {
+  id: string
+  name: string
+  color: number
+}
+/** The bridge's Discord server, used to offer channels and roles by name instead of typed ids. */
+export interface DiscordDirectory {
+  server: { id: string; name: string }
+  channels: DiscordChannel[]
+  roles: DiscordRole[]
 }
 export type BridgeResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string; issues?: string[]; note?: string }
+/** Dashboard look set in Settings → Branding. Every field is optional. */
+export type { BrandingSettings as Branding } from '@bridge/settings/branding'
