@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { resolveNetworth } from '../../services/networthSource'
-import { formatAsOf, GUILDLB_DOWN, NETWORTH_UNAVAILABLE, notTrackedLine } from '../../services/guildlbText'
+import { formatAsOf, NETWORTH_UNAVAILABLE, notTrackedLine } from '../../services/guildlbText'
 import { formatNumber } from '../../util/format'
 import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
 import { targetIgn, resolvePlayer, matchesTriggers } from './_shared'
@@ -29,7 +29,7 @@ const networth: ChatCommand = {
       case 'unavailable':
         return say(NETWORTH_UNAVAILABLE)
       case 'error':
-        return say(`Networth unavailable right now: ${GUILDLB_DOWN}`)
+        return say('Networth unavailable right now; try again later.')
       case 'not-tracked':
         return say(`${ign}: ${notTrackedLine(answer.queued)}`)
       case 'local-no-profiles':

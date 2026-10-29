@@ -39,18 +39,33 @@ export function ensureNetworthReady(): Promise<void> {
 export async function getPlayerNetworth(apiKey: string, uuid: string): Promise<PlayerNetworth | undefined> {
   await ensureNetworthReady()
   const { ProfileNetworthCalculator } = await loadNetworthLib()
+  // Hypixel keys profile members by undashed, lowercase uuid; normalize so a dashed/upper uuid still matches.
+  const memberId = uuid.replaceAll('-', '').toLowerCase()
   const profileResponse = await hypixelGet('/v2/skyblock/profiles', apiKey, { uuid })
   const profiles: any[] = profileResponse.data.profiles ?? []
 
   let selectedProfile = profiles.find(profile => profile.selected === true)
   if (!selectedProfile)
-    selectedProfile = [...profiles].sort((a, b) => (b.members?.[uuid]?.leveling?.experience || 0) - (a.members?.[uuid]?.leveling?.experience || 0))[0]
+    selectedProfile = [...profiles].sort(
+      (a, b) => (b.members?.[memberId]?.leveling?.experience || 0) - (a.members?.[memberId]?.leveling?.experience || 0)
+    )[0]
   if (!selectedProfile) return undefined
 
-  const museumResponse = await hypixelGet('/v2/skyblock/museum', apiKey, { profile: selectedProfile.profile_id })
-  const museumData = museumResponse.data.members?.[uuid]
+  const profileData = selectedProfile.members?.[memberId]
+  // The fallback sort can pick a profile that doesn't actually contain this member; without profile data
+  // the calculator would throw, so treat it the same as "no profiles" for a clean upstream reply.
+  if (!profileData) return undefined
 
-  const profileData = selectedProfile.members[uuid]
+  // Museum is optional: a player with their Museum API toggle off makes Hypixel 403 this
+  // endpoint. Networth is still computable without it, so treat any museum failure as "no data".
+  let museumData: any
+  try {
+    const museumResponse = await hypixelGet('/v2/skyblock/museum', apiKey, { profile: selectedProfile.profile_id })
+    museumData = museumResponse.data.members?.[memberId]
+  } catch {
+    museumData = undefined
+  }
+
   const bankBalance = selectedProfile.banking?.balance || 0
 
   const calculator = new ProfileNetworthCalculator(profileData, museumData, bankBalance)

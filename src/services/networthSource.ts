@@ -20,11 +20,17 @@ export interface NetworthDeps {
 export async function resolveNetworth(deps: NetworthDeps, player: { uuid: string; ign: string }): Promise<NetworthAnswer> {
   if (deps.hypixelApiKey) {
     const { getPlayerNetworth } = await import('./networth')
-    const result = await getPlayerNetworth(deps.hypixelApiKey, player.uuid)
-    if (!result) return { source: 'local-no-profiles' }
-    const data = result.networth as unknown as { networth?: number; noInventory?: boolean }
-    if (data.noInventory) return { source: 'local-no-inventory' }
-    return { source: 'local', networth: data.networth ?? 0, profileName: result.profileName }
+    try {
+      const result = await getPlayerNetworth(deps.hypixelApiKey, player.uuid)
+      if (!result) return { source: 'local-no-profiles' }
+      const data = result.networth as unknown as { networth?: number; noInventory?: boolean }
+      if (data.noInventory) return { source: 'local-no-inventory' }
+      return { source: 'local', networth: data.networth ?? 0, profileName: result.profileName }
+    } catch (error) {
+      // A thrown Hypixel error must not leave guildmates with silence: fall through to an "error" reply.
+      deps.log.warn('Live networth lookup failed', { ign: player.ign, error: String(error) })
+      return { source: 'error' }
+    }
   }
 
   const client = deps.guildlb
