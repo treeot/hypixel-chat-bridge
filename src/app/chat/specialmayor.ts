@@ -1,5 +1,5 @@
 import type { ChatCommand } from '../context'
-import { matchesTriggers } from './_shared'
+import { sayIn, matchesTriggers } from './_shared'
 import { FullEmbed, rankStyle } from '../../discord/format'
 import { hypixelGet } from '../../services/hypixel'
 import { hypixelKey } from '../requirements'
@@ -28,11 +28,11 @@ const specialmayor: ChatCommand = {
       election = response.data
     } catch (error) {
       ctx.log.error('Error fetching election data from Hypixel API', error)
-      return ctx.minecraft.execute(`/gc Cannot fetch the current mayor right now.`)
+      return sayIn(ctx, chat, `Cannot fetch the current mayor right now.`)
     }
 
     const currentMayor = election?.mayor
-    if (!currentMayor) return ctx.minecraft.execute(`/gc No mayor data available.`)
+    if (!currentMayor) return sayIn(ctx, chat, `No mayor data available.`)
 
     const currentName: string = (currentMayor.name ?? '').toLowerCase()
     const isSpecialNow = SPECIAL_MAYORS.includes(currentName)
@@ -48,10 +48,10 @@ const specialmayor: ChatCommand = {
     }
 
     const message = isSpecialNow
-      ? `/gc The current mayor (${currentMayor.name}) is already a special mayor.`
-      : `/gc Current mayor: ${currentMayor.name} ➜ Est. ~${yearsUntilNext} SkyBlock year(s) until the next special mayor (approximate).`
+      ? `The current mayor (${currentMayor.name}) is already a special mayor.`
+      : `Current mayor: ${currentMayor.name} ➜ Est. ~${yearsUntilNext} SkyBlock year(s) until the next special mayor (approximate).`
 
-    ctx.minecraft.execute(message)
+    sayIn(ctx, chat, message)
 
     await ctx.discord.sendEmbed(
       chat,

@@ -1,5 +1,5 @@
 import type { ChatCommand } from '../context'
-import { targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['jacob'] as const
 
@@ -13,7 +13,7 @@ const jacob: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const resolved = await resolveProfile(ctx, targetIgn(message, username), "jacob's contests")
+    const resolved = await resolveProfile(ctx, targetIgn(message, username), "jacob's contests", chat)
     if (!resolved) return
     const { ign, selected } = resolved
 
@@ -29,7 +29,7 @@ const jacob: ChatCommand = {
       .slice(0, 3)
       .map(([crop, amount]) => `${crop}: ${amount}`)
 
-    ctx.minecraft.execute(`/gc ${ign} ➜ Medals G${gold}/S${silver}/B${bronze} | Contests ${participations}`)
+    sayIn(ctx, chat, `${ign} ➜ Medals G${gold}/S${silver}/B${bronze} | Contests ${participations}`)
 
     await ctx.discord.sendEmbed(
       chat,

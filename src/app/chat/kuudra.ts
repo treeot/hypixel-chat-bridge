@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
-import { targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const KUUDRA_TIERS: { key: string; label: string }[] = [
   { key: 'none', label: 'Basic' },
@@ -22,14 +22,14 @@ const kuudra: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'kuudra')
+    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'kuudra', chat)
     if (!resolved) return
     const { ign, selected } = resolved
 
     const tiers: Record<string, number> = selected.member?.nether_island_player_data?.kuudra_completed_tiers ?? {}
     const total = Object.values(tiers).reduce((sum, count) => sum + (count ?? 0), 0)
 
-    ctx.minecraft.execute(`/gc ${ign} ➜ Kuudra Runs ${addCommas(total)}`)
+    sayIn(ctx, chat, `${ign} ➜ Kuudra Runs ${addCommas(total)}`)
 
     const fields = KUUDRA_TIERS.filter(({ key }) => (tiers[key] ?? 0) > 0).map(({ key, label }) => ({
       name: label,

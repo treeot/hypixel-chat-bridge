@@ -1,7 +1,7 @@
 import type { ChatCommand } from '../context'
 import { getDungeonLevelFromXp } from '../../services/skyblockLeveling'
 import { addCommas } from '../../util/format'
-import { targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['catacombs', 'cata'] as const
 
@@ -15,12 +15,12 @@ const catacombs: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'catacombs')
+    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'catacombs', chat)
     if (!resolved) return
     const { ign, selected } = resolved
 
     const catacombsData = selected.member?.dungeons?.dungeon_types?.catacombs
-    if (!catacombsData) return ctx.minecraft.execute(`/gc ${ign} has no dungeons data.`)
+    if (!catacombsData) return sayIn(ctx, chat, `${ign} has no dungeons data.`)
 
     const xp = catacombsData.experience ?? 0
     const level = getDungeonLevelFromXp(xp)
@@ -28,7 +28,7 @@ const catacombs: ChatCommand = {
 
     const totalRuns = Object.values(tierCompletions).reduce((sum, count) => sum + (count ?? 0), 0)
 
-    ctx.minecraft.execute(`/gc ${ign} ➜ Cata ${level.toFixed(2)} | Runs ${addCommas(totalRuns)}`)
+    sayIn(ctx, chat, `${ign} ➜ Cata ${level.toFixed(2)} | Runs ${addCommas(totalRuns)}`)
 
     const floorFields = Object.keys(tierCompletions)
       .filter(floor => (tierCompletions[floor] ?? 0) > 0)

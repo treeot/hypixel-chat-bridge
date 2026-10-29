@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { DUNGEON_CLASSES, M7_CLASS_XP_PER_RUN, getDungeonLevelFromXp, getRunsToClassAverage50 } from '../../services/skyblockLeveling'
-import { targetIgn, resolvePlayer, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolvePlayer, matchesTriggers } from './_shared'
 import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
 import { hypixelGet } from '../../services/hypixel'
 import { hypixelKey } from '../requirements'
@@ -19,7 +19,7 @@ const rtca: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const player = await resolvePlayer(ctx, targetIgn(message, username))
+    const player = await resolvePlayer(ctx, targetIgn(message, username), chat)
     if (!player) return
     const { uuid, ign } = player
 
@@ -65,7 +65,7 @@ const rtca: ChatCommand = {
       .replaceAll('mage', 'm')
       .replaceAll('berserk', 'b')
 
-    ctx.minecraft.execute(`/gc To reach class average ${TARGET_CLASS_AVERAGE}, you need ~${addCommasSimple(runsNeeded)} more M7s. (${breakdown})`)
+    sayIn(ctx, chat, `To reach class average ${TARGET_CLASS_AVERAGE}, you need ~${addCommasSimple(runsNeeded)} more M7s. (${breakdown})`)
 
     await ctx.discord.sendEmbed(
       chat,

@@ -4,6 +4,12 @@ import { getUUIDFromUsername, getUsernameFromUUID } from '../../services/mojang'
 import { selectMember, type SelectedProfile } from '../../services/skyblockProfile'
 import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
 import { hypixelKey } from '../requirements'
+import type { Chat } from '../../core/contracts'
+
+/** Reply in the same chat the command was used in: officer commands answer in officer chat, not the public guild channel. */
+export function sayIn(ctx: AppContext, chat: Chat, text: string, opts?: { priority?: boolean }): void {
+  ctx.minecraft.execute(`/${chat === 'officer' ? 'oc' : 'gc'} ${text}`, opts)
+}
 
 export function targetIgn(message: string, senderUsername: string): string {
   const spaceIndex = message.indexOf(' ')
@@ -12,11 +18,11 @@ export function targetIgn(message: string, senderUsername: string): string {
   return arg.length > 0 ? arg : senderUsername
 }
 
-export async function resolvePlayer(ctx: AppContext, rawIgn: string): Promise<{ uuid: string; ign: string } | null> {
+export async function resolvePlayer(ctx: AppContext, rawIgn: string, chat: Chat = 'guild'): Promise<{ uuid: string; ign: string } | null> {
   if (rawIgn.length > 16 || rawIgn.length < 1) return null
   const uuid = await getUUIDFromUsername(rawIgn, ctx.log)
   if (!uuid) {
-    ctx.minecraft.execute(`/gc Cannot find the user.`, { priority: true })
+    sayIn(ctx, chat, `Cannot find the user.`, { priority: true })
     return null
   }
   const ign = (await getUsernameFromUUID(uuid, ctx.log)) ?? rawIgn
@@ -26,9 +32,10 @@ export async function resolvePlayer(ctx: AppContext, rawIgn: string): Promise<{ 
 export async function resolveProfile(
   ctx: AppContext,
   rawIgn: string,
-  label = 'stats'
+  label = 'stats',
+  chat: Chat = 'guild'
 ): Promise<{ uuid: string; ign: string; selected: SelectedProfile } | null> {
-  const player = await resolvePlayer(ctx, rawIgn)
+  const player = await resolvePlayer(ctx, rawIgn, chat)
   if (!player) return null
 
   let selected: SelectedProfile | undefined
@@ -36,11 +43,11 @@ export async function resolveProfile(
     selected = await selectMember(hypixelKey(ctx.env), player.uuid)
   } catch (error) {
     ctx.log.error(`Error fetching ${label} from Hypixel API`, error, { uuid: player.uuid })
-    ctx.minecraft.execute(`/gc Cannot find the user.`, { priority: true })
+    sayIn(ctx, chat, `Cannot find the user.`, { priority: true })
     return null
   }
   if (!selected) {
-    ctx.minecraft.execute(`/gc ${player.ign} has no profiles.`, { priority: true })
+    sayIn(ctx, chat, `${player.ign} has no profiles.`, { priority: true })
     return null
   }
   return { ...player, selected }

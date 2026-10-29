@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
-import { targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 import { hypixelGet } from '../../services/hypixel'
 import { hypixelKey } from '../requirements'
 
@@ -16,7 +16,7 @@ const garden: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'garden')
+    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'garden', chat)
     if (!resolved) return
     const { ign, selected, uuid } = resolved
 
@@ -26,10 +26,10 @@ const garden: ChatCommand = {
       gardenData = response.data.garden
     } catch (error) {
       ctx.log.error('Error fetching garden from Hypixel API', error, { uuid })
-      return ctx.minecraft.execute(`/gc Cannot find the user's garden.`)
+      return sayIn(ctx, chat, `Cannot find the user's garden.`)
     }
 
-    if (!gardenData) return ctx.minecraft.execute(`/gc ${ign}'s garden could not be found.`)
+    if (!gardenData) return sayIn(ctx, chat, `${ign}'s garden could not be found.`)
 
     const experience = gardenData.garden_experience ?? 0
     const plots = Object.keys(gardenData.unlocked_plots ?? {}).length
@@ -39,7 +39,7 @@ const garden: ChatCommand = {
       .slice(0, 3)
       .map(([crop, amount]) => `${crop}: ${addCommas(amount as number)}`)
 
-    ctx.minecraft.execute(`/gc ${ign} ➜ Garden XP ${addCommas(experience)} | Plots ${plots}`)
+    sayIn(ctx, chat, `${ign} ➜ Garden XP ${addCommas(experience)} | Plots ${plots}`)
 
     await ctx.discord.sendEmbed(
       chat,

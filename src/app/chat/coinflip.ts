@@ -1,5 +1,5 @@
 import type { ChatCommand } from '../context'
-import { matchesTriggers } from './_shared'
+import { sayIn, matchesTriggers } from './_shared'
 
 const triggers = ['coinflip'] as const
 
@@ -12,9 +12,9 @@ const coinflip: ChatCommand = {
   description: 'Flips a coin.',
   matches: message => matchesTriggers(message, triggers),
 
-  async execute(ctx, { username }) {
+  async execute(ctx, { chat, username }) {
     const result = Math.random() < 0.5 ? 'Heads' : 'Tails'
-    ctx.minecraft.execute(`/gc ${username} flipped a coin: ${result}!`, { priority: true })
+    sayIn(ctx, chat, `${username} flipped a coin: ${result}!`, { priority: true })
   }
 }
 

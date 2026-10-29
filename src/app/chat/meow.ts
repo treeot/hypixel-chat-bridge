@@ -1,5 +1,5 @@
 import type { ChatCommand } from '../context'
-import { matchesTriggers } from './_shared'
+import { sayIn, matchesTriggers } from './_shared'
 
 const RESPONSES = ['Meow!', 'Mrrrow~', 'Purrrr...', '=^..^= meow!', 'Hiss! (just kidding) Meow!', 'Meow meow!']
 
@@ -14,9 +14,9 @@ const meow: ChatCommand = {
   description: 'Meows back.',
   matches: message => matchesTriggers(message, triggers),
 
-  async execute(ctx) {
+  async execute(ctx, { chat }) {
     const response = RESPONSES[Math.floor(Math.random() * RESPONSES.length)]
-    ctx.minecraft.execute(`/gc ${response}`, { priority: true })
+    sayIn(ctx, chat, `${response}`, { priority: true })
   }
 }
 

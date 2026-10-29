@@ -1,7 +1,7 @@
 import type { ChatCommand } from '../context'
 import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
 import { SKILL_NAMES, getSkillLevelInfo } from '../../services/skyblockLeveling'
-import { targetIgn, resolvePlayer, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolvePlayer, matchesTriggers } from './_shared'
 import { hypixelGet } from '../../services/hypixel'
 import { footer } from '../../discord/brand'
 import { hypixelKey } from '../requirements'
@@ -19,7 +19,7 @@ const skills: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const player = await resolvePlayer(ctx, targetIgn(message, username))
+    const player = await resolvePlayer(ctx, targetIgn(message, username), chat)
     if (!player) return
     const { uuid, ign } = player
 
@@ -31,12 +31,12 @@ const skills: ChatCommand = {
       let selectedProfile = profiles.find(profile => profile.selected === true)
       if (!selectedProfile)
         selectedProfile = [...profiles].sort((a, b) => (b.members?.[uuid]?.leveling?.experience || 0) - (a.members?.[uuid]?.leveling?.experience || 0))[0]
-      if (!selectedProfile) return ctx.minecraft.execute(`/gc ${ign} has no profiles.`)
+      if (!selectedProfile) return sayIn(ctx, chat, `${ign} has no profiles.`)
 
       profileData = selectedProfile.members[uuid]
     } catch (error) {
       ctx.log.error('Error fetching skills from Hypixel API', error, { uuid })
-      return ctx.minecraft.execute(`/gc Cannot find the user.`)
+      return sayIn(ctx, chat, `Cannot find the user.`)
     }
 
     const experience = profileData?.player_data?.experience ?? {}
@@ -99,7 +99,7 @@ const skills: ChatCommand = {
     )
 
     if (msg) {
-      ctx.minecraft.execute(`/gc ${msg}`)
+      sayIn(ctx, chat, `${msg}`)
     }
   }
 }

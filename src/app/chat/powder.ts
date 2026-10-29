@@ -30,6 +30,7 @@ const powder: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
+    const say = (text: string) => ctx.minecraft.execute(`/${chat === 'officer' ? 'oc' : 'gc'} ${text}`)
     const player = await resolvePlayer(ctx, targetIgn(message, username))
     if (!player) return
     const { uuid, ign } = player
@@ -43,24 +44,24 @@ const powder: ChatCommand = {
         (a, b) => (b.members?.[uuid]?.leveling?.experience || 0) - (a.members?.[uuid]?.leveling?.experience || 0)
       )[0]
     }
-    if (!selectedProfile) return
+    if (!selectedProfile) return say(`${ign} has no profiles.`)
 
-    const profileData = selectedProfile.members[uuid]
+    const miningCore = selectedProfile.members[uuid]?.mining_core
+    if (!miningCore) return say(`${ign} has no mining data.`)
 
-    const mithrilPowder = profileData.mining_core.powder_mithril + profileData.mining_core.powder_spent_mithril
-    const gemstonePowder = profileData.mining_core.powder_gemstone + profileData.mining_core.powder_spent_gemstone
-    const glacitePowder = profileData.mining_core.powder_glacite + profileData.mining_core.powder_spent_glacite
+    const mithrilPowder = (miningCore.powder_mithril ?? 0) + (miningCore.powder_spent_mithril ?? 0)
+    const gemstonePowder = (miningCore.powder_gemstone ?? 0) + (miningCore.powder_spent_gemstone ?? 0)
+    const glacitePowder = (miningCore.powder_glacite ?? 0) + (miningCore.powder_spent_glacite ?? 0)
 
     const powders = []
-    if (profileData.mining_core) {
-      if (mithrilPowder > 0) powders.push(`M: ${formatNumber(mithrilPowder)}`)
-      if (gemstonePowder > 0) powders.push(`Gem: ${formatNumber(gemstonePowder)}`)
-      if (glacitePowder > 0) powders.push(`G: ${formatNumber(glacitePowder)}`)
-    }
+    if (mithrilPowder > 0) powders.push(`M: ${formatNumber(mithrilPowder)}`)
+    if (gemstonePowder > 0) powders.push(`Gem: ${formatNumber(gemstonePowder)}`)
+    if (glacitePowder > 0) powders.push(`G: ${formatNumber(glacitePowder)}`)
 
-    if (powders.length > 0) {
+    if (powders.length === 0) return say(`${ign} has no powder.`)
+    {
       const powderList = powders.join(', ')
-      ctx.minecraft.execute(`/gc ${ign} ➜ Powder: ${powderList}`)
+      say(`${ign} ➜ Powder: ${powderList}`)
       await ctx.discord.sendEmbed(
         chat,
         FullEmbed('message', {

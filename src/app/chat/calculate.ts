@@ -1,5 +1,5 @@
 import type { ChatCommand } from '../context'
-import { matchesTriggers } from './_shared'
+import { sayIn, matchesTriggers } from './_shared'
 
 type Token = { type: 'num'; value: number } | { type: 'op'; value: '+' | '-' | '*' | '/' | '%' } | { type: 'lparen' } | { type: 'rparen' }
 
@@ -163,17 +163,17 @@ const calculate: ChatCommand = {
   description: 'Evaluates arithmetic with + - * / % and parentheses.',
   matches: message => matchesTriggers(message, triggers),
 
-  async execute(ctx, { message }) {
+  async execute(ctx, { chat, message }) {
     const lower = message.toLowerCase()
     const prefixLength = lower.startsWith('!calculate') ? '!calculate'.length : '!calc'.length
     const expression = message.slice(prefixLength).trim()
 
-    if (!expression) return ctx.minecraft.execute('/gc Usage: !calc <expression>', { priority: true })
+    if (!expression) return sayIn(ctx, chat, 'Usage: !calc <expression>', { priority: true })
 
     const result = safeCalculate(expression)
-    if (result === undefined) return ctx.minecraft.execute('/gc Invalid expression.', { priority: true })
+    if (result === undefined) return sayIn(ctx, chat, 'Invalid expression.', { priority: true })
 
-    ctx.minecraft.execute(`/gc ${expression} = ${result}`, { priority: true })
+    sayIn(ctx, chat, `${expression} = ${result}`, { priority: true })
   }
 }
 
