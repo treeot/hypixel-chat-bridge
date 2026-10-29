@@ -73,9 +73,16 @@ class PostgresCollection<T extends Doc> implements Collection<T> {
   async find(filter?: Partial<T>): Promise<T[]> {
     const entries = filterEntries(filter)
     const pool = await this.store.table(this.name)
-    const result = entries.length
-      ? await pool.query<{ doc: T }>(`SELECT doc FROM "${this.name}" WHERE doc @> $1::jsonb`, [JSON.stringify(Object.fromEntries(entries))])
-      : await pool.query<{ doc: T }>(`SELECT doc FROM "${this.name}"`)
+    if (!entries.length) {
+      const all = await pool.query<{ doc: T }>(`SELECT doc FROM "${this.name}"`)
+      return all.rows.map(row => row.doc)
+    }
+    // Strict per-field equality (keys are validated by filterEntries' KEY regex, so safe to inline). Unlike
+    // jsonb `@>` containment, this does NOT match a field whose value is an array containing the scalar —
+    // keeping Postgres equivalent to the strict SQLite/Mongo contract.
+    const conditions = entries.map(([key], i) => `doc->'${key}' = $${i + 1}::jsonb`)
+    const params = entries.map(([, value]) => JSON.stringify(value))
+    const result = await pool.query<{ doc: T }>(`SELECT doc FROM "${this.name}" WHERE ${conditions.join(' AND ')}`, params)
     return result.rows.map(row => row.doc)
   }
 

@@ -26,6 +26,10 @@ export function waitlistCollection(accountId: number): string {
 
 export class WaitlistRepo {
   private readonly docs: Collection<WaitlistDoc>
+  /** The storage backends have no cross-document transaction, so the read-modify-write in add() is
+   * serialized per repo instead: concurrent adds (a double-clicked Apply, or in-game + Discord at once)
+   * run one at a time, so neither reads stale state and produces a duplicate or resets a queue position. */
+  private writeChain: Promise<unknown> = Promise.resolve()
 
   constructor(
     store: Store,
@@ -35,15 +39,27 @@ export class WaitlistRepo {
     this.docs = store.collection<WaitlistDoc>(collection)
   }
 
+  private serialize<R>(op: () => Promise<R>): Promise<R> {
+    const run = this.writeChain.then(op, op)
+    // Keep the chain alive regardless of this op's success so a rejection doesn't break later writes.
+    this.writeChain = run.then(
+      () => undefined,
+      () => undefined
+    )
+    return run
+  }
+
   /** Keeps the createdAt of an existing entry with the same id or uuid; other entries for that uuid are replaced. */
-  async add(entry: { id: string; uuid: string; ign: string }): Promise<{ created: boolean; createdAt: number }> {
-    const byId = await this.docs.get(entry.id)
-    const byUuid = (await this.docs.find({ uuid: entry.uuid })).filter(doc => doc.id !== entry.id)
-    const previous = byId ?? byUuid[0] ?? null
-    const createdAt = previous ? (previous.createdAt ?? previous.createdDate ?? this.now()) : this.now()
-    for (const doc of byUuid) await this.docs.delete(doc.id)
-    await this.docs.upsert({ id: entry.id, uuid: entry.uuid, ign: entry.ign, createdAt })
-    return { created: previous === null, createdAt }
+  add(entry: { id: string; uuid: string; ign: string }): Promise<{ created: boolean; createdAt: number }> {
+    return this.serialize(async () => {
+      const byId = await this.docs.get(entry.id)
+      const byUuid = (await this.docs.find({ uuid: entry.uuid })).filter(doc => doc.id !== entry.id)
+      const previous = byId ?? byUuid[0] ?? null
+      const createdAt = previous ? (previous.createdAt ?? previous.createdDate ?? this.now()) : this.now()
+      for (const doc of byUuid) await this.docs.delete(doc.id)
+      await this.docs.upsert({ id: entry.id, uuid: entry.uuid, ign: entry.ign, createdAt })
+      return { created: previous === null, createdAt }
+    })
   }
 
   async all(): Promise<WaitlistEntry[]> {
