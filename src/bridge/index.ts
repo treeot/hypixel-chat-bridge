@@ -21,6 +21,7 @@ import { publishSlashCommands, installSlashDispatch } from '../app/commands'
 import { CommandPublisher } from '../app/commandPublisher'
 import { registerInteractions } from '../app/interactions'
 import { handleJoinRequest, handleGuildJoin } from '../app/features/joinRequest'
+import { handleRankChange } from '../app/features/verify'
 import { handleSlotFreed } from '../app/features/waitlist'
 import { matchGuildKick } from '../minecraft/parser'
 import { createRestApi } from '../app/api/server'
@@ -160,6 +161,9 @@ export class Bridge {
     on('event', (payload: RelayEvent) => {
       const relayed = this.router.onMinecraftEvent(id, payload)
       this.feed.push(id, 'event', payload)
+      if ((payload.type === 'promote' || payload.type === 'demote') && payload.username) {
+        void handleRankChange(this.ctxFor(id), payload.username)
+      }
       return relayed
     })
     on('status', (payload: RelayStatus) => {

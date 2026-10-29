@@ -155,10 +155,33 @@ describe('parseVerifySettings', () => {
   it('reads the role and template, rejecting a non-ID role', () => {
     expect(parseVerifySettings({ roleId: ROLE, nicknameTemplate: '{ign} | {discord}' }).settings).toEqual({
       roleId: ROLE,
-      nicknameTemplate: '{ign} | {discord}'
+      nicknameTemplate: '{ign} | {discord}',
+      rankRoles: []
     })
     expect(parseVerifySettings({ roleId: 'Verified' }).problems).toEqual(['verify.roleId must be a Discord ID'])
-    expect(parseVerifySettings(null).settings).toEqual({})
+    expect(parseVerifySettings(null).settings).toEqual({ rankRoles: [] })
+  })
+
+  it('reads rank roles, rejecting bad rank names, bad ids and duplicates', () => {
+    const ROLE2 = '222222222222222222'
+    const parsed = parseVerifySettings({
+      rankRoles: [
+        { rank: 'Staff', roleId: ROLE },
+        { rank: 'VIP', roleId: ROLE2 },
+        { rank: 'VIP', roleId: ROLE }, // duplicate rank
+        { rank: 'Member', roleId: 'not-an-id' }, // bad id
+        { rank: '', roleId: ROLE } // bad rank
+      ]
+    })
+    expect(parsed.settings.rankRoles).toEqual([
+      { rank: 'Staff', roleId: ROLE },
+      { rank: 'VIP', roleId: ROLE2 }
+    ])
+    expect(parsed.problems).toEqual([
+      'rank VIP is mapped twice; the first role is used',
+      'rank role Member: roleId must be a Discord ID',
+      'rank role 5: rank must be 1-32 letters, digits, _ or spaces'
+    ])
   })
 })
 

@@ -33,7 +33,7 @@ const forceVerify: SlashCommand = {
       embeds: [FullEmbed('success', { description: `Force-linked <@${target.id}> to **${ign}**.`, timestamp: new Date().toISOString() })]
     })
     const member = await interaction.guild?.members.fetch(target.id).catch(() => null)
-    if (member) await applyVerifiedMember(ctx, member, ign)
+    if (member) await applyVerifiedMember(ctx, member, ign, uuid)
   }
 }
 

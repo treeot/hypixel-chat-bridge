@@ -57,5 +57,5 @@ export async function handleLinkButton(interaction: ButtonInteraction, ctx: AppC
     ]
   })
   const member = await submitted.guild?.members.fetch(submitted.user.id).catch(() => null)
-  if (member) await applyVerifiedMember(ctx, member, result.ign)
+  if (member) await applyVerifiedMember(ctx, member, result.ign, result.uuid)
 }

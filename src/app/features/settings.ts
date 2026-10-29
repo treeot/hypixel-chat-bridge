@@ -38,9 +38,16 @@ export interface GexpSettings {
   graceDays: number
 }
 
+/** Maps a guild rank name (as Hypixel reports it) to a Discord role given to members of that rank. */
+export interface RankRole {
+  rank: string
+  roleId: string
+}
+
 export interface VerifySettings {
   roleId?: string
   nicknameTemplate?: string
+  rankRoles: RankRole[]
 }
 
 export interface Parsed<T> {
@@ -200,10 +207,38 @@ export function parseGexpSettings(raw: unknown): Parsed<GexpSettings> {
   return { settings: { enabled, weeklyRequirement, graceDays }, problems: read.problems }
 }
 
+export function parseRankRoles(raw: unknown): { rankRoles: RankRole[]; problems: string[] } {
+  const problems: string[] = []
+  if (!isSet(raw)) return { rankRoles: [], problems }
+  if (!Array.isArray(raw)) return { rankRoles: [], problems: ['verify.rankRoles must be a list'] }
+
+  const rankRoles: RankRole[] = []
+  raw.forEach((item, i) => {
+    const doc = asDoc(item)
+    const rank = typeof doc.rank === 'string' ? doc.rank.trim() : ''
+    if (!RANK_NAME.test(rank)) {
+      problems.push(`rank role ${i + 1}: rank must be 1-32 letters, digits, _ or spaces`)
+      return
+    }
+    const roleId = typeof doc.roleId === 'string' ? doc.roleId.trim() : ''
+    if (!SNOWFLAKE.test(roleId)) {
+      problems.push(`rank role ${rank}: roleId must be a Discord ID`)
+      return
+    }
+    if (rankRoles.some(r => r.rank.toLowerCase() === rank.toLowerCase())) {
+      problems.push(`rank ${rank} is mapped twice; the first role is used`)
+      return
+    }
+    rankRoles.push({ rank, roleId })
+  })
+  return { rankRoles, problems }
+}
+
 export function parseVerifySettings(raw: unknown): Parsed<VerifySettings> {
   const doc = asDoc(raw)
   const read = new FieldReader(doc, 'verify')
-  const settings: VerifySettings = {}
+  const { rankRoles, problems: rankRoleProblems } = parseRankRoles(doc.rankRoles)
+  const settings: VerifySettings = { rankRoles }
   const roleId = read.snowflake('roleId')
   if (roleId) settings.roleId = roleId
 
@@ -214,7 +249,7 @@ export function parseVerifySettings(raw: unknown): Parsed<VerifySettings> {
   } else if (isSet(template) && template !== '') {
     read.problems.push('verify.nicknameTemplate must be text')
   }
-  return { settings, problems: read.problems }
+  return { settings, problems: [...read.problems, ...rankRoleProblems] }
 }
 
 export function accountDocId(base: 'joinRequests' | 'gexp', accountId: AccountId): string {

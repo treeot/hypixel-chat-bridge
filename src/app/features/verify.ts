@@ -6,7 +6,8 @@ import { FullEmbed } from '../../discord/format'
 import { footer } from '../../discord/brand'
 import { hypixelGet } from '../../services/hypixel'
 import { getUUIDFromUsername } from '../../services/mojang'
-import { loadVerifySettings } from './settings'
+import { fetchGuild } from '../../services/gexp'
+import { loadVerifySettings, type RankRole } from './settings'
 import { hypixelKey } from '../requirements'
 
 export const HYPIXEL_DISCORD_STEPS = 'In Hypixel: Profile (right-click your head in a lobby) → Social Media → Discord → paste your Discord username.'
@@ -95,7 +96,46 @@ export async function verifyAndLink(
   return { ok: true, uuid, ign: check.displayName }
 }
 
-export async function applyVerifiedMember(ctx: AppContext, member: GuildMember, ign: string): Promise<void> {
+/**
+ * Which rank roles to add/remove so a member ends up with exactly the role for their current guild rank.
+ * `rank` undefined (left the guild, or no mapping matched) removes every managed rank role.
+ */
+export function rankRoleUpdate(
+  rank: string | undefined,
+  rankRoles: readonly RankRole[],
+  memberRoleIds: ReadonlySet<string>
+): { add?: string; remove: string[] } {
+  const managed = new Set(rankRoles.map(r => r.roleId))
+  const target = rank ? rankRoles.find(r => r.rank.toLowerCase() === rank.toLowerCase())?.roleId : undefined
+  const remove = [...managed].filter(id => id !== target && memberRoleIds.has(id))
+  const add = target && !memberRoleIds.has(target) ? target : undefined
+  return { add, remove }
+}
+
+const bareUuid = (uuid: string) => uuid.replaceAll('-', '').toLowerCase()
+
+/** Give the member the Discord role mapped to their current in-game guild rank, removing any stale rank role. */
+export async function syncRankRole(ctx: AppContext, member: GuildMember, uuid: string): Promise<void> {
+  const { settings } = await loadVerifySettings(ctx.info)
+  if (settings.rankRoles.length === 0 || !ctx.env.hypixelApiKey) return
+
+  const result = await fetchGuild({ apiKey: ctx.env.hypixelApiKey, log: ctx.log }, { player: uuid })
+  if (!result.ok) {
+    ctx.log.warn('Rank-role sync skipped: guild lookup failed', { id: member.id, uuid })
+    return
+  }
+  const bare = bareUuid(uuid)
+  const rank = result.guild?.members.find(m => bareUuid(m.uuid) === bare)?.rank
+  const { add, remove } = rankRoleUpdate(rank, settings.rankRoles, new Set(member.roles.cache.keys()))
+  for (const id of remove) {
+    await member.roles.remove(id).catch(error => ctx.log.warn('Could not remove a rank role', { id: member.id, role: id, error: String(error) }))
+  }
+  if (add) {
+    await member.roles.add(add).catch(error => ctx.log.warn('Could not add a rank role', { id: member.id, role: add, error: String(error) }))
+  }
+}
+
+export async function applyVerifiedMember(ctx: AppContext, member: GuildMember, ign: string, uuid?: string): Promise<void> {
   const { settings } = await loadVerifySettings(ctx.info)
   if (settings.nicknameTemplate) {
     const nickname = renderNickname(settings.nicknameTemplate, { ign, discord: member.user.globalName ?? member.user.username })
@@ -108,6 +148,27 @@ export async function applyVerifiedMember(ctx: AppContext, member: GuildMember, 
   if (settings.roleId) {
     await member.roles.add(settings.roleId).catch(error => ctx.log.warn('Could not add the verified role', { id: member.id, error: String(error) }))
   }
+  if (uuid) await syncRankRole(ctx, member, uuid)
+}
+
+/**
+ * A guild promote/demote seen in-game: if that player is linked and the bot's server is known,
+ * re-sync their rank role to match their new guild rank. No-op when nothing is configured or they aren't linked.
+ */
+export async function handleRankChange(ctx: AppContext, ign: string): Promise<void> {
+  const { settings } = await loadVerifySettings(ctx.info)
+  const serverId = ctx.env.discordServerId
+  if (settings.rankRoles.length === 0 || !serverId || !ctx.env.hypixelApiKey) return
+  if (!MINECRAFT_NAME.test(ign)) return
+
+  const uuid = await getUUIDFromUsername(ign, ctx.log)
+  if (!uuid) return
+  const link = await ctx.repos.link.getByUuid(uuid)
+  if (!link) return
+
+  const guild = await ctx.discord.client.guilds.fetch(serverId).catch(() => null)
+  const member = guild ? await guild.members.fetch(link.id).catch(() => null) : null
+  if (member) await syncRankRole(ctx, member, uuid)
 }
 
 export async function removeVerifiedRole(ctx: AppContext, member: GuildMember | null | undefined): Promise<void> {
@@ -115,6 +176,12 @@ export async function removeVerifiedRole(ctx: AppContext, member: GuildMember | 
   const { settings } = await loadVerifySettings(ctx.info)
   if (settings.roleId && member.roles.cache.has(settings.roleId)) {
     await member.roles.remove(settings.roleId).catch(error => ctx.log.warn('Could not remove the verified role', { id: member.id, error: String(error) }))
+  }
+  // Strip any managed rank roles too: once unlinked, the bot no longer vouches for their rank.
+  for (const { roleId } of settings.rankRoles) {
+    if (member.roles.cache.has(roleId)) {
+      await member.roles.remove(roleId).catch(error => ctx.log.warn('Could not remove a rank role', { id: member.id, role: roleId, error: String(error) }))
+    }
   }
 }
 
@@ -129,5 +196,5 @@ export async function runVerify(interaction: ChatInputCommandInteraction, ctx: A
     ]
   })
   const member = await interaction.guild?.members.fetch(interaction.user.id).catch(() => null)
-  if (member) await applyVerifiedMember(ctx, member, result.ign)
+  if (member) await applyVerifiedMember(ctx, member, result.ign, result.uuid)
 }

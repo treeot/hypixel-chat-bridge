@@ -1,6 +1,35 @@
 import { describe, expect, it } from 'vitest'
-import { checkHypixelDiscord, discordTagFor, normalizeDiscordLink, renderNickname, storeLink } from '../src/app/features/verify'
+import { checkHypixelDiscord, discordTagFor, normalizeDiscordLink, rankRoleUpdate, renderNickname, storeLink } from '../src/app/features/verify'
 import type { LinkEntry } from '../src/storage/repos'
+
+describe('rankRoleUpdate', () => {
+  const roles = [
+    { rank: 'Staff', roleId: 'r-staff' },
+    { rank: 'VIP', roleId: 'r-vip' },
+    { rank: 'Member', roleId: 'r-member' }
+  ]
+
+  it('adds the role for the current rank when the member has none of them', () => {
+    expect(rankRoleUpdate('VIP', roles, new Set())).toEqual({ add: 'r-vip', remove: [] })
+  })
+
+  it('matches the rank case-insensitively', () => {
+    expect(rankRoleUpdate('staff', roles, new Set())).toEqual({ add: 'r-staff', remove: [] })
+  })
+
+  it('swaps a stale rank role for the new one, leaving unmanaged roles alone', () => {
+    expect(rankRoleUpdate('Staff', roles, new Set(['r-vip', 'some-other-role']))).toEqual({ add: 'r-staff', remove: ['r-vip'] })
+  })
+
+  it('does not re-add a role the member already has', () => {
+    expect(rankRoleUpdate('VIP', roles, new Set(['r-vip']))).toEqual({ add: undefined, remove: [] })
+  })
+
+  it('removes every managed role when the rank is unknown or unmapped', () => {
+    expect(rankRoleUpdate(undefined, roles, new Set(['r-vip', 'r-member']))).toEqual({ add: undefined, remove: ['r-vip', 'r-member'] })
+    expect(rankRoleUpdate('Guild Master', roles, new Set(['r-staff']))).toEqual({ add: undefined, remove: ['r-staff'] })
+  })
+})
 
 describe('discordTagFor', () => {
   it('uses the username for migrated accounts (discriminator "0") and name#1234 otherwise', () => {

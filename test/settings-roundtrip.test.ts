@@ -154,9 +154,12 @@ describe('/setup write → feature read', () => {
   it('verify doc round-trips', async () => {
     const { info } = memoryInfo()
     const store = new SettingsStore(info)
-    await store.write('verify', { roleId: ROLE, nicknameTemplate: '[G] {ign}' })
-    expect(await loadVerifySettings(info)).toEqual({ settings: { roleId: ROLE, nicknameTemplate: '[G] {ign}' }, problems: [] })
+    await store.write('verify', { roleId: ROLE, nicknameTemplate: '[G] {ign}', rankRoles: [{ rank: 'Staff', roleId: ROLE }] })
+    expect(await loadVerifySettings(info)).toEqual({
+      settings: { roleId: ROLE, nicknameTemplate: '[G] {ign}', rankRoles: [{ rank: 'Staff', roleId: ROLE }] },
+      problems: []
+    })
     await store.write('verify', {})
-    expect(await loadVerifySettings(info)).toEqual({ settings: {}, problems: [] })
+    expect(await loadVerifySettings(info)).toEqual({ settings: { rankRoles: [] }, problems: [] })
   })
 })
