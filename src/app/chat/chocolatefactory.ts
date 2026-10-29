@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
-import { targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['chocolatefactory', 'cf'] as const
 
@@ -14,7 +14,7 @@ const chocolatefactory: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'chocolate factory')
+    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'chocolate factory', chat)
     if (!resolved) return
     const { ign, selected } = resolved
 
@@ -27,10 +27,10 @@ const chocolatefactory: ChatCommand = {
     const employeeLines = Object.entries(employees).map(([name, level]) => `${name}: ${level}`)
 
     if (!Object.keys(easter).length) {
-      return ctx.minecraft.execute(`/gc ${ign} has no Chocolate Factory data.`)
+      return sayIn(ctx, chat, `${ign} has no Chocolate Factory data.`)
     }
 
-    ctx.minecraft.execute(`/gc ${ign} ➜ Choc ${addCommas(chocolate)} | All-time ${addCommas(allTimeChocolate)}`)
+    sayIn(ctx, chat, `${ign} ➜ Choc ${addCommas(chocolate)} | All-time ${addCommas(allTimeChocolate)}`)
 
     await ctx.discord.sendEmbed(
       chat,

@@ -1,5 +1,5 @@
 import type { ChatCommand } from '../context'
-import { targetIgn, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, matchesTriggers } from './_shared'
 
 const triggers = ['boo'] as const
 
@@ -12,9 +12,9 @@ const boo: ChatCommand = {
   description: 'Scares a player.',
   matches: message => matchesTriggers(message, triggers),
 
-  async execute(ctx, { message, username }) {
+  async execute(ctx, { chat, message, username }) {
     const target = targetIgn(message, username)
-    ctx.minecraft.execute(`/gc Boo! ${target}`, { priority: true })
+    sayIn(ctx, chat, `Boo! ${target}`, { priority: true })
   }
 }
 

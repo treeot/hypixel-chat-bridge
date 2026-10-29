@@ -1,7 +1,7 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
 import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
-import { targetIgn, resolveProfile, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolveProfile, matchesTriggers } from './_shared'
 
 const ESSENCE_TYPES: { key: string; label: string }[] = [
   { key: 'WITHER', label: 'Wither' },
@@ -26,7 +26,7 @@ const essence: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'essence')
+    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'essence', chat)
     if (!resolved) return
     const { ign, selected } = resolved
 
@@ -41,7 +41,7 @@ const essence: ChatCommand = {
 
     const parts = ESSENCE_TYPES.filter(({ key }) => amounts[key] > 0).map(({ key, label }) => `${label}: ${addCommas(amounts[key])}`)
 
-    ctx.minecraft.execute(`/gc ${ign} ➜ Essence ${parts.length > 0 ? parts.join(', ') : '(none)'}`)
+    sayIn(ctx, chat, `${ign} ➜ Essence ${parts.length > 0 ? parts.join(', ') : '(none)'}`)
 
     const fields = ESSENCE_TYPES.filter(({ key }) => amounts[key] > 0).map(({ key, label }) => ({ name: label, value: addCommas(amounts[key]), inline: true }))
 

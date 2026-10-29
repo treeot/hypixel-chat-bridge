@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
-import { resolveProfile, statEmbed, matchesTriggers } from './_shared'
+import { sayIn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['floor'] as const
 
@@ -15,22 +15,22 @@ const floor: ChatCommand = {
 
   async execute(ctx, { chat, message, username, rank }) {
     const args = message.slice(7).trim().split(/\s+/).filter(Boolean)
-    if (args.length === 0) return ctx.minecraft.execute(`/gc Usage: !floor <floor> [ign]`)
+    if (args.length === 0) return sayIn(ctx, chat, `Usage: !floor <floor> [ign]`)
 
     const floorArg = args[0].toLowerCase()
     const isMaster = floorArg.startsWith('m')
     const floorNumber = parseInt(floorArg.replace(/^m/, ''), 10)
-    if (Number.isNaN(floorNumber) || floorNumber < 0 || floorNumber > 7) return ctx.minecraft.execute(`/gc Invalid floor. Use 0-7 (or m1-m7 for Master Mode).`)
+    if (Number.isNaN(floorNumber) || floorNumber < 0 || floorNumber > 7) return sayIn(ctx, chat, `Invalid floor. Use 0-7 (or m1-m7 for Master Mode).`)
 
     const ignArg = args.length > 1 ? args.slice(1).join(' ') : username
 
-    const resolved = await resolveProfile(ctx, ignArg, 'floor stats')
+    const resolved = await resolveProfile(ctx, ignArg, 'floor stats', chat)
     if (!resolved) return
     const { ign, selected } = resolved
 
     const dungeonTypeKey = isMaster ? 'master_catacombs' : 'catacombs'
     const dungeonData = selected.member?.dungeons?.dungeon_types?.[dungeonTypeKey]
-    if (!dungeonData) return ctx.minecraft.execute(`/gc ${ign} has no ${isMaster ? 'Master Mode' : ''} dungeons data.`)
+    if (!dungeonData) return sayIn(ctx, chat, `${ign} has no ${isMaster ? 'Master Mode' : ''} dungeons data.`)
 
     const floorKey = String(floorNumber)
     const completions = dungeonData.tier_completions?.[floorKey] ?? 0
@@ -42,7 +42,7 @@ const floor: ChatCommand = {
     const bestTimeLabel =
       bestTimeMs !== undefined && Number.isFinite(bestTimeMs) ? `${Math.floor(bestTimeMs / 60000)}m${Math.floor((bestTimeMs % 60000) / 1000)}s` : 'N/A'
 
-    ctx.minecraft.execute(`/gc ${ign} ➜ ${floorLabel} ${addCommas(completions)} runs | Score ${bestScore ?? 'N/A'} | ${bestTimeLabel}`)
+    sayIn(ctx, chat, `${ign} ➜ ${floorLabel} ${addCommas(completions)} runs | Score ${bestScore ?? 'N/A'} | ${bestTimeLabel}`)
 
     await ctx.discord.sendEmbed(
       chat,

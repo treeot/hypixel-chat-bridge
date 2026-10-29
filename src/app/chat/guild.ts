@@ -1,5 +1,5 @@
 import type { ChatCommand } from '../context'
-import { matchesTriggers } from './_shared'
+import { sayIn, matchesTriggers } from './_shared'
 import { getGuild } from '../../services/gexp'
 import { FullEmbed, rankStyle } from '../../discord/format'
 import { hypixelKey } from '../requirements'
@@ -17,13 +17,13 @@ const guild: ChatCommand = {
 
   async execute(ctx, { chat, message, username, rank }) {
     const name = message.slice('!guild'.length).trim()
-    if (!name) return ctx.minecraft.execute('/gc Usage: !guild <guildName>', { priority: true })
+    if (!name) return sayIn(ctx, chat, 'Usage: !guild <guildName>', { priority: true })
 
     const result = await getGuild({ apiKey: hypixelKey(ctx.env), log: ctx.log }, { name })
-    if (!result) return ctx.minecraft.execute(`/gc Guild "${name}" not found.`, { priority: true })
+    if (!result) return sayIn(ctx, chat, `Guild "${name}" not found.`, { priority: true })
 
     const gm = result.members.find(m => m.rank.toLowerCase() === 'guild master')
-    ctx.minecraft.execute(`/gc ${result.name} | Members: ${result.members.length}${gm ? ` | GM: ${gm.uuid}` : ''}`, { priority: true })
+    sayIn(ctx, chat, `${result.name} | Members: ${result.members.length}${gm ? ` | GM: ${gm.uuid}` : ''}`, { priority: true })
 
     await ctx.discord.sendEmbed(
       chat,

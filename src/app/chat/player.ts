@@ -1,5 +1,5 @@
 import type { ChatCommand } from '../context'
-import { targetIgn, resolvePlayer, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolvePlayer, matchesTriggers } from './_shared'
 import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
 import { hypixelGet } from '../../services/hypixel'
 import { hypixelKey } from '../requirements'
@@ -29,20 +29,20 @@ const player: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank: senderRank }) {
-    const player = await resolvePlayer(ctx, targetIgn(message, username))
+    const player = await resolvePlayer(ctx, targetIgn(message, username), chat)
     if (!player) return
     const { uuid, ign } = player
 
     try {
       const { data } = await hypixelGet('/v2/player', hypixelKey(ctx.env), { uuid })
-      if (!data.success || !data.player) return ctx.minecraft.execute(`/gc ${ign} has never logged into Hypixel.`, { priority: true })
+      if (!data.success || !data.player) return sayIn(ctx, chat, `${ign} has never logged into Hypixel.`, { priority: true })
 
       const p = data.player
       const rank = resolveRank(p)
       const level = networkLevel(p.networkExp ?? 0)
       const firstLogin = p.firstLogin ? new Date(p.firstLogin).toLocaleDateString('en-US') : 'Unknown'
 
-      ctx.minecraft.execute(`/gc ${ign} | Rank: ${rank} | Level: ${level} | First login: ${firstLogin}`, { priority: true })
+      sayIn(ctx, chat, `${ign} | Rank: ${rank} | Level: ${level} | First login: ${firstLogin}`, { priority: true })
 
       await ctx.discord.sendEmbed(
         chat,
@@ -55,7 +55,7 @@ const player: ChatCommand = {
       )
     } catch (error) {
       ctx.log.error('Error fetching player from Hypixel API', error, { uuid })
-      ctx.minecraft.execute('/gc Error fetching player data.', { priority: true })
+      sayIn(ctx, chat, 'Error fetching player data.', { priority: true })
     }
   }
 }

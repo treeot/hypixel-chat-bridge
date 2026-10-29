@@ -1,6 +1,6 @@
 import nbt from 'prismarine-nbt'
 import type { ChatCommand } from '../context'
-import { targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['accessories', 'acc'] as const
 
@@ -15,12 +15,12 @@ const accessories: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'accessories')
+    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'accessories', chat)
     if (!resolved) return
     const { ign, uuid, selected } = resolved
 
     const talismanBag = selected.member?.inventory?.talisman_bag
-    if (!talismanBag?.data) return ctx.minecraft.execute(`/gc ${ign} has their Inventory API off or no talisman bag data.`)
+    if (!talismanBag?.data) return sayIn(ctx, chat, `${ign} has their Inventory API off or no talisman bag data.`)
 
     let accessoryIds: string[]
     try {
@@ -33,12 +33,12 @@ const accessories: ChatCommand = {
         .map((item: any) => item.tag.ExtraAttributes.id as string)
     } catch (error) {
       ctx.log.error('Error decoding talisman bag NBT', error, { uuid })
-      return ctx.minecraft.execute(`/gc Could not decode ${ign}'s accessory bag.`)
+      return sayIn(ctx, chat, `Could not decode ${ign}'s accessory bag.`)
     }
 
     const uniqueIds = [...new Set(accessoryIds)]
 
-    ctx.minecraft.execute(`/gc ${ign} ➜ Accessories ${accessoryIds.length} items (${uniqueIds.length} unique)`)
+    sayIn(ctx, chat, `${ign} ➜ Accessories ${accessoryIds.length} items (${uniqueIds.length} unique)`)
 
     await ctx.discord.sendEmbed(
       chat,

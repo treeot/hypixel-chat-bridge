@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
-import { targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['dojo'] as const
 
@@ -15,7 +15,7 @@ const dojo: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'dojo data')
+    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'dojo data', chat)
     if (!resolved) return
     const { ign, selected } = resolved
 
@@ -23,7 +23,7 @@ const dojo: ChatCommand = {
     const entries = Object.entries(dojoData).filter(([, value]) => typeof value === 'number' && value > 0)
     const totalPoints = entries.reduce((sum, [, value]) => sum + value, 0)
 
-    ctx.minecraft.execute(`/gc ${ign} ➜ Dojo Points ${addCommas(totalPoints)} | ${entries.length} exercises`)
+    sayIn(ctx, chat, `${ign} ➜ Dojo Points ${addCommas(totalPoints)} | ${entries.length} exercises`)
 
     const fields = entries
       .sort(([, a], [, b]) => b - a)

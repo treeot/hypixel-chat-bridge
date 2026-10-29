@@ -1,5 +1,5 @@
 import type { ChatCommand } from '../context'
-import { matchesTriggers } from './_shared'
+import { sayIn, matchesTriggers } from './_shared'
 
 const ANSWERS = [
   'It is certain.',
@@ -34,12 +34,12 @@ const eightball: ChatCommand = {
   description: 'Answers a question like a magic 8-ball.',
   matches: message => matchesTriggers(message, triggers),
 
-  async execute(ctx, { message, username }) {
+  async execute(ctx, { chat, message, username }) {
     const question = message.slice('!8ball'.length).trim()
-    if (!question) return ctx.minecraft.execute('/gc Ask a question!', { priority: true })
+    if (!question) return sayIn(ctx, chat, 'Ask a question!', { priority: true })
 
     const answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)]
-    ctx.minecraft.execute(`/gc ${username} 🎱 ${answer}`, { priority: true })
+    sayIn(ctx, chat, `${username} 🎱 ${answer}`, { priority: true })
   }
 }
 

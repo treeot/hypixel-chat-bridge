@@ -1,7 +1,7 @@
 import type { ChatCommand } from '../context'
 import { SKILL_NAMES, getSkillLevelInfo } from '../../services/skyblockLeveling'
 import { formatNumber } from '../../util/format'
-import { targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['skyblock', 'sb'] as const
 
@@ -15,7 +15,7 @@ const skyblock: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'skyblock summary')
+    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'skyblock summary', chat)
     if (!resolved) return
     const { ign, selected } = resolved
 
@@ -34,7 +34,7 @@ const skyblock: ChatCommand = {
     }
     const skillAverage = skillCount ? (overflowSum / skillCount).toFixed(2) : '0.00'
 
-    ctx.minecraft.execute(`/gc ${ign} ➜ SB ${skyblockLevel.toFixed(1)} | SA ${skillAverage}`)
+    sayIn(ctx, chat, `${ign} ➜ SB ${skyblockLevel.toFixed(1)} | SA ${skillAverage}`)
 
     await ctx.discord.sendEmbed(
       chat,

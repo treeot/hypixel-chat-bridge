@@ -1,5 +1,5 @@
 import type { ChatCommand } from '../context'
-import { targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['forge'] as const
 
@@ -13,7 +13,7 @@ const forge: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'forge')
+    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'forge', chat)
     if (!resolved) return
     const { ign, selected } = resolved
 
@@ -23,7 +23,7 @@ const forge: ChatCommand = {
       .filter(Boolean)
 
     if (!items.length) {
-      ctx.minecraft.execute(`/gc ${ign} ➜ Forge: No active items.`)
+      sayIn(ctx, chat, `${ign} ➜ Forge: No active items.`)
       return
     }
 
@@ -33,7 +33,7 @@ const forge: ChatCommand = {
       return `${item.id ?? 'Unknown'}: ${status}`
     })
 
-    ctx.minecraft.execute(`/gc ${ign} ➜ Forge ${lines.join(', ')}`)
+    sayIn(ctx, chat, `${ign} ➜ Forge ${lines.join(', ')}`)
 
     await ctx.discord.sendEmbed(chat, statEmbed(ign, 'forge', lines.join('\n'), rank, undefined, username))
   }

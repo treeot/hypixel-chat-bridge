@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
-import { targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
+import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['crimsonisle', 'ci'] as const
 
@@ -14,7 +14,7 @@ const crimsonisle: ChatCommand = {
   matches: message => matchesTriggers(message, triggers),
 
   async execute(ctx, { chat, message, username, rank }) {
-    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'crimson isle data')
+    const resolved = await resolveProfile(ctx, targetIgn(message, username), 'crimson isle data', chat)
     if (!resolved) return
     const { ign, selected } = resolved
 
@@ -23,7 +23,7 @@ const crimsonisle: ChatCommand = {
     const barbariansRep = netherData.barbarians_reputation ?? 0
     const faction = netherData.selected_faction ?? (magesRep > barbariansRep ? 'mages' : barbariansRep > 0 ? 'barbarians' : 'none')
 
-    ctx.minecraft.execute(`/gc ${ign} ➜ ${faction} | Mages ${addCommas(magesRep)} | Barb ${addCommas(barbariansRep)}`)
+    sayIn(ctx, chat, `${ign} ➜ ${faction} | Mages ${addCommas(magesRep)} | Barb ${addCommas(barbariansRep)}`)
 
     await ctx.discord.sendEmbed(
       chat,

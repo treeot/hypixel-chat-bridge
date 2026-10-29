@@ -1,5 +1,5 @@
 import type { ChatCommand } from '../context'
-import { matchesTriggers } from './_shared'
+import { sayIn, matchesTriggers } from './_shared'
 import { FullEmbed, rankStyle } from '../../discord/format'
 import { hypixelGet } from '../../services/hypixel'
 import { hypixelKey } from '../requirements'
@@ -22,15 +22,15 @@ const mayor: ChatCommand = {
       election = response.data
     } catch (error) {
       ctx.log.error('Error fetching election data from Hypixel API', error)
-      return ctx.minecraft.execute(`/gc Cannot fetch the current mayor right now.`)
+      return sayIn(ctx, chat, `Cannot fetch the current mayor right now.`)
     }
 
     const currentMayor = election?.mayor
-    if (!currentMayor) return ctx.minecraft.execute(`/gc No mayor data available.`)
+    if (!currentMayor) return sayIn(ctx, chat, `No mayor data available.`)
 
     const perks: string[] = (currentMayor.perks ?? []).map((perk: any) => perk.name)
 
-    ctx.minecraft.execute(`/gc Current mayor: ${currentMayor.name} ➜ Perks: ${perks.join(', ') || 'None'}`)
+    sayIn(ctx, chat, `Current mayor: ${currentMayor.name} ➜ Perks: ${perks.join(', ') || 'None'}`)
 
     await ctx.discord.sendEmbed(
       chat,
