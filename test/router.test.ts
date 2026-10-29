@@ -124,16 +124,25 @@ describe('Router: Minecraft → Discord and relay-group peers', () => {
     expect(log.error).toHaveBeenCalled()
   })
 
-  it('drops a duplicate of the same line within 10 s, but not after', async () => {
+  it('drops a cross-bot duplicate of the same line within 10 s, but not after', async () => {
     const a = acct(1, 'GA', 'ca', { relayGroup: 'main' })
     const b = acct(2, 'GB', 'cb', { relayGroup: 'main' })
     const { router, posts, advance } = setup([a, b])
     await router.onMinecraftChat(1, line())
-    await router.onMinecraftChat(1, line({ message: '  HELLO ' }))
-    expect(b.sent).toHaveLength(1)
+    // Same content seen by a *different* bot in the group within the TTL: the echo is dropped.
+    await router.onMinecraftChat(2, line({ message: '  HELLO ' }))
     expect(posts).toHaveLength(2)
     advance(10_001)
+    await router.onMinecraftChat(2, line())
+    expect(posts.length).toBeGreaterThan(2)
+  })
+
+  it('does not drop the same bot repeating identical text (a user typing it twice)', async () => {
+    const a = acct(1, 'GA', 'ca', { relayGroup: 'main' })
+    const b = acct(2, 'GB', 'cb', { relayGroup: 'main' })
+    const { router } = setup([a, b])
     await router.onMinecraftChat(1, line())
+    await router.onMinecraftChat(1, line({ message: '  HELLO ' }))
     expect(b.sent).toHaveLength(2)
   })
 
@@ -270,6 +279,13 @@ describe('DedupCache', () => {
     t = 5_000
     d.seen('fresh')
     expect(d.size).toBe(1)
+  })
+
+  it('with an owner, only a different owner within the TTL is a duplicate', () => {
+    const d = new DedupCache(1_000, () => 0)
+    expect(d.seen('k', 'acct-1')).toBe(false) // first sighting
+    expect(d.seen('k', 'acct-1')).toBe(false) // same owner repeating -> not a duplicate
+    expect(d.seen('k', 'acct-2')).toBe(true) // different owner echo -> duplicate
   })
 })
 

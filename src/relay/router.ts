@@ -60,7 +60,7 @@ export class Router {
     if (await this.intercepted(accountId, payload)) return
 
     const group = source.config.relayGroup
-    if (group && this.dedup.seen(dedupKey(group, payload.chat, payload.username, payload.message))) {
+    if (group && this.dedup.seen(dedupKey(group, payload.chat, payload.username, payload.message), String(accountId))) {
       this.log.debug('Dropped duplicate relay line', { accountId })
       return
     }
@@ -90,7 +90,9 @@ export class Router {
       relayedGroups.add(group)
       await this.fanOut(owner, { chat: msg.chat, username: msg.author, message: msg.content }, [msg.channelId], ownerIds)
     }
-    return results.find(r => !r.ok) ?? results.find(r => r.truncated) ?? results[0]
+    // Prefer a success when any owner delivered the line (so the Discord reaction isn't a false ❌);
+    // surface truncation if a delivered copy was truncated; only report failure when every owner failed.
+    return results.find(r => r.ok && r.truncated) ?? results.find(r => r.ok) ?? results.find(r => !r.ok) ?? results[0]
   }
 
   /**
