@@ -3,7 +3,8 @@ import type { Logger } from '../core/logger'
 
 // No `g` flag: these are only ever used with `.test()`, and a stateful global
 // regex would silently skip matches across repeated calls (`lastIndex` leak).
-const UUID_REGEX = /([0-9a-f]{8})(?:-|)([0-9a-f]{4})(?:-|)(4[0-9a-f]{3})(?:-|)([89ab][0-9a-f]{3})(?:-|)([0-9a-f]{12})/im
+// Anchored so a valid uuid can't pass validation merely as a substring of a larger string.
+const UUID_REGEX = /^([0-9a-f]{8})(?:-|)([0-9a-f]{4})(?:-|)(4[0-9a-f]{3})(?:-|)([89ab][0-9a-f]{3})(?:-|)([0-9a-f]{12})$/i
 const MOJANG_TIMEOUT_MS = 8_000
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{2,16}$/
 
@@ -26,7 +27,9 @@ export async function getUsernameFromUUID(uuid: string, log?: Logger): Promise<s
   if (!UUID_REGEX.test(`${uuid}`)) return undefined
 
   try {
-    const response = await retryRequest(() => axios.get(`https://sessionserver.mojang.com/session/minecraft/profile/${uuid}`))
+    const response = await retryRequest(() =>
+      axios.get(`https://sessionserver.mojang.com/session/minecraft/profile/${uuid}`, { timeout: MOJANG_TIMEOUT_MS })
+    )
     return response.data.name
   } catch (error) {
     log?.error('Error fetching username from Mojang API', error, { uuid })

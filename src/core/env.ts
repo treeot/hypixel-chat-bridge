@@ -121,7 +121,10 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): Env {
     )
   }
   const restToken = optional('REST_API_TOKEN', z.string().min(16, 'must be at least 16 characters'))
-  const restPort = optional('REST_API_PORT', z.string().regex(/^\d+$/, 'must be a port number'))
+  const restPort = optional(
+    'REST_API_PORT',
+    z.string().refine(v => /^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 65535, 'must be a port number between 1 and 65535')
+  )
   const dashboardApi = optional('DASHBOARD_API', z.enum(['true', 'false'], { message: 'must be true or false' })) === 'true'
   const logLevel = optional('LOG_LEVEL', z.enum(['debug', 'info', 'warn', 'error'])) as Env['logLevel'] | undefined
 
