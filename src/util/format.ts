@@ -1,17 +1,18 @@
 export function formatNumber(value: number): string {
   const suffixes = ['', 'K', 'M', 'B', 'T']
+  const sign = value < 0 ? '-' : ''
   let number = Math.abs(value)
   let index = 0
 
   if (number === 0) return '0'
-  if (number < 0.01) return '< 0.01'
+  if (number < 0.01) return `${sign}< 0.01`
 
   while (number >= 1000 && index < suffixes.length - 1) {
     number /= 1000
     index++
   }
 
-  return number.toFixed(2) + suffixes[index]
+  return sign + number.toFixed(2) + suffixes[index]
 }
 
 export function addCommas(value: number): string {

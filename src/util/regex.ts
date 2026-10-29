@@ -17,7 +17,7 @@ const noPermissionMessages = [
 
 function noPermission(interaction: CommandInteraction): ChatTrigger {
   return {
-    exp: RegExp(`^${noPermissionMessages.map(msg => msg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}`),
+    exp: RegExp(`^(?:${noPermissionMessages.map(msg => msg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`),
     exec: () => interaction.editReply({ embeds: [SimpleEmbed('failure', `I don't have permission to run that command`)] })
   }
 }
