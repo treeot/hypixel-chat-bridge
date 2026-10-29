@@ -43,6 +43,9 @@ export interface SlashCommand extends ChatInputApplicationCommandData {
   autocomplete?(interaction: AutocompleteInteraction, ctx: AppContext): Promise<unknown>
 }
 
+/** Groups a command under a `/help` section. Defaults to 'stats' when unset. */
+export type ChatCommandCategory = 'stats' | 'guild' | 'fun'
+
 export interface ChatCommand {
   name: string
   toggle?: string
@@ -50,6 +53,10 @@ export interface ChatCommand {
   triggers: readonly string[]
   usage: string
   description: string
+  /** Which `/help` section this command appears under. Defaults to 'stats'. */
+  category?: ChatCommandCategory
+  /** Set false to hide from `/help` (e.g. moderation-only commands). Defaults to shown. */
+  displayHelp?: boolean
   matches(message: string): boolean
   execute(ctx: AppContext, msg: { chat: Chat; username: string; rank?: string; message: string }): Promise<unknown>
 }

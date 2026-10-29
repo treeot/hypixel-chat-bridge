@@ -1,8 +1,26 @@
 import { APIEmbed, APIEmbedField, inlineCode } from 'discord.js'
-import type { SlashCommand } from '../../context'
+import type { ChatCommandCategory, SlashCommand } from '../../context'
 import { visibleCommands } from '../../commands'
+import { chatCommands } from '../../chat'
 import { isStaff } from '../../permissions'
-import { version } from '../../../../package.json'
+import { PROJECT_VERSION } from '../../../discord/brand'
+
+/** /help's Minecraft sections, generated from the live command list so they never drift. */
+const MINECRAFT_SECTIONS: { category: ChatCommandCategory; title: string }[] = [
+  { category: 'stats', title: 'Minecraft — SkyBlock Stats' },
+  { category: 'guild', title: 'Minecraft — Guild & Utility' },
+  { category: 'fun', title: 'Minecraft — Fun' }
+]
+
+function minecraftLines(category: ChatCommandCategory): string[] {
+  return chatCommands
+    .filter(command => command.displayHelp !== false && (command.category ?? 'stats') === category)
+    .map(command => {
+      // Only show a usage hint when it carries a required <arg>; optional [ign] stays implicit.
+      const args = /</.test(command.usage) ? ` ${command.usage}` : ''
+      return `${inlineCode(`!${command.triggers[0]}`)}${args}: ${command.description}`
+    })
+}
 
 const FIELD_VALUE_LIMIT = 1024
 
@@ -48,43 +66,7 @@ const help: SlashCommand = {
       author: { name: 'Bridge Help', icon_url: interaction.client.user?.avatarURL() ?? undefined },
       fields: [
         ...chunkField('Discord Commands', discordCommandLines.length ? discordCommandLines : ['None found!']),
-        ...chunkField('Minecraft — SkyBlock Stats', [
-          `${inlineCode('!nw')}: SkyBlock networth`,
-          `${inlineCode('!skyblock')}: SB level, coins & skill average`,
-          `${inlineCode('!skills')}: Skill levels`,
-          `${inlineCode('!slayer')}: Slayer levels & XP`,
-          `${inlineCode('!catacombs')}: Catacombs level & runs`,
-          `${inlineCode('!floor')} <floor>: Floor completions & best score`,
-          `${inlineCode('!kuudra')}: Kuudra run counts`,
-          `${inlineCode('!dojo')}: Dojo points`,
-          `${inlineCode('!crimsonisle')}: Faction & reputation`,
-          `${inlineCode('!essence')}: Essence amounts`,
-          `${inlineCode('!hotm')}: Heart of the Mountain`,
-          `${inlineCode('!powder')}: Mithril & gemstone powder`,
-          `${inlineCode('!forge')}: Active forge items`,
-          `${inlineCode('!garden')}: Garden level & crops`,
-          `${inlineCode('!jacob')}: Jacob contest medals`,
-          `${inlineCode('!fairysouls')}: Fairy souls collected`,
-          `${inlineCode('!trophyfish')}: Trophy fish caught`,
-          `${inlineCode('!chocolatefactory')}: Chocolate Factory stats`,
-          `${inlineCode('!bestiary')}: Bestiary progress`,
-          `${inlineCode('!accessories')}: Magical power & talismans`,
-          `${inlineCode('!rtca')}: M7s needed until Catacombs 50`
-        ]),
-        ...chunkField('Minecraft — Guild & Utility', [
-          `${inlineCode('!guildexp')}: A player's guild EXP`,
-          `${inlineCode('!mayor')}: Current SkyBlock mayor`,
-          `${inlineCode('!specialmayor')}: Next special mayor`,
-          `${inlineCode('!guild')}: This guild's info`,
-          `${inlineCode('!guildof')} <player>: A player's guild`,
-          `${inlineCode('!player')} <player>: Hypixel player info`
-        ]),
-        ...chunkField('Minecraft — Fun', [
-          `${inlineCode('!8ball')}: Ask the magic 8-ball`,
-          `${inlineCode('!coinflip')}: Flip a coin`,
-          `${inlineCode('!calculate')} <expr>: Quick math`,
-          `${inlineCode('!boo')} / ${inlineCode('!boop')} / ${inlineCode('!meow')}: For fun`
-        ]),
+        ...MINECRAFT_SECTIONS.flatMap(section => chunkField(section.title, minecraftLines(section.category))),
         {
           name: 'Emojis (Reactions)',
           value: [
@@ -105,7 +87,7 @@ const help: SlashCommand = {
             ...(account.officerChannelId ? [`Officer Channel: <#${account.officerChannelId}>`] : []),
             ...(ctx.env.staffRoleId ? [`Staff Role: <@&${ctx.env.staffRoleId}>`] : []),
             ...(ctx.env.adminRoleId ? [`Admin Role: <@&${ctx.env.adminRoleId}>`] : []),
-            `Version: ${inlineCode(version)}`
+            `Version: ${inlineCode(PROJECT_VERSION)}`
           ].join('\n')
         }
       ],
