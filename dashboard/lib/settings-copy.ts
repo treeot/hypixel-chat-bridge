@@ -25,7 +25,7 @@ export const AREA_DESCRIPTIONS: Partial<Record<AreaId, string>> = {
   joinRequests: 'Requirements applicants must meet, and what happens when they do or don’t.',
   gexp: 'Weekly guild experience tracking and the minimum members should earn.',
   filters: 'What the bot won’t say in game: these filters check every message it sends there.',
-  verify: 'The role and nickname given to members who link their Minecraft account.',
+  verify: 'The roles and nickname given to members who link their Minecraft account.',
   guildlb: 'Checks against the shared GuildLB alliance list.',
   features: 'Turn whole features and commands on or off. Switches save as soon as you flip them.',
   branding: 'The name, logo, colour and login text shown on this dashboard.'
@@ -212,7 +212,14 @@ export const SETTINGS_COPY: Partial<Record<AreaId, Record<string, FieldCopy>>> =
       label: 'Nickname template (optional)',
       help: "{ign} becomes the player's Minecraft name. Discord limits nicknames to 32 characters.",
       placeholder: '{ign} | Guild'
-    }
+    },
+    rankRoles: {
+      label: 'Rank roles (optional)',
+      help: "Give a verified member the Discord role that matches their current guild rank, on top of the verified role."
+    },
+    'rankRoles.*': { label: 'Rank role' },
+    'rankRoles.*.rank': { label: 'Guild rank', help: 'Rank name exactly as in /g list, e.g. Officer.', placeholder: 'e.g. Officer' },
+    'rankRoles.*.roleId': { label: 'Discord role', help: 'Role given to members who hold this guild rank.' }
   },
   guildlb: {
     syncBlacklist: {
