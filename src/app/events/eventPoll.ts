@@ -16,9 +16,8 @@ export interface EventPollDeps {
 function kindFor(from: string | undefined, to: string): EventTransitionKind | undefined {
   if (from === to) return undefined
   if (to === 'active') return 'live'
-  // An event first seen already over was never announced as live, so ending it is not news.
-  if (from === undefined) return undefined
-  if (to === 'finalized') return 'ended'
+  // Ending is only news for an event the bot saw go live; first-seen or never-active events stay silent.
+  if (to === 'finalized' && from === 'active') return 'ended'
   if (to === 'cancelled' && from === 'active') return 'cancelled'
   return undefined
 }

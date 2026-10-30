@@ -55,6 +55,13 @@ describe('pollEvents', () => {
     expect((await deps.state.get('g', 'x'))?.lastStatus).toBe(from)
   })
 
+  it.each(['draft', 'pending'])('%s -> finalized yields nothing', async from => {
+    const { box, deps } = setup([ev('x', from)])
+    await pollEvents('g', deps)
+    box.value = [ev('x', 'finalized')]
+    expect(await pollEvents('g', deps)).toEqual([])
+  })
+
   it.each(['declined', 'expired'])('pending -> %s yields nothing', async to => {
     const { box, deps } = setup([ev('x', 'pending')])
     await pollEvents('g', deps)
