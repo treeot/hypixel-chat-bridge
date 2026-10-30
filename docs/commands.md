@@ -21,6 +21,7 @@ Permissions: **Everyone**; **Staff** = members with `STAFF_ROLE_ID` (owner-only 
 | `/blacklist list` | Staff | List the users in the blacklist |
 | `/blacklist remove <username> [alliance]` | Staff | Remove a user from the blacklist |
 | `/demote <username>` † | Staff | Demotes the given user by one guild rank |
+| `/event` | Everyone | Shows the guild's active event leaderboard |
 | `/execute <command>` † | Owner | Executes the given command as the minecraft bot |
 | `/force-unverify <user>` | Staff | Remove another Discord user's link. (Staff only) |
 | `/force-verify <user> <username>` | Staff | Link another Discord user to a Minecraft account. (Staff only) |
@@ -68,6 +69,7 @@ Replies go out through the account that saw the command, and pass the ban-safety
 | `!crimsonisle [ign]` | `!ci` | `crimsonisle` | Shows a player's Crimson Isle faction reputation. |
 | `!dojo [ign]` | — | `dojo` | Shows a player's Dojo points per exercise. |
 | `!essence [ign]` | — | `essence` | Shows a player's essence of every type. |
+| `!event` | — | `event` | Shows the guild's active event leaderboard. |
 | `!fairysouls [ign]` | `!fs` | `fairysouls` | Shows how many fairy souls a player has found. |
 | `!floor <floor> [ign]` | — | `floor` | Shows completions, best score and best time for one Catacombs floor (e.g. 7 or m7). |
 | `!forge [ign]` | — | `forge` | Shows a player's active Forge items. |
