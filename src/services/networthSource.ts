@@ -17,7 +17,11 @@ export interface NetworthDeps {
   log: Logger
 }
 
-export type SacksAnswer = { source: 'local'; value: number; profileName: string } | { source: 'local-no-profiles' } | { source: 'error' }
+export interface SackItem {
+  name: string
+  price: number
+}
+export type SacksAnswer = { source: 'local'; value: number; profileName: string; items: SackItem[] } | { source: 'local-no-profiles' } | { source: 'error' }
 
 /** Sacks value comes only from the live SkyBlock calculation; GuildLB stores just the total networth. */
 export async function resolveSacks(deps: NetworthDeps, player: { uuid: string; ign: string }): Promise<SacksAnswer> {
@@ -26,7 +30,12 @@ export async function resolveSacks(deps: NetworthDeps, player: { uuid: string; i
   try {
     const result = await getPlayerNetworth(deps.hypixelApiKey, player.uuid)
     if (!result) return { source: 'local-no-profiles' }
-    return { source: 'local', value: result.networth.types?.sacks?.total ?? 0, profileName: result.profileName }
+    const sacks = result.networth.types?.sacks
+    const items: SackItem[] = (sacks?.items ?? [])
+      .map((item: SackItem) => ({ name: item.name, price: item.price }))
+      .filter(item => item.price > 0)
+      .sort((a: SackItem, b: SackItem) => b.price - a.price)
+    return { source: 'local', value: sacks?.total ?? 0, profileName: result.profileName, items }
   } catch (error) {
     deps.log.warn('Live sacks lookup failed', { ign: player.ign, error: String(error) })
     return { source: 'error' }

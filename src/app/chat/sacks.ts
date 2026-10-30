@@ -24,13 +24,19 @@ const sacks: ChatCommand = {
     if (answer.source === 'error') return sayIn(ctx, chat, 'Sacks value unavailable right now; try again later.')
     if (answer.source === 'local-no-profiles') return sayIn(ctx, chat, `${ign} has no profiles.`)
 
+    // In-game chat stays a terse one-liner; the dedicated Discord channel gets the full breakdown.
     sayIn(ctx, chat, `${ign} ➜ Sacks: $${formatNumber(answer.value)}`)
+
+    const top = answer.items.slice(0, 15)
+    const lines = top.map(item => `**${item.name}** — $${formatNumber(item.price)}`)
+    const extra = answer.items.length - top.length
+    if (extra > 0) lines.push(`…and ${extra} more`)
 
     await ctx.discord.sendEmbed(
       chat,
       FullEmbed('message', {
         author: { url: `https://sky.shiiyu.moe/stats/${ign}`, name: `${ign}'s sacks`, icon_url: `${headUrl(ign)}` },
-        description: `➣ $${formatNumber(answer.value)}`,
+        description: `➣ Total: $${formatNumber(answer.value)}${lines.length ? `\n\n${lines.join('\n')}` : ''}`,
         footer: { text: `${username} • ${rankStyle(rank).label}` },
         timestamp: new Date().toISOString()
       })

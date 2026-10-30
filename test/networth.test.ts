@@ -37,14 +37,36 @@ beforeEach(() => {
 })
 
 describe('resolveSacks', () => {
-  it('returns the sacks category total from the live calculation', async () => {
-    local.mockResolvedValue({ profileName: 'Apple', networth: { types: { sacks: { total: 4.2e8 } } } } as never)
-    expect(await resolveSacks({ hypixelApiKey: 'hk', log: fakeLog() }, player)).toEqual({ source: 'local', value: 4.2e8, profileName: 'Apple' })
+  it('returns the sacks total and items sorted by price, dropping zero-value entries', async () => {
+    local.mockResolvedValue({
+      profileName: 'Apple',
+      networth: {
+        types: {
+          sacks: {
+            total: 4.2e8,
+            items: [
+              { name: 'Enchanted Diamond', price: 1e8 },
+              { name: 'Rotten Flesh', price: 0 },
+              { name: 'Enchanted Gold', price: 3e8 }
+            ]
+          }
+        }
+      }
+    } as never)
+    expect(await resolveSacks({ hypixelApiKey: 'hk', log: fakeLog() }, player)).toEqual({
+      source: 'local',
+      value: 4.2e8,
+      profileName: 'Apple',
+      items: [
+        { name: 'Enchanted Gold', price: 3e8 },
+        { name: 'Enchanted Diamond', price: 1e8 }
+      ]
+    })
   })
 
-  it('treats a missing sacks category as zero', async () => {
+  it('treats a missing sacks category as zero with no items', async () => {
     local.mockResolvedValue({ profileName: 'Apple', networth: { types: {} } } as never)
-    expect(await resolveSacks({ hypixelApiKey: 'hk', log: fakeLog() }, player)).toMatchObject({ source: 'local', value: 0 })
+    expect(await resolveSacks({ hypixelApiKey: 'hk', log: fakeLog() }, player)).toEqual({ source: 'local', value: 0, profileName: 'Apple', items: [] })
   })
 
   it('reports no profiles and errors without crashing', async () => {
