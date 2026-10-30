@@ -14,10 +14,36 @@ export function profileLinks(ign: string): APIActionRowComponent<APIButtonCompon
           label: 'GuildLB',
           url: `https://guildlb.com/player/${ign}?utm_source=hypixel-chat-bridge&utm_medium=discord`
         },
-        { type: ComponentType.Button, style: ButtonStyle.Link, label: 'SkyCrypt', url: `https://sky.shiiyu.moe/stats/${ign}` }
+        { type: ComponentType.Button, style: ButtonStyle.Link, url: `https://sky.shiiyu.moe/stats/${ign}`, label: 'SkyCrypt' }
       ]
     }
   ]
+}
+
+/** A GuildLB link button for a guild page (spaces URL-encoded). Empty for a blank name. */
+export function guildLinkButton(guildName: string, label = 'GuildLB'): APIButtonComponent | undefined {
+  const name = guildName.trim()
+  if (!name) return undefined
+  return {
+    type: ComponentType.Button,
+    style: ButtonStyle.Link,
+    label,
+    url: `https://guildlb.com/guild/${encodeURIComponent(name)}?utm_source=hypixel-chat-bridge&utm_medium=discord`
+  }
+}
+
+/** One action row linking to a guild's GuildLB page. Empty for a blank name. */
+export function guildLinks(guildName: string): APIActionRowComponent<APIButtonComponent>[] {
+  const button = guildLinkButton(guildName)
+  return button ? [{ type: ComponentType.ActionRow, components: [button] }] : []
+}
+
+/** Player buttons (GuildLB + SkyCrypt) plus a "Guild" button for the player's guild, in one row. */
+export function profileAndGuildLinks(ign: string, guildName: string): APIActionRowComponent<APIButtonComponent>[] {
+  const rows = profileLinks(ign)
+  const guildButton = guildLinkButton(guildName, 'Guild')
+  if (rows.length && guildButton) rows[0].components = [...rows[0].components, guildButton]
+  return rows
 }
 
 export const Colours: Record<Tone | 'message', number> = {

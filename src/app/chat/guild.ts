@@ -1,7 +1,7 @@
 import type { ChatCommand } from '../context'
 import { sayIn, matchesTriggers } from './_shared'
 import { getGuild } from '../../services/gexp'
-import { FullEmbed, rankStyle } from '../../discord/format'
+import { FullEmbed, guildLinks, rankStyle } from '../../discord/format'
 import { hypixelKey } from '../requirements'
 
 const triggers = ['guild'] as const
@@ -32,7 +32,8 @@ const guild: ChatCommand = {
         description: `**Members:** ${result.members.length}${gm ? `\n**GM:** ${gm.uuid}` : ''}`,
         footer: { text: `${username} • ${rankStyle(rank).label}` },
         timestamp: new Date().toISOString()
-      })
+      }),
+      guildLinks(result.name)
     )
   }
 }
