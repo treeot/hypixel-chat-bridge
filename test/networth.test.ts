@@ -8,7 +8,7 @@ vi.mock('../src/services/mojang', () => ({
 
 import { getPlayerNetworth } from '../src/services/networth'
 import { getUUIDFromUsername } from '../src/services/mojang'
-import { resolveNetworth } from '../src/services/networthSource'
+import { resolveNetworth, resolveSacks } from '../src/services/networthSource'
 import { GuildLbError } from '../src/services/guildlb'
 import networth from '../src/app/chat/networth'
 import type { AppContext } from '../src/app/context'
@@ -34,6 +34,26 @@ function glb(answer: unknown | Error) {
 beforeEach(() => {
   local.mockReset()
   vi.mocked(getUUIDFromUsername).mockClear()
+})
+
+describe('resolveSacks', () => {
+  it('returns the sacks category total from the live calculation', async () => {
+    local.mockResolvedValue({ profileName: 'Apple', networth: { types: { sacks: { total: 4.2e8 } } } } as never)
+    expect(await resolveSacks({ hypixelApiKey: 'hk', log: fakeLog() }, player)).toEqual({ source: 'local', value: 4.2e8, profileName: 'Apple' })
+  })
+
+  it('treats a missing sacks category as zero', async () => {
+    local.mockResolvedValue({ profileName: 'Apple', networth: { types: {} } } as never)
+    expect(await resolveSacks({ hypixelApiKey: 'hk', log: fakeLog() }, player)).toMatchObject({ source: 'local', value: 0 })
+  })
+
+  it('reports no profiles and errors without crashing', async () => {
+    local.mockResolvedValue(undefined as never)
+    expect(await resolveSacks({ hypixelApiKey: 'hk', log: fakeLog() }, player)).toEqual({ source: 'local-no-profiles' })
+    local.mockRejectedValue(new Error('boom'))
+    expect(await resolveSacks({ hypixelApiKey: 'hk', log: fakeLog() }, player)).toEqual({ source: 'error' })
+    expect(await resolveSacks({ hypixelApiKey: undefined, log: fakeLog() }, player)).toEqual({ source: 'error' })
+  })
 })
 
 describe('resolveNetworth source order', () => {

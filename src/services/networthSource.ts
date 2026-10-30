@@ -17,6 +17,22 @@ export interface NetworthDeps {
   log: Logger
 }
 
+export type SacksAnswer = { source: 'local'; value: number; profileName: string } | { source: 'local-no-profiles' } | { source: 'error' }
+
+/** Sacks value comes only from the live SkyBlock calculation; GuildLB stores just the total networth. */
+export async function resolveSacks(deps: NetworthDeps, player: { uuid: string; ign: string }): Promise<SacksAnswer> {
+  if (!deps.hypixelApiKey) return { source: 'error' }
+  const { getPlayerNetworth } = await import('./networth')
+  try {
+    const result = await getPlayerNetworth(deps.hypixelApiKey, player.uuid)
+    if (!result) return { source: 'local-no-profiles' }
+    return { source: 'local', value: result.networth.types?.sacks?.total ?? 0, profileName: result.profileName }
+  } catch (error) {
+    deps.log.warn('Live sacks lookup failed', { ign: player.ign, error: String(error) })
+    return { source: 'error' }
+  }
+}
+
 export async function resolveNetworth(deps: NetworthDeps, player: { uuid: string; ign: string }): Promise<NetworthAnswer> {
   if (deps.hypixelApiKey) {
     const { getPlayerNetworth } = await import('./networth')

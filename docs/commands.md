@@ -89,6 +89,7 @@ Replies go out through the account that saw the command, and pass the ban-safety
 | `!player <ign>` | — | `player` | Shows a player's Hypixel rank, network level and first login. |
 | `!powder [ign]` | — | `powder` | Shows a player's mithril, gemstone and glacite powder. |
 | `!rtca [ign]` | — | `rtca` | Shows the Master Mode 7 runs a player needs to reach class average 50. |
+| `!sacks [ign]` | — | `sacks` | Shows the value of a player's sacks. |
 | `!scammer <player>` | — | `scammer` | Checks a player against SkyBlockZ and the GuildLB alliance scammer entries. |
 | `!skills [ign]` | — | `skills` | Shows a player's skill levels. |
 | `!skyblock [ign]` | `!sb` | `skyblock` | Shows a player's SkyBlock level, purse plus bank, and skill average. |

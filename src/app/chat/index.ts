@@ -4,6 +4,7 @@ import rtca from './rtca'
 import slayer from './slayer'
 import powder from './powder'
 import skills from './skills'
+import sacks from './sacks'
 import scammer from './scammer'
 import { dungeonStatCommands } from './_dungeonStats'
 import { farmingStatCommands } from './_farmingStats'
@@ -36,6 +37,7 @@ export const chatCommands: ChatCommand[] = [
   slayer,
   powder,
   skills,
+  sacks,
   scammer,
   ...dungeonStatCommands,
   ...farmingStatCommands,
