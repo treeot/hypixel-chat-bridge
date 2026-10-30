@@ -1,4 +1,5 @@
 import type { Logger } from '../core/logger'
+import type { EventStanding, EventSummary } from './guildlbEvents'
 import { RateLimitWaitError, SlidingWindowLimiter, TtlCache, realClock, type Clock } from '../util/rateLimit'
 
 /** Keys only go in the Authorization header, never in URLs, logs or errors; never a live Hypixel fetch through GuildLB. */
@@ -184,6 +185,19 @@ export class GuildLbClient {
     const result = this.tracked(await this.request<StoredNetworth>('website', 'GET', `/api/player/${seg(nameOrUuid)}/networth`), 'networth')
     if (result.status === 'ok') this.networths.set(key, result.data)
     return result
+  }
+
+  async listEvents(guild: string): Promise<EventSummary[]> {
+    const out = await this.request<EventSummary[]>('website', 'GET', `/api/events?guild=${encodeURIComponent(guild.trim())}`)
+    if (!out.ok) throw this.toError(out)
+    if (!Array.isArray(out.data)) throw new GuildLbError(out.status, 'BAD_RESPONSE', 'GuildLB returned an unexpected event list')
+    return out.data
+  }
+
+  async getEvent(id: string): Promise<EventStanding> {
+    const out = await this.request<EventStanding>('website', 'GET', `/api/events/${seg(id)}`)
+    if (!out.ok) throw this.toError(out)
+    return this.object(out, 'event standing')
   }
 
   async checkBlacklist(player: string): Promise<BlacklistCheck> {
