@@ -134,7 +134,7 @@ describe('!nw', () => {
     const { c, execute, sendEmbed } = ctx({}, glb({ status: 'ok', data: stored }))
     await networth.execute(c, msg('!nw Steve'))
     expect(execute).toHaveBeenCalledWith('/gc Steve ➜ NW: $1.50B (GuildLB, as of 2026-10-04 13:05 UTC)')
-    expect(sendEmbed).toHaveBeenCalledWith('guild', expect.objectContaining({ description: '➣ 1.50B' }))
+    expect(sendEmbed).toHaveBeenCalledWith('guild', expect.objectContaining({ description: '➣ 1.50B' }), expect.anything())
   })
   it('says the player is queued when GuildLB does not track them', async () => {
     const { c, execute } = ctx({}, glb({ status: 'not-tracked', queued: true }))

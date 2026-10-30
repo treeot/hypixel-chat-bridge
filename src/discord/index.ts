@@ -31,7 +31,11 @@ export interface DiscordScope {
   readonly accountId: AccountId
   readonly client: DiscordClient['client']
   readonly ready: Promise<void>
-  sendEmbed(chat: Chat, embed: import('discord.js').APIEmbed): Promise<void>
+  sendEmbed(
+    chat: Chat,
+    embed: import('discord.js').APIEmbed,
+    components?: import('discord.js').APIActionRowComponent<import('discord.js').APIButtonComponent>[]
+  ): Promise<void>
   forAccount(accountId: AccountId): DiscordScope
 }
 
@@ -104,13 +108,18 @@ export class Discord implements DiscordApi {
       get ready() {
         return dc.ready
       },
-      sendEmbed: (chat, embed) => this.sendEmbedTo(accountId, chat, embed),
+      sendEmbed: (chat, embed, components) => this.sendEmbedTo(accountId, chat, embed, components),
       forAccount: id => this.forAccount(id)
     }
   }
 
-  async sendEmbedTo(accountId: AccountId, chat: Chat, embed: import('discord.js').APIEmbed): Promise<void> {
-    await this.sendToChat(accountId, chat, { embeds: [embed] })
+  async sendEmbedTo(
+    accountId: AccountId,
+    chat: Chat,
+    embed: import('discord.js').APIEmbed,
+    components?: import('discord.js').APIActionRowComponent<import('discord.js').APIButtonComponent>[]
+  ): Promise<void> {
+    await this.sendToChat(accountId, chat, { embeds: [embed], ...(components?.length ? { components } : {}) })
   }
 
   /** Bypasses Transport so a failed error notification cannot recursively log another error. */
@@ -204,7 +213,7 @@ export class Discord implements DiscordApi {
     await Promise.allSettled([post, this.dmOwner(embed)])
   }
 
-  private async sendToChat(accountId: AccountId, chat: Chat, payload: { embeds: import('discord.js').APIEmbed[] }): Promise<void> {
+  private async sendToChat(accountId: AccountId, chat: Chat, payload: import('discord.js').MessageCreateOptions): Promise<void> {
     await this.dc.ready
     const channelId = this.channelFor(accountId, chat)
     if (!channelId) return

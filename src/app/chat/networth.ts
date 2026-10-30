@@ -2,7 +2,7 @@ import type { ChatCommand } from '../context'
 import { resolveNetworth } from '../../services/networthSource'
 import { formatAsOf, NETWORTH_UNAVAILABLE, notTrackedLine } from '../../services/guildlbText'
 import { formatNumber } from '../../util/format'
-import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
+import { FullEmbed, headUrl, profileLinks, rankStyle } from '../../discord/format'
 import { targetIgn, resolvePlayer, matchesTriggers } from './_shared'
 
 const triggers = ['networth', 'nw'] as const
@@ -53,7 +53,8 @@ const networth: ChatCommand = {
         description: `➣ ${formatNumber(value)}`,
         footer: { text: [label, `${username} • ${rankStyle(rank).label}`].filter(Boolean).join(' • ') },
         timestamp: new Date().toISOString()
-      })
+      }),
+      profileLinks(ign)
     )
   }
 }

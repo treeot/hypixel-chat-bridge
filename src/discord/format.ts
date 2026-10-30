@@ -1,5 +1,24 @@
-import { escapeMarkdown, type APIEmbed } from 'discord.js'
+import { ButtonStyle, ComponentType, escapeMarkdown, type APIActionRowComponent, type APIEmbed, type APIButtonComponent } from 'discord.js'
 import type { Tone } from '../core/contracts'
+
+/** Link buttons under a player embed: GuildLB and SkyCrypt. Empty for a non-Minecraft name (never splice into a URL). */
+export function profileLinks(ign: string): APIActionRowComponent<APIButtonComponent>[] {
+  if (!isMinecraftName(ign)) return []
+  return [
+    {
+      type: ComponentType.ActionRow,
+      components: [
+        {
+          type: ComponentType.Button,
+          style: ButtonStyle.Link,
+          label: 'GuildLB',
+          url: `https://guildlb.com/player/${ign}?utm_source=hypixel-chat-bridge&utm_medium=discord`
+        },
+        { type: ComponentType.Button, style: ButtonStyle.Link, label: 'SkyCrypt', url: `https://sky.shiiyu.moe/stats/${ign}` }
+      ]
+    }
+  ]
+}
 
 export const Colours: Record<Tone | 'message', number> = {
   success: 0x47f04a,

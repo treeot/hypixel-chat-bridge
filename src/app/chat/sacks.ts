@@ -1,7 +1,7 @@
 import type { ChatCommand } from '../context'
 import { resolveSacks } from '../../services/networthSource'
 import { formatNumber } from '../../util/format'
-import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
+import { FullEmbed, headUrl, profileLinks, rankStyle } from '../../discord/format'
 import { targetIgn, resolvePlayer, matchesTriggers, sayIn } from './_shared'
 
 const triggers = ['sacks'] as const
@@ -39,7 +39,8 @@ const sacks: ChatCommand = {
         description: `➣ Total: $${formatNumber(answer.value)}${lines.length ? `\n\n${lines.join('\n')}` : ''}`,
         footer: { text: `${username} • ${rankStyle(rank).label}` },
         timestamp: new Date().toISOString()
-      })
+      }),
+      profileLinks(ign)
     )
   }
 }
