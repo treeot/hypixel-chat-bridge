@@ -162,7 +162,7 @@ export class Bridge {
       const relayed = this.router.onMinecraftEvent(id, payload)
       this.feed.push(id, 'event', payload)
       if ((payload.type === 'promote' || payload.type === 'demote') && payload.username) {
-        void handleRankChange(this.ctxFor(id), payload.username)
+        void handleRankChange(this.ctxFor(id), payload.username, payload.toRank)
       }
       return relayed
     })

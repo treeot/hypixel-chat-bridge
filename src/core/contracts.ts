@@ -36,6 +36,8 @@ export interface RelayEvent {
   title?: string
   description?: string
   username?: string
+  /** For promote/demote: the guild rank the player now holds, read straight from the chat line. */
+  toRank?: string
 }
 
 export interface RenderInput {

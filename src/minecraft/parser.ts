@@ -157,7 +157,7 @@ export function parseLine(message: string, ctx: ParseContext = {}): ParsedLine {
     const [, user, from, to] = promoted
     return {
       kind: 'event',
-      payload: { type: 'promote', chat: 'guild', tone: 'success', description: `${user} was promoted from ${from} to ${to}`, username: user }
+      payload: { type: 'promote', chat: 'guild', tone: 'success', description: `${user} was promoted from ${from} to ${to}`, username: user, toRank: to }
     }
   }
 
@@ -166,7 +166,7 @@ export function parseLine(message: string, ctx: ParseContext = {}): ParsedLine {
     const [, user, , to] = demoted
     return {
       kind: 'event',
-      payload: { type: 'demote', chat: 'guild', tone: 'failure', description: `${user} was demoted to ${to}`, username: user }
+      payload: { type: 'demote', chat: 'guild', tone: 'failure', description: `${user} was demoted to ${to}`, username: user, toRank: to }
     }
   }
 

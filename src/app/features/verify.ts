@@ -114,18 +114,26 @@ export function rankRoleUpdate(
 
 const bareUuid = (uuid: string) => uuid.replaceAll('-', '').toLowerCase()
 
-/** Give the member the Discord role mapped to their current in-game guild rank, removing any stale rank role. */
-export async function syncRankRole(ctx: AppContext, member: GuildMember, uuid: string): Promise<void> {
+/**
+ * Give the member the Discord role mapped to their current guild rank, removing any stale rank role.
+ * Pass `knownRank` (e.g. the rank from a promote/demote chat line) to skip the Hypixel guild lookup.
+ */
+export async function syncRankRole(ctx: AppContext, member: GuildMember, uuid: string, knownRank?: string): Promise<void> {
   const { settings } = await loadVerifySettings(ctx.info)
-  if (settings.rankRoles.length === 0 || !ctx.env.hypixelApiKey) return
+  if (settings.rankRoles.length === 0) return
 
-  const result = await fetchGuild({ apiKey: ctx.env.hypixelApiKey, log: ctx.log }, { player: uuid })
-  if (!result.ok) {
-    ctx.log.warn('Rank-role sync skipped: guild lookup failed', { id: member.id, uuid })
-    return
+  let rank = knownRank
+  if (rank === undefined) {
+    if (!ctx.env.hypixelApiKey) return
+    const result = await fetchGuild({ apiKey: ctx.env.hypixelApiKey, log: ctx.log }, { player: uuid })
+    if (!result.ok) {
+      ctx.log.warn('Rank-role sync skipped: guild lookup failed', { id: member.id, uuid })
+      return
+    }
+    const bare = bareUuid(uuid)
+    rank = result.guild?.members.find(m => bareUuid(m.uuid) === bare)?.rank
   }
-  const bare = bareUuid(uuid)
-  const rank = result.guild?.members.find(m => bareUuid(m.uuid) === bare)?.rank
+
   const { add, remove } = rankRoleUpdate(rank, settings.rankRoles, new Set(member.roles.cache.keys()))
   for (const id of remove) {
     await member.roles.remove(id).catch(error => ctx.log.warn('Could not remove a rank role', { id: member.id, role: id, error: String(error) }))
@@ -155,10 +163,11 @@ export async function applyVerifiedMember(ctx: AppContext, member: GuildMember, 
  * A guild promote/demote seen in-game: if that player is linked and the bot's server is known,
  * re-sync their rank role to match their new guild rank. No-op when nothing is configured or they aren't linked.
  */
-export async function handleRankChange(ctx: AppContext, ign: string): Promise<void> {
+export async function handleRankChange(ctx: AppContext, ign: string, newRank?: string): Promise<void> {
   const { settings } = await loadVerifySettings(ctx.info)
   const serverId = ctx.env.discordServerId
-  if (settings.rankRoles.length === 0 || !serverId || !ctx.env.hypixelApiKey) return
+  // The rank comes from the chat line itself, so no Hypixel key is needed on this path.
+  if (settings.rankRoles.length === 0 || !serverId) return
   if (!MINECRAFT_NAME.test(ign)) return
 
   const uuid = await getUUIDFromUsername(ign, ctx.log)
@@ -168,7 +177,7 @@ export async function handleRankChange(ctx: AppContext, ign: string): Promise<vo
 
   const guild = await ctx.discord.client.guilds.fetch(serverId).catch(() => null)
   const member = guild ? await guild.members.fetch(link.id).catch(() => null) : null
-  if (member) await syncRankRole(ctx, member, uuid)
+  if (member) await syncRankRole(ctx, member, uuid, newRank)
 }
 
 export async function removeVerifiedRole(ctx: AppContext, member: GuildMember | null | undefined): Promise<void> {

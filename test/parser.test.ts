@@ -10,3 +10,18 @@ describe('guild chat ranks', () => {
     expect(parseLine('Officer > Alex: hi')).toMatchObject({ kind: 'chat', payload: { username: 'Alex', message: 'hi' } })
   })
 })
+
+describe('promote/demote events carry the new rank', () => {
+  it('captures the rank a player was promoted to', () => {
+    expect(parseLine('Steve was promoted from Member to Elite')).toMatchObject({
+      kind: 'event',
+      payload: { type: 'promote', username: 'Steve', toRank: 'Elite' }
+    })
+  })
+  it('captures the rank a player was demoted to', () => {
+    expect(parseLine('Steve was demoted from Elite to Member')).toMatchObject({
+      kind: 'event',
+      payload: { type: 'demote', username: 'Steve', toRank: 'Member' }
+    })
+  })
+})
