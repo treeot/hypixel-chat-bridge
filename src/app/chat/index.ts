@@ -6,6 +6,7 @@ import powder from './powder'
 import skills from './skills'
 import sacks from './sacks'
 import scammer from './scammer'
+import event from './event'
 import { dungeonStatCommands } from './_dungeonStats'
 import { farmingStatCommands } from './_farmingStats'
 import { funCommands } from './_fun'
@@ -14,7 +15,7 @@ export const HYPIXEL_FREE_CHAT: ReadonlySet<string> = new Set(['networth', 'eigh
 
 // /help grouping, kept here so the sections stay in one place as commands are added. Anything not
 // listed defaults to the 'stats' section; `scammer` is a moderation command and is hidden from /help.
-const GUILD_UTILITY = new Set(['guildexp', 'mayor', 'specialmayor', 'guild', 'guildof', 'player'])
+const GUILD_UTILITY = new Set(['event', 'guildexp', 'mayor', 'specialmayor', 'guild', 'guildof', 'player'])
 const FUN = new Set(['eightball', 'coinflip', 'boo', 'boop', 'meow', 'calculate'])
 const HIDDEN_FROM_HELP = new Set(['scammer'])
 
@@ -39,6 +40,7 @@ export const chatCommands: ChatCommand[] = [
   skills,
   sacks,
   scammer,
+  event,
   ...dungeonStatCommands,
   ...farmingStatCommands,
   ...funCommands

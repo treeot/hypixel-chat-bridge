@@ -226,7 +226,8 @@ export const SETTINGS_COPY: Partial<Record<AreaId, Record<string, FieldCopy>>> =
       label: 'Share /blacklist with the alliance by default',
       help: 'Players you blacklist are also added to the GuildLB list, unless you say otherwise.'
     },
-    scammerCheck: { label: 'Check join requests against the GuildLB scammer list', help: 'Warn staff when an applicant is on the GuildLB list.' }
+    scammerCheck: { label: 'Check join requests against the GuildLB scammer list', help: 'Warn staff when an applicant is on the GuildLB list.' },
+    eventChannelId: { label: 'Event announcements channel', help: 'Channel for GuildLB guild-event updates. Leave empty to turn event polling off.' }
   },
   features: {
     verify: { label: 'Verify and link', help: 'The /verify and /link commands and related features.' },
