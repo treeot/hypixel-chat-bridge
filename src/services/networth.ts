@@ -46,9 +46,7 @@ export async function getPlayerNetworth(apiKey: string, uuid: string): Promise<P
 
   let selectedProfile = profiles.find(profile => profile.selected === true)
   if (!selectedProfile)
-    selectedProfile = [...profiles].sort(
-      (a, b) => (b.members?.[memberId]?.leveling?.experience || 0) - (a.members?.[memberId]?.leveling?.experience || 0)
-    )[0]
+    selectedProfile = [...profiles].sort((a, b) => (b.members?.[memberId]?.leveling?.experience || 0) - (a.members?.[memberId]?.leveling?.experience || 0))[0]
   if (!selectedProfile) return undefined
 
   const profileData = selectedProfile.members?.[memberId]

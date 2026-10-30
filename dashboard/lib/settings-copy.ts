@@ -215,7 +215,7 @@ export const SETTINGS_COPY: Partial<Record<AreaId, Record<string, FieldCopy>>> =
     },
     rankRoles: {
       label: 'Rank roles (optional)',
-      help: "Give a verified member the Discord role that matches their current guild rank, on top of the verified role."
+      help: 'Give a verified member the Discord role that matches their current guild rank, on top of the verified role.'
     },
     'rankRoles.*': { label: 'Rank role' },
     'rankRoles.*.rank': { label: 'Guild rank', help: 'Rank name exactly as in /g list, e.g. Officer.', placeholder: 'e.g. Officer' },

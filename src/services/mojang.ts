@@ -27,9 +27,7 @@ export async function getUsernameFromUUID(uuid: string, log?: Logger): Promise<s
   if (!UUID_REGEX.test(`${uuid}`)) return undefined
 
   try {
-    const response = await retryRequest(() =>
-      axios.get(`https://sessionserver.mojang.com/session/minecraft/profile/${uuid}`, { timeout: MOJANG_TIMEOUT_MS })
-    )
+    const response = await retryRequest(() => axios.get(`https://sessionserver.mojang.com/session/minecraft/profile/${uuid}`, { timeout: MOJANG_TIMEOUT_MS }))
     return response.data.name
   } catch (error) {
     log?.error('Error fetching username from Mojang API', error, { uuid })
