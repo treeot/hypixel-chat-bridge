@@ -64,7 +64,7 @@ Who can log in is decided on the **bridge** side: a user gets in only if the bot
 ## Sessions and permissions
 
 - **Login lasts 48 hours.** After that the Discord sign-in is needed again; active use within the window keeps the session alive.
-- **Permissions are re-checked every 5 minutes.** The dashboard caches your role (staff/admin/none) in the login token and refreshes it from the bridge once it's older than 5 minutes, so a promotion or demotion in game takes effect within about 5 minutes without logging out. If the bridge can't be reached for a check, the last known role is kept and the next attempt backs off ~30 seconds.
+- **Permissions are re-checked every 5 minutes.** Your dashboard role comes from your **Discord** roles — admin if you have the `ADMIN_ROLE_ID` role (or are the owner), staff if you have `STAFF_ROLE_ID`. The dashboard caches that role in the login token and refreshes it from the bridge once it's older than 5 minutes, so **gaining or losing the staff/admin Discord role** takes effect within about 5 minutes without logging out. If the bridge can't be reached for a check, the last known role is kept and the next attempt backs off ~30 seconds.
 
 ## Remove the dashboard
 
