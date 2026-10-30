@@ -1,5 +1,6 @@
 import nbt from 'prismarine-nbt'
 import type { ChatCommand } from '../context'
+import { profileLinks } from '../../discord/format'
 import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['accessories', 'acc'] as const
@@ -53,7 +54,8 @@ const accessories: ChatCommand = {
         rank,
         undefined,
         username
-      )
+      ),
+      profileLinks(ign)
     )
   }
 }

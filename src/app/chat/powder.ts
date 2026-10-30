@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas, formatNumber } from '../../util/format'
-import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
+import { FullEmbed, headUrl, profileLinks, rankStyle } from '../../discord/format'
 import { targetIgn, resolvePlayer, matchesTriggers } from './_shared'
 import { hypixelGet } from '../../services/hypixel'
 import { footer } from '../../discord/brand'
@@ -69,7 +69,8 @@ const powder: ChatCommand = {
           description: `**Mithril:** ${addCommas(mithrilPowder)}\n**Gemstone:** ${addCommas(gemstonePowder)}\n**Glacite:** ${addCommas(glacitePowder)}`,
           footer: footer(rankStyle(rank).label),
           timestamp: new Date().toISOString()
-        })
+        }),
+        profileLinks(ign)
       )
     }
   }

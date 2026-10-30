@@ -1,5 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
+import { profileLinks } from '../../discord/format'
 import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const HOTM_XP_TABLE = [0, 0, 50, 150, 375, 950, 2450, 4950, 9950, 19950, 39950]
@@ -48,7 +49,8 @@ const hotm: ChatCommand = {
         rank,
         undefined,
         username
-      )
+      ),
+      profileLinks(ign)
     )
   }
 }

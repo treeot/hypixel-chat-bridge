@@ -1,5 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
+import { profileLinks } from '../../discord/format'
 import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond']
@@ -34,7 +35,8 @@ const trophyfish: ChatCommand = {
 
     await ctx.discord.sendEmbed(
       chat,
-      statEmbed(ign, 'trophy fish', `**Total caught:** ${addCommas(totalCaught)}\n${tierCounts.map(t => `**${t}**`).join('\n')}`, rank, undefined, username)
+      statEmbed(ign, 'trophy fish', `**Total caught:** ${addCommas(totalCaught)}\n${tierCounts.map(t => `**${t}**`).join('\n')}`, rank, undefined, username),
+      profileLinks(ign)
     )
   }
 }

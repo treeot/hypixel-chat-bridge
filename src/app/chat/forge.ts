@@ -1,4 +1,5 @@
 import type { ChatCommand } from '../context'
+import { profileLinks } from '../../discord/format'
 import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['forge'] as const
@@ -35,7 +36,7 @@ const forge: ChatCommand = {
 
     sayIn(ctx, chat, `${ign} ➜ Forge ${lines.join(', ')}`)
 
-    await ctx.discord.sendEmbed(chat, statEmbed(ign, 'forge', lines.join('\n'), rank, undefined, username))
+    await ctx.discord.sendEmbed(chat, statEmbed(ign, 'forge', lines.join('\n'), rank, undefined, username), profileLinks(ign))
   }
 }
 

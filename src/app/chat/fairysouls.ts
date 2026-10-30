@@ -1,4 +1,5 @@
 import type { ChatCommand } from '../context'
+import { profileLinks } from '../../discord/format'
 import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const TOTAL_FAIRY_SOULS = 242
@@ -24,7 +25,11 @@ const fairysouls: ChatCommand = {
 
     sayIn(ctx, chat, `${ign} ➜ Fairy Souls ${collected}/${TOTAL_FAIRY_SOULS} (${percent}%)`)
 
-    await ctx.discord.sendEmbed(chat, statEmbed(ign, 'fairy souls', `➣ ${collected}/${TOTAL_FAIRY_SOULS} (${percent}%)`, rank, undefined, username))
+    await ctx.discord.sendEmbed(
+      chat,
+      statEmbed(ign, 'fairy souls', `➣ ${collected}/${TOTAL_FAIRY_SOULS} (${percent}%)`, rank, undefined, username),
+      profileLinks(ign)
+    )
   }
 }
 

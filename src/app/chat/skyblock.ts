@@ -1,6 +1,7 @@
 import type { ChatCommand } from '../context'
 import { SKILL_NAMES, getSkillLevelInfo } from '../../services/skyblockLeveling'
 import { formatNumber } from '../../util/format'
+import { profileLinks } from '../../discord/format'
 import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['skyblock', 'sb'] as const
@@ -45,7 +46,8 @@ const skyblock: ChatCommand = {
         rank,
         undefined,
         username
-      )
+      ),
+      profileLinks(ign)
     )
   }
 }

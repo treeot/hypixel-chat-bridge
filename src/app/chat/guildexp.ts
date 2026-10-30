@@ -1,6 +1,7 @@
 import type { ChatCommand } from '../context'
 import { getGuild, weeklyGexp } from '../../services/gexp'
 import { addCommas } from '../../util/format'
+import { profileLinks } from '../../discord/format'
 import { sayIn, targetIgn, resolvePlayer, statEmbed, matchesTriggers } from './_shared'
 import { hypixelKey } from '../requirements'
 
@@ -33,7 +34,8 @@ const guildexp: ChatCommand = {
 
     await ctx.discord.sendEmbed(
       chat,
-      statEmbed(ign, 'guild experience', `**Guild:** ${guild.name}\n**Weekly GEXP:** ${addCommas(weekly)}`, rank, undefined, username)
+      statEmbed(ign, 'guild experience', `**Guild:** ${guild.name}\n**Weekly GEXP:** ${addCommas(weekly)}`, rank, undefined, username),
+      profileLinks(ign)
     )
   }
 }

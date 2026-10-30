@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { sayIn, targetIgn, resolvePlayer, matchesTriggers } from './_shared'
-import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
+import { FullEmbed, headUrl, profileLinks, rankStyle } from '../../discord/format'
 import { hypixelGet } from '../../services/hypixel'
 import { hypixelKey } from '../requirements'
 
@@ -51,7 +51,8 @@ const player: ChatCommand = {
           description: `**Rank:** ${rank}\n**Level:** ${level}\n**First login:** ${firstLogin}`,
           footer: { text: `${username} • ${rankStyle(senderRank).label}` },
           timestamp: new Date().toISOString()
-        })
+        }),
+        profileLinks(ign)
       )
     } catch (error) {
       ctx.log.error('Error fetching player from Hypixel API', error, { uuid })

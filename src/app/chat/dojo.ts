@@ -1,5 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
+import { profileLinks } from '../../discord/format'
 import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['dojo'] as const
@@ -32,7 +33,8 @@ const dojo: ChatCommand = {
 
     await ctx.discord.sendEmbed(
       chat,
-      statEmbed(ign, 'dojo', `**Total Points:** ${addCommas(totalPoints)}\n**Exercises Trained:** ${entries.length}`, rank, fields, username)
+      statEmbed(ign, 'dojo', `**Total Points:** ${addCommas(totalPoints)}\n**Exercises Trained:** ${entries.length}`, rank, fields, username),
+      profileLinks(ign)
     )
   }
 }

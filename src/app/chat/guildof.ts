@@ -1,7 +1,7 @@
 import type { ChatCommand } from '../context'
 import { getGuild } from '../../services/gexp'
 import { sayIn, targetIgn, resolvePlayer, matchesTriggers } from './_shared'
-import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
+import { FullEmbed, headUrl, profileLinks, rankStyle } from '../../discord/format'
 import { hypixelKey } from '../requirements'
 
 const triggers = ['guildof'] as const
@@ -32,7 +32,8 @@ const guildof: ChatCommand = {
         description: `**Guild:** ${result.name}`,
         footer: { text: `${username} • ${rankStyle(rank).label}` },
         timestamp: new Date().toISOString()
-      })
+      }),
+      profileLinks(ign)
     )
   }
 }

@@ -1,5 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
+import { profileLinks } from '../../discord/format'
 import { sayIn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['floor'] as const
@@ -53,7 +54,8 @@ const floor: ChatCommand = {
         rank,
         undefined,
         username
-      )
+      ),
+      profileLinks(ign)
     )
   }
 }

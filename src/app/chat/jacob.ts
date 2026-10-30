@@ -1,4 +1,5 @@
 import type { ChatCommand } from '../context'
+import { profileLinks } from '../../discord/format'
 import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['jacob'] as const
@@ -40,7 +41,8 @@ const jacob: ChatCommand = {
         rank,
         undefined,
         username
-      )
+      ),
+      profileLinks(ign)
     )
   }
 }

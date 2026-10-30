@@ -1,6 +1,7 @@
 import type { ChatCommand } from '../context'
 import { getDungeonLevelFromXp } from '../../services/skyblockLeveling'
 import { addCommas } from '../../util/format'
+import { profileLinks } from '../../discord/format'
 import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['catacombs', 'cata'] as const
@@ -37,7 +38,8 @@ const catacombs: ChatCommand = {
 
     await ctx.discord.sendEmbed(
       chat,
-      statEmbed(ign, 'catacombs', `**Level:** ${level.toFixed(2)}\n**Total Runs:** ${addCommas(totalRuns)}`, rank, floorFields, username)
+      statEmbed(ign, 'catacombs', `**Level:** ${level.toFixed(2)}\n**Total Runs:** ${addCommas(totalRuns)}`, rank, floorFields, username),
+      profileLinks(ign)
     )
   }
 }

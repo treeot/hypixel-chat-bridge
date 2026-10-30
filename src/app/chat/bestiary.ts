@@ -1,5 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
+import { profileLinks } from '../../discord/format'
 import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const triggers = ['bestiary'] as const
@@ -30,7 +31,8 @@ const bestiary: ChatCommand = {
 
     await ctx.discord.sendEmbed(
       chat,
-      statEmbed(ign, 'bestiary', `**Total Kills:** ${addCommas(milestoneKills)}\n**Mobs Discovered:** ${uniqueMobsKilled}`, rank, undefined, username)
+      statEmbed(ign, 'bestiary', `**Total Kills:** ${addCommas(milestoneKills)}\n**Mobs Discovered:** ${uniqueMobsKilled}`, rank, undefined, username),
+      profileLinks(ign)
     )
   }
 }

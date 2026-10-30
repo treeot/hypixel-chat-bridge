@@ -1,7 +1,7 @@
 import type { ChatCommand } from '../context'
 import { DUNGEON_CLASSES, M7_CLASS_XP_PER_RUN, getDungeonLevelFromXp, getRunsToClassAverage50 } from '../../services/skyblockLeveling'
 import { sayIn, targetIgn, resolvePlayer, matchesTriggers } from './_shared'
-import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
+import { FullEmbed, headUrl, profileLinks, rankStyle } from '../../discord/format'
 import { hypixelGet } from '../../services/hypixel'
 import { hypixelKey } from '../requirements'
 
@@ -74,7 +74,8 @@ const rtca: ChatCommand = {
         description: `To reach class average ${TARGET_CLASS_AVERAGE}, you need approximately **${addCommasSimple(runsNeeded)}** more M7s.\n\n${breakdown}`,
         footer: { text: `${username} • ${rankStyle(rank).label}` },
         timestamp: new Date().toISOString()
-      })
+      }),
+      profileLinks(ign)
     )
   }
 }

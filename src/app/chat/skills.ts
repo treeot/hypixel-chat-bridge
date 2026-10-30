@@ -1,5 +1,5 @@
 import type { ChatCommand } from '../context'
-import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
+import { FullEmbed, headUrl, profileLinks, rankStyle } from '../../discord/format'
 import { SKILL_NAMES, getSkillLevelInfo } from '../../services/skyblockLeveling'
 import { sayIn, targetIgn, resolvePlayer, matchesTriggers } from './_shared'
 import { hypixelGet } from '../../services/hypixel'
@@ -95,7 +95,8 @@ const skills: ChatCommand = {
         author: { name: `${ign}'s skills`, icon_url: `${headUrl(ign)}` },
         fields: fields.length > 0 ? fields : undefined,
         footer: footer(rankStyle(rank).label)
-      })
+      }),
+      profileLinks(ign)
     )
 
     if (msg) {

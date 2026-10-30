@@ -1,5 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
+import { profileLinks } from '../../discord/format'
 import { sayIn, targetIgn, resolveProfile, statEmbed, matchesTriggers } from './_shared'
 
 const KUUDRA_TIERS: { key: string; label: string }[] = [
@@ -37,7 +38,7 @@ const kuudra: ChatCommand = {
       inline: true
     }))
 
-    await ctx.discord.sendEmbed(chat, statEmbed(ign, 'kuudra', `**Total Runs:** ${addCommas(total)}`, rank, fields, username))
+    await ctx.discord.sendEmbed(chat, statEmbed(ign, 'kuudra', `**Total Runs:** ${addCommas(total)}`, rank, fields, username), profileLinks(ign))
   }
 }
 

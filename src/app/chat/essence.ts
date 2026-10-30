@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
-import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
+import { FullEmbed, headUrl, profileLinks, rankStyle } from '../../discord/format'
 import { sayIn, targetIgn, resolveProfile, matchesTriggers } from './_shared'
 
 const ESSENCE_TYPES: { key: string; label: string }[] = [
@@ -52,7 +52,8 @@ const essence: ChatCommand = {
         fields: fields.length > 0 ? fields : undefined,
         footer: { text: `${username} • ${rankStyle(rank).label}` },
         timestamp: new Date().toISOString()
-      })
+      }),
+      profileLinks(ign)
     )
   }
 }

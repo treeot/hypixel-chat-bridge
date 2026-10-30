@@ -1,6 +1,6 @@
 import type { ChatCommand } from '../context'
 import { addCommas } from '../../util/format'
-import { headUrl, rankStyle } from '../../discord/format'
+import { headUrl, profileLinks, rankStyle } from '../../discord/format'
 import { sayIn, targetIgn, resolvePlayer, matchesTriggers } from './_shared'
 import { hypixelGet } from '../../services/hypixel'
 import { footer } from '../../discord/brand'
@@ -75,15 +75,19 @@ const slayer: ChatCommand = {
     if (blazeExp !== '0') fields.push({ name: 'Blaze', value: addCommas(Number(blazeExp)), inline: true })
     if (vampireExp !== '0') fields.push({ name: 'Vampire', value: addCommas(Number(vampireExp)), inline: true })
 
-    await ctx.discord.sendEmbed(chat, {
-      author: {
-        name: `${ign}'s slayers`,
-        icon_url: `${headUrl(ign)}`
+    await ctx.discord.sendEmbed(
+      chat,
+      {
+        author: {
+          name: `${ign}'s slayers`,
+          icon_url: `${headUrl(ign)}`
+        },
+        description: `**Slayer Exp:** ${slayerExp}`,
+        fields: fields.length > 0 ? fields : undefined,
+        footer: footer(`${username} • ${rankStyle(rank).label}`)
       },
-      description: `**Slayer Exp:** ${slayerExp}`,
-      fields: fields.length > 0 ? fields : undefined,
-      footer: footer(`${username} • ${rankStyle(rank).label}`)
-    })
+      profileLinks(ign)
+    )
 
     sayIn(ctx, chat, `${msg}`)
   }
