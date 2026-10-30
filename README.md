@@ -1,6 +1,6 @@
 # hypixel-chat-bridge
 
-Two-way chat bridge between Hypixel guild chat and Discord. One process can serve several guilds, everything the bot says is checked by a ban-safety filter, and it deploys to Railway from a template in a few minutes.
+Two-way chat bridge between Hypixel guild chat and Discord. One process can serve several guilds, a ban-safety filter checks every message the bot sends, and the Railway template deploys it in a few minutes.
 
 [![CI](https://github.com/treeot/hypixel-chat-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/treeot/hypixel-chat-bridge/actions/workflows/ci.yml)
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/hypixel-chat-bridge?referralCode=AZj5w0&utm_medium=integration&utm_source=docs&utm_campaign=hypixel-chat-bridge)
@@ -19,10 +19,10 @@ Two-way chat bridge between Hypixel guild chat and Discord. One process can serv
 - **In-game `!` commands**, each toggleable, plus **slash commands** for moderation, verify and GEXP. See [commands](docs/commands.md).
 - **Join requests:** requirements, auto-accept/deny, blacklist/whitelist, Apply button, waitlist when full.
 - **GEXP:** weekly leaderboard (`/gexp`, `/guildtop`) and an optional weekly requirement (`/inactive`).
-- **Verification:** `/verify` checks the Discord name on the Hypixel profile; optional role and nickname.
+- **Verification:** `/verify` checks the Discord name on the Hypixel profile; optional verified role, nickname, and a Discord role per guild rank (kept in sync on promote/demote).
 - **Setup in Discord** with `/setup`; only three environment variables are required.
 - **Storage:** SQLite (default), MongoDB or Postgres. See [storage](docs/storage.md), or [use a free database](docs/free-database.md) to drop the Railway Volume.
-- **Web dashboard** (included in the template, optional): chat, guild actions, lists, feature switches and settings in the browser. See [docs/dashboard.md](docs/dashboard.md); delete the service if you don't want it.
+- **Web dashboard** (included in the template, optional): chat, guild actions, lists, feature switches and settings in the browser. See [dashboard](docs/dashboard.md).
 - Optional [REST API](docs/rest-api.md) for sending chat or commands from other tools.
 - Optional [GuildLB](docs/guildlb.md): stored networth for `!nw` and the alliance blacklist (`/alliance blacklist ...`).
 
@@ -34,17 +34,17 @@ Two-way chat bridge between Hypixel guild chat and Discord. One process can serv
 
    `https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&scope=bot+applications.commands&permissions=939641920`
 
-   | Permission           | Why                                                                       |
-   | -------------------- | ------------------------------------------------------------------------- |
-   | View Channels        | See the bridged channels.                                                 |
-   | Send Messages        | Relay chat and reply to commands.                                         |
-   | Embed Links          | Embed format, event embeds and command replies.                           |
-   | Attach Files         | Image format.                                                             |
-   | Read Message History | React to messages and resolve the message a reply points to.              |
-   | Add Reactions        | Delivery-failure reactions such as ⛔, ✂️ and ⏸️.                         |
-   | Manage Webhooks      | Webhook format (the default). Without it the channel falls back to embed. |
-   | Manage Roles         | Optional verified role.                                                   |
-   | Manage Nicknames     | Optional nickname template on verify.                                     |
+   | Permission           | Why                                                                               |
+   | -------------------- | --------------------------------------------------------------------------------- |
+   | View Channels        | See the bridged channels.                                                         |
+   | Send Messages        | Relay chat and reply to commands.                                                 |
+   | Embed Links          | Embed format, event embeds and command replies.                                   |
+   | Attach Files         | Image format.                                                                     |
+   | Read Message History | React to messages and resolve the message a reply points to.                      |
+   | Add Reactions        | Delivery-failure reactions such as ⛔, ✂️ and ⏸️.                                 |
+   | Manage Webhooks      | Webhook format (the default). Without it the channel falls back to embed.         |
+   | Manage Roles         | Optional verified role and per-guild-rank roles (bot's role must sit above them). |
+   | Manage Nicknames     | Optional nickname template on verify.                                             |
 
 4. In Discord, turn on Settings → Advanced → **Developer Mode**. Right-click your name → **Copy User ID** (`OWNER_ID`). Right-click the channel for guild chat → **Copy Channel ID** (`GUILD_CHANNEL_ID`).
 
@@ -112,9 +112,9 @@ Railway's Hobby plan is \$5/month and includes \$5 of usage. Rates: RAM \$10/GB-
 | One guild, free MongoDB Atlas database, no Volume | ≈ \$3.65         |
 | Each extra guild account                          | ≈ +\$1.00        |
 
-These are estimates. They assume the bot uses about 300 MB RAM and 0.03 vCPU (≈ \$3.60), plus about \$0.15 for the Volume and \$0.05 for egress, at the Hobby rates above. The Postgres row drops the Volume (\$0.15) and adds about \$1 for Railway Postgres. If you run the bot, share your Railway usage in an issue so we can replace these with real numbers.
+Estimates assume the bot uses about 300 MB RAM and 0.03 vCPU (≈ \$3.60), plus about \$0.15 for the Volume and \$0.05 for egress, at the Hobby rates above. The Postgres row drops the Volume (\$0.15) and adds about \$1 for Railway Postgres. If you run the bot, share your Railway usage in an issue so we can replace these with real numbers.
 
-To trim the bill, use a free hosted database instead of the Volume or Railway Postgres: [docs/free-database.md](docs/free-database.md). It saves about \$0.15/month against the Volume and about \$1/month against Railway Postgres. MongoDB Atlas's free tier suits a bot that runs 24/7; Neon's free compute isn't enough for a bot that runs 24/7 in an active guild (details in the guide).
+To trim the bill, use a [free hosted database](docs/free-database.md) instead of the Volume or Railway Postgres. MongoDB Atlas's free tier handles a bot running 24/7; Neon's free compute doesn't last a full month of 24/7 use.
 
 ## Docs
 
