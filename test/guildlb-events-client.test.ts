@@ -22,7 +22,17 @@ const summary: EventSummary = {
   guildB: null
 }
 const standing: EventStanding = {
-  event: { id: 'e1', name: 'Spring Clash', guildA: 'a', guildB: 'b', startAt: summary.startAt, endAt: summary.endAt, mode: 'skill', status: 'active', config: {} },
+  event: {
+    id: 'e1',
+    name: 'Spring Clash',
+    guildA: 'a',
+    guildB: 'b',
+    startAt: summary.startAt,
+    endAt: summary.endAt,
+    mode: 'skill',
+    status: 'active',
+    config: {}
+  },
   guilds: [{ id: 'a', name: 'Foo', points: 10, updatedAt: '2026-10-02T00:00:00Z' }],
   members: [],
   asOf: '2026-10-02T00:00:00Z'
@@ -55,5 +65,22 @@ describe('event reads', () => {
   it('rejects a malformed list', async () => {
     const { c } = client(() => ok({ not: 'array' }))
     await expect(c.listEvents('Foo')).rejects.toMatchObject({ code: 'BAD_RESPONSE' })
+  })
+
+  it('falls back to the guild key when no website key is set', async () => {
+    const { c, calls } = client(() => ok([summary]), { guildKey: 'guild-secret' })
+    expect(c.hasEventKey).toBe(true)
+    expect(await c.listEvents('Foo')).toEqual([summary])
+    expect((calls[0].init.headers as Record<string, string>).Authorization).toBe('Bearer guild-secret')
+  })
+
+  it('reports no event key when neither key is set', () => {
+    const { c } = client(() => ok([summary]), {})
+    expect(c.hasEventKey).toBe(false)
+  })
+
+  it('turns a 401 into a scope-specific message', async () => {
+    const { c } = client(() => json(401, { success: false, error: { code: 'UNAUTHORIZED', message: 'nope' } }))
+    await expect(c.listEvents('Foo')).rejects.toMatchObject({ status: 401, message: expect.stringContaining('events scope') })
   })
 })

@@ -245,6 +245,15 @@ export class Bridge {
     const client = this.ctx.guildlb
     if (!client) return
     const log = this.deps.log.child('events')
+    if (!client.hasEventKey) {
+      void this.settings.read('guildlb').then(s => {
+        if (s.eventChannelId)
+          log.warn(
+            'Event announcements channel is set but no GuildLB key is available; set GUILDLB_API_KEY (events scope) or GUILDLB_GUILD_KEY to enable event polling'
+          )
+      })
+      return
+    }
     const state = createEventState(this.store)
     const warnedChannels = new Set<string>()
     this.eventLoop = startEventLoop({
