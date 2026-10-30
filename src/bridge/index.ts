@@ -29,6 +29,12 @@ import { ChatFeed } from '../app/api/feed'
 import { createDashboardDeps } from '../app/api/wire'
 import { GuildLbClient } from '../services/guildlb'
 import { allianceCheck } from '../app/features/allianceChecks'
+import { guildSnapshot } from '../app/features/guildState'
+import { startEventLoop } from '../app/events/eventLoop'
+import { pollEvents } from '../app/events/eventPoll'
+import { handleTransitions } from '../app/events/eventAnnounce'
+import { createEventState } from '../app/events/eventState'
+import { createDiscordEventChannel } from '../app/events/discordEventChannel'
 
 /** minecraft/ and discord/ never import each other; all cross-talk flows through here and relay/. */
 export class Bridge {
@@ -44,6 +50,7 @@ export class Bridge {
   private readonly settings: SettingsStore
   private readonly accountControl: AccountReconciler
   private started = false
+  private eventLoop: { stop(): void } | undefined
   private readonly commandPublisher: CommandPublisher
   private readonly feed = new ChatFeed(undefined, undefined, error => this.deps.log.warn('Dashboard feed listener failed', { error: String(error) }))
 
@@ -229,8 +236,27 @@ export class Bridge {
 
     await this.restApi.start()
 
+    this.startEvents()
     this.installShutdown()
     log.info('Bridge started')
+  }
+
+  private startEvents(): void {
+    const client = this.ctx.guildlb
+    if (!client) return
+    const log = this.deps.log.child('events')
+    const state = createEventState(this.store)
+    this.eventLoop = startEventLoop({
+      readChannelId: async () => (await this.settings.read('guildlb')).eventChannelId,
+      resolveGuild: async () => {
+        const snapshot = await guildSnapshot(this.ctx)
+        return snapshot.ok ? snapshot.guild.name : undefined
+      },
+      makeChannel: channelId => createDiscordEventChannel(this.discord.client, channelId, log),
+      poll: guild => pollEvents(guild, { client, state }),
+      announce: (transitions, d) => handleTransitions(transitions, { ...d, client, state, log }),
+      log
+    })
   }
 
   private installShutdown(): void {
@@ -242,6 +268,7 @@ export class Bridge {
       shuttingDown = true
       log.info(`Received ${signal}, shutting down`)
       try {
+        this.eventLoop?.stop()
         await Promise.allSettled([this.restApi.stop(), this.accounts.stopAll(), this.discord.stop()])
         await this.store.close()
       } finally {
