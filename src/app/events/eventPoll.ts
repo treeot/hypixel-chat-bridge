@@ -38,7 +38,8 @@ export async function pollEvents(guild: string, deps: EventPollDeps): Promise<Ev
   const known = new Map(stored.map(doc => [doc.eventId, doc]))
   const out: EventTransition[] = []
   for (const event of events) {
-    const kind = kindFor(known.get(event.id)?.lastStatus, event.status)
+    const prior = known.get(event.id)
+    const kind = kindFor(prior?.lastStatus, event.status) ?? (event.status === 'active' && prior?.scoreboardMessageId ? 'update' : undefined)
     if (kind) out.push({ event, kind })
   }
   return out
