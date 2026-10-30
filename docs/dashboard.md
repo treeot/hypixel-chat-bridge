@@ -54,8 +54,17 @@ Already running the bridge from before the dashboard existed? See the next secti
 | `AUTH_DISCORD_SECRET` | dashboard | required | Client Secret | Lets the dashboard confirm who logged in. |
 | `AUTH_SECRET` | dashboard | required | random string | Signs the login cookie. The template generates it. |
 | `AUTH_TRUST_HOST` | dashboard | required | `true` | Lets the login work behind Railway's proxy. |
+| `RAILWAY_DOCKERFILE_PATH` | dashboard | required | `dashboard/Dockerfile` | Builds the dashboard image; keep the service's root directory at the repo root. |
+| `PORT` | dashboard | optional | `3100` | Port the dashboard binds to; match the HTTP Proxy target. The image already defaults to this. |
 
-`bridge` in the two references is the bridge service's name in Railway; use yours if it differs.
+`bridge` in the references is the bridge service's name in Railway; use yours if it differs.
+
+Who can log in is decided on the **bridge** side: a user gets in only if the bot sees them as staff or admin, which needs `DISCORD_SERVER_ID` and `STAFF_ROLE_ID` (and optionally `ADMIN_ROLE_ID`) set on the bridge. Without them the bot grants no role and every login is rejected with `forbidden`. See [configuration](configuration.md).
+
+## Sessions and permissions
+
+- **Login lasts 48 hours.** After that the Discord sign-in is needed again; active use within the window keeps the session alive.
+- **Permissions are re-checked every 5 minutes.** The dashboard caches your role (staff/admin/none) in the login token and refreshes it from the bridge once it's older than 5 minutes, so a promotion or demotion in game takes effect within about 5 minutes without logging out. If the bridge can't be reached for a check, the last known role is kept and the next attempt backs off ~30 seconds.
 
 ## Remove the dashboard
 
