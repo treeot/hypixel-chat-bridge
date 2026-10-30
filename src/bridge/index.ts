@@ -246,13 +246,14 @@ export class Bridge {
     if (!client) return
     const log = this.deps.log.child('events')
     const state = createEventState(this.store)
+    const warnedChannels = new Set<string>()
     this.eventLoop = startEventLoop({
       readChannelId: async () => (await this.settings.read('guildlb')).eventChannelId,
       resolveGuild: async () => {
         const snapshot = await guildSnapshot(this.ctx)
         return snapshot.ok ? snapshot.guild.name : undefined
       },
-      makeChannel: channelId => createDiscordEventChannel(this.discord.client, channelId, log),
+      makeChannel: channelId => createDiscordEventChannel(this.discord.client, channelId, log, warnedChannels),
       poll: guild => pollEvents(guild, { client, state }),
       announce: (transitions, d) => handleTransitions(transitions, { ...d, client, state, log }),
       log

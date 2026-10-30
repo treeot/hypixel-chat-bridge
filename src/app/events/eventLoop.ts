@@ -30,16 +30,18 @@ export async function tickEvents(deps: EventLoopDeps): Promise<void> {
   }
 }
 
-/** Starts the recurring tick without blocking; stop() clears it. A tick never overlaps the previous one. */
+/** Starts the recurring tick without blocking (the first tick runs immediately so a restart does not leave a 15 minute gap); stop() clears it. A tick never overlaps the previous one. */
 export function startEventLoop(deps: EventLoopDeps, intervalMs = EVENT_POLL_INTERVAL_MS): { stop(): void } {
   let running = false
-  const timer = setInterval(() => {
+  const run = () => {
     if (running) return
     running = true
     void tickEvents(deps).finally(() => {
       running = false
     })
-  }, intervalMs)
+  }
+  const timer = setInterval(run, intervalMs)
+  run()
   timer.unref?.()
   return { stop: () => clearInterval(timer) }
 }
