@@ -16,7 +16,7 @@ import { setupCommand } from '../setup/command'
 import { slashEnabled, TURNED_OFF } from './features/toggles'
 import { disabledLine, firstMissing, MissingKeyError } from './requirements'
 
-export const HYPIXEL_SLASH: ReadonlySet<string> = new Set(['gexp', 'guildtop', 'inactive', 'reqs', 'verify', 'force-verify', 'link'])
+export const HYPIXEL_SLASH: ReadonlySet<string> = new Set(['gexp', 'inactive', 'reqs', 'verify', 'force-verify'])
 
 const withDefaultRequirement = (c: SlashCommand): SlashCommand => (HYPIXEL_SLASH.has(c.name) && !c.requires ? { ...c, requires: ['hypixel'] } : c)
 

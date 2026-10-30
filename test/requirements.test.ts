@@ -122,13 +122,13 @@ describe('chat command gating', () => {
 describe('slash command gating', () => {
   const byName = (n: string) => slashCommands.find(c => c.name === n)!
   it('gates the Hypixel-backed slash commands', () => {
-    for (const n of ['gexp', 'guildtop', 'inactive', 'reqs', 'verify', 'force-verify', 'link']) {
+    for (const n of ['gexp', 'inactive', 'reqs', 'verify', 'force-verify']) {
       expect(slashGate(byName(n), noKeys)).toBe(`/${n} is disabled: HYPIXEL_API_KEY is not set.`)
       expect(slashGate(byName(n), allKeys)).toBeUndefined()
     }
   })
   it('leaves the rest alone', () => {
-    for (const n of ['ping', 'online', 'blacklist', 'invite', 'help', 'waitlist']) expect(slashGate(byName(n), noKeys)).toBeUndefined()
+    for (const n of ['ping', 'members', 'blacklist', 'invite', 'help', 'waitlist']) expect(slashGate(byName(n), noKeys)).toBeUndefined()
   })
   it('still publishes Hypixel-gated commands so users see the reply', () => {
     expect(visibleCommands(noKeys).some(c => c.name === 'gexp')).toBe(true)

@@ -71,10 +71,7 @@ describe('withAccountOption', () => {
   })
 
   it('adds the option to each subcommand of a scoped command', () => {
-    const [online] = withAccountOption(
-      [cmd('online', [{ name: 'list', description: 'l', type: ApplicationCommandOptionType.Subcommand, options: [] }])],
-      configs
-    )
+    const [online] = withAccountOption([cmd('gexp', [{ name: 'list', description: 'l', type: ApplicationCommandOptionType.Subcommand, options: [] }])], configs)
     expect((online.options?.[0] as { options?: Array<{ name: string }> }).options?.map(o => o.name)).toEqual(['account'])
   })
 })

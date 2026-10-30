@@ -20,24 +20,20 @@ Permissions: **Everyone**; **Staff** = members with `STAFF_ROLE_ID` (owner-only 
 | `/blacklist add <username> <reason> [discord] [alliance]` | Staff | Add a user to the blacklist |
 | `/blacklist list` | Staff | List the users in the blacklist |
 | `/blacklist remove <username> [alliance]` | Staff | Remove a user from the blacklist |
-| `/credits` | Everyone | Shows credits for this bot. |
 | `/demote <username>` † | Staff | Demotes the given user by one guild rank |
 | `/execute <command>` † | Owner | Executes the given command as the minecraft bot |
 | `/force-unverify <user>` | Staff | Remove another Discord user's link. (Staff only) |
 | `/force-verify <user> <username>` | Staff | Link another Discord user to a Minecraft account. (Staff only) |
 | `/gexp` † | Everyone | Shows the guild's weekly GEXP leaderboard |
-| `/guildtop` † | Everyone | Shows the top 10 weekly guild EXP earners. |
 | `/help` | Everyone | Shows help for the bot! |
 | `/inactive` † | Staff | Lists members below the weekly GEXP requirement |
-| `/information` | Everyone | Shows information about this bot. |
+| `/information` | Everyone | Shows information and credits for this bot. |
 | `/invite <username>` † | Staff | Invites the given user to the guild |
 | `/kick <username> [reason]` † | Staff | Kicks the given user from the guild for the given reason |
-| `/link <username>` | Everyone | Link your Hypixel account to this bot. |
 | `/linked` | Everyone | Check who you're linked as |
-| `/members` † | Everyone | List the guild members the bot is tracking. |
+| `/members` † | Everyone | Lists the guild members the bot is tracking, with a live online count. |
 | `/mute <username> <time>` † | Staff | Mutes the given user for the given time period |
-| `/online` † | Everyone | Number of online members. |
-| `/ping` | Everyone | Shows the bot's Discord gateway ping. |
+| `/ping` | Everyone | Shows the bot's Discord gateway ping and uptime. |
 | `/promote <username>` † | Staff | Promotes the given user by one guild rank |
 | `/reqs` † | Staff | Lists guild members who don't meet the join requirements |
 | `/setrank <username> <rank>` † | Staff | Sets the given users guild rank to the given value |
@@ -47,7 +43,6 @@ Permissions: **Everyone**; **Staff** = members with `STAFF_ROLE_ID` (owner-only 
 | `/setup import <file>` | Owner | Load settings from a /setup export file. |
 | `/unmute <username>` † | Staff | Unmutes the given user |
 | `/unverify` | Everyone | Unlink your Discord account from your Minecraft account. |
-| `/uptime` | Everyone | Shows how long the bot process has been running. |
 | `/verify <username>` | Everyone | Link your Discord account to a Minecraft account. |
 | `/waitlist` | Everyone | Check your position on the guild waitlist |
 | `/whitelist add <username> <reason> [discord]` | Staff | Add a user to the whitelist |

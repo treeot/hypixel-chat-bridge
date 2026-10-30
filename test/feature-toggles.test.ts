@@ -14,7 +14,7 @@ describe('slashEnabled', () => {
     expect(slashEnabled('help', { ...on, slashCommands: { help: false } })).toBe(true)
   })
   it('hides the verify family when verify is off, even if the command switch is on', () => {
-    for (const name of ['verify', 'unverify', 'link', 'linked', 'force-verify', 'force-unverify'])
+    for (const name of ['verify', 'unverify', 'linked', 'force-verify', 'force-unverify'])
       expect(slashEnabled(name, { ...on, verify: false, slashCommands: { [name]: true } })).toBe(false)
   })
   it('hides /alliance when alliance checks are off', () => expect(slashEnabled('alliance', { ...on, allianceChecks: false })).toBe(false))

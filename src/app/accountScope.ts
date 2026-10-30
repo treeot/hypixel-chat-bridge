@@ -19,11 +19,9 @@ export const ACCOUNT_SCOPED_COMMANDS: ReadonlySet<string> = new Set([
   'setrank',
   'invite',
   'execute',
-  'online',
   'inactive',
   'reqs',
   'gexp',
-  'guildtop',
   'members'
 ])
 
