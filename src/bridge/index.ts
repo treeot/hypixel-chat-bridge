@@ -162,7 +162,10 @@ export class Bridge {
       const relayed = this.router.onMinecraftEvent(id, payload)
       this.feed.push(id, 'event', payload)
       if ((payload.type === 'promote' || payload.type === 'demote') && payload.username) {
-        void handleRankChange(this.ctxFor(id), payload.username, payload.toRank)
+        // Fire-and-forget, but self-contained: a failure here must never reject the event handler or the process.
+        void handleRankChange(this.ctxFor(id), payload.username, payload.toRank).catch(error =>
+          log.error(`Unhandled error in ${scope}:rankChange handler`, error)
+        )
       }
       return relayed
     })
