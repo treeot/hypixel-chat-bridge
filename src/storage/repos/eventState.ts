@@ -13,9 +13,20 @@ const docId = (guild: string, eventId: string) => `${guild}_${eventId}`.replace(
 
 export class EventStateRepo {
   private readonly docs: Collection<EventStateDoc>
+  private readonly seeded: Collection<{ id: string }>
 
   constructor(store: Store) {
     this.docs = store.collection<EventStateDoc>('event_state')
+    this.seeded = store.collection<{ id: string }>('event_seeded')
+  }
+
+  /** True once the guild had a successful first poll, even if it had no events then. */
+  async isSeeded(guild: string): Promise<boolean> {
+    return (await this.seeded.get(docId('seeded', guild))) !== null
+  }
+
+  markSeeded(guild: string): Promise<void> {
+    return this.seeded.upsert({ id: docId('seeded', guild) })
   }
 
   /** Every stored event state for the guild; empty means the guild has never been polled. */

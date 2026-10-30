@@ -75,4 +75,18 @@ describe('pollEvents', () => {
     expect(await pollEvents('g', deps)).toEqual([])
     expect(await deps.state.list('g')).toEqual([])
   })
+
+  it('announces the first event of a guild that was polled while empty', async () => {
+    const { box, deps } = setup([])
+    expect(await pollEvents('g', deps)).toEqual([])
+    box.value = [ev('x', 'active')]
+    expect((await pollEvents('g', deps)).map(t => t.kind)).toEqual(['live'])
+  })
+
+  it('does not announce ended for an event never seen before', async () => {
+    const { box, deps } = setup([])
+    await pollEvents('g', deps)
+    box.value = [ev('x', 'finalized')]
+    expect(await pollEvents('g', deps)).toEqual([])
+  })
 })

@@ -16,6 +16,8 @@ export interface EventPollDeps {
 function kindFor(from: string | undefined, to: string): EventTransitionKind | undefined {
   if (from === to) return undefined
   if (to === 'active') return 'live'
+  // An event first seen already over was never announced as live, so ending it is not news.
+  if (from === undefined) return undefined
   if (to === 'finalized') return 'ended'
   if (to === 'cancelled' && from === 'active') return 'cancelled'
   return undefined
@@ -25,11 +27,13 @@ export async function pollEvents(guild: string, deps: EventPollDeps): Promise<Ev
   const events = await deps.client.attempt('events', () => deps.client.listEvents(guild))
   if (!events) return []
 
-  const stored = await deps.state.list(guild)
-  if (stored.length === 0) {
+  if (!(await deps.state.isSeeded(guild))) {
     for (const event of events) await deps.state.set({ guild, eventId: event.id, lastStatus: event.status })
+    await deps.state.markSeeded(guild)
     return []
   }
+
+  const stored = await deps.state.list(guild)
 
   const known = new Map(stored.map(doc => [doc.eventId, doc]))
   const out: EventTransition[] = []
