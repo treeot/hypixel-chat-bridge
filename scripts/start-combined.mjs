@@ -37,13 +37,17 @@ process.on('SIGINT', () => shutdown('SIGINT'))
 
 const dashOn = process.env.DASHBOARD_ENABLED === 'true'
 
+// Treat an empty or whitespace value as unset, the way the bridge itself does; only an explicit
+// 'false' should keep the dashboard endpoints off while DASHBOARD_ENABLED is true.
+const set = v => (v && v.trim() !== '' ? v.trim() : undefined)
+
 // The bridge always runs. It inherits the image's NODE_OPTIONS heap cap (set in the Dockerfile).
 start('bridge', ['dist/index.js'], {
   cwd: '/app',
   env: {
     ...process.env,
-    // Enabling the dashboard turns on the REST endpoints it talks to, unless overridden.
-    ...(dashOn ? { DASHBOARD_API: process.env.DASHBOARD_API ?? 'true' } : {})
+    // Enabling the dashboard turns on the REST endpoints it talks to, unless explicitly set to false.
+    ...(dashOn ? { DASHBOARD_API: set(process.env.DASHBOARD_API) ?? 'true' } : {})
   }
 })
 
