@@ -17,6 +17,26 @@ A web page for running the bridge without editing variables or typing slash comm
 
 If neither `STAFF_ROLE_ID` nor `ADMIN_ROLE_ID` is set, only the owner can log in. Access is checked against the member's Discord roles on every page, so removing a role takes effect right away.
 
+## Two ways to run it
+
+- **One service (combined).** The bridge's own Dockerfile also builds the dashboard; set `DASHBOARD_ENABLED=true` and it runs in the same service, reached over loopback. No second service, no `BRIDGE_URL`/`BRIDGE_TOKEN`. This is the easiest way to add the dashboard to a bridge you already run — redeploy and flip one variable. See [Run it in one service](#run-it-in-one-service).
+- **Two services (split).** A separate dashboard service talks to the bridge over the private network. Isolates the two (a dashboard restart never touches the bot) at the cost of a second service. See [Add the dashboard to an existing bridge](#add-the-dashboard-to-an-existing-bridge).
+
+## Run it in one service
+
+The bridge service builds the dashboard into its image either way; `DASHBOARD_ENABLED` decides whether it starts. To turn it on:
+
+1. On the bridge service, set:
+   - `DASHBOARD_ENABLED` = `true`
+   - `REST_API_TOKEN` = `${{secret(48)}}` (the dashboard uses it to reach the bridge over loopback)
+   - `AUTH_SECRET` = `${{secret(32)}}`, `AUTH_TRUST_HOST` = `true`
+   - `AUTH_DISCORD_ID` and `AUTH_DISCORD_SECRET`: Client ID and Client Secret from your bot's application (Developer Portal → OAuth2)
+2. In **Settings → Networking**, click **Generate domain** and set the port to `3100`.
+3. Add the redirect URL: Discord Developer Portal → your application → OAuth2 → Redirects → add `https://<your domain>/api/auth/callback/discord` and save.
+4. Open the domain and log in with the `OWNER_ID` account.
+
+`DASHBOARD_API`, `BRIDGE_URL` and `BRIDGE_TOKEN` are set for you from the bridge's own variables; you only need them in the split setup. To turn the dashboard off again, set `DASHBOARD_ENABLED=false` (or remove it) and redeploy.
+
 ## Deploy on Railway
 
 The template in the README deploys the bridge and the dashboard together. Before you click **Deploy**, fill in `AUTH_DISCORD_ID` and `AUTH_DISCORD_SECRET` (Developer Portal → your bot's application → OAuth2 → Client ID and Client Secret). After it deploys:
@@ -45,7 +65,8 @@ Already running the bridge from before the dashboard existed? See the next secti
 
 | Variable | Service | Required | Value | What it does |
 |---|---|---|---|---|
-| `DASHBOARD_API` | bridge | required | `true` | Turns on the dashboard endpoints. Default is off. |
+| `DASHBOARD_ENABLED` | bridge | combined only | `true` | Starts the dashboard inside the bridge service. Leave off for the split setup or a bot-only deploy. |
+| `DASHBOARD_API` | bridge | required | `true` | Turns on the dashboard endpoints. Default is off. Set for you when `DASHBOARD_ENABLED=true`. |
 | `REST_API_TOKEN` | bridge | required | random, 16+ characters | Password for the REST API. |
 | `REST_API_PORT` | bridge | required | `3000` | Port the REST API listens on. |
 | `BRIDGE_URL` | dashboard | required | `http://${{bridge.RAILWAY_PRIVATE_DOMAIN}}:3000` | Where the dashboard reaches the bridge (private network). |
