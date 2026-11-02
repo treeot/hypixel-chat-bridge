@@ -26,6 +26,7 @@ import { mentionLookup, replyName, toMinecraftText } from './clean'
 import { REACT, reactionsFor } from './relayOutcome'
 import { collapseRepeats } from '../safety'
 import { isEnabled } from '../util/toggles'
+import { handleGuildMemberAdd } from '../app/features/verify'
 
 export interface DiscordScope {
   readonly accountId: AccountId
@@ -80,6 +81,10 @@ export class Discord implements DiscordApi {
     this.dc.client.on(
       'messageCreate',
       boundary('discord:messageCreate', log, message => this.handleMessage(message))
+    )
+    this.dc.client.on(
+      'guildMemberAdd',
+      boundary('discord:guildMemberAdd', log, member => handleGuildMemberAdd({ info: this.deps.info, log, serverId: env.discordServerId }, member))
     )
 
     await this.dc.start()

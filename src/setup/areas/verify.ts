@@ -8,6 +8,7 @@ export const verifyArea = flatArea({
   description: '`/verify` links a Discord member to their Minecraft account. Optionally give them a role and set their nickname.',
   specs: (): FieldSpec[] => [
     { kind: 'role', key: 'roleId', label: 'Verified role (optional)', optional: true },
+    { kind: 'role', key: 'unverifiedRoleId', label: 'Unverified role on Discord join (optional)', optional: true },
     { kind: 'text', key: 'nicknameTemplate', label: 'Nickname template (must contain {ign})', maxLength: 64, optional: true, placeholder: '{ign} | Guild' }
   ]
 })

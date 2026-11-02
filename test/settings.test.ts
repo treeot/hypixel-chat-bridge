@@ -153,12 +153,14 @@ describe('parseGexpSettings', () => {
 
 describe('parseVerifySettings', () => {
   it('reads the role and template, rejecting a non-ID role', () => {
-    expect(parseVerifySettings({ roleId: ROLE, nicknameTemplate: '{ign} | {discord}' }).settings).toEqual({
+    expect(parseVerifySettings({ roleId: ROLE, unverifiedRoleId: ROLE, nicknameTemplate: '{ign} | {discord}' }).settings).toEqual({
       roleId: ROLE,
+      unverifiedRoleId: ROLE,
       nicknameTemplate: '{ign} | {discord}',
       rankRoles: []
     })
     expect(parseVerifySettings({ roleId: 'Verified' }).problems).toEqual(['verify.roleId must be a Discord ID'])
+    expect(parseVerifySettings({ unverifiedRoleId: 'Unverified' }).problems).toEqual(['verify.unverifiedRoleId must be a Discord ID'])
     expect(parseVerifySettings(null).settings).toEqual({ rankRoles: [] })
   })
 

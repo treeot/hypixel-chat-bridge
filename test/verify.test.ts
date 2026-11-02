@@ -1,5 +1,19 @@
-import { describe, expect, it } from 'vitest'
-import { checkHypixelDiscord, discordTagFor, normalizeDiscordLink, rankRoleUpdate, renderNickname, storeLink } from '../src/app/features/verify'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('../src/services/mojang', () => ({ getUUIDFromUsername: vi.fn() }))
+
+import {
+  applyVerifiedMember,
+  checkHypixelDiscord,
+  discordTagFor,
+  handleGuildDeparture,
+  handleGuildMemberAdd,
+  normalizeDiscordLink,
+  rankRoleUpdate,
+  renderNickname,
+  storeLink
+} from '../src/app/features/verify'
+import { getUUIDFromUsername } from '../src/services/mojang'
 import type { LinkEntry } from '../src/storage/repos'
 
 describe('rankRoleUpdate', () => {
@@ -92,5 +106,89 @@ describe('storeLink', () => {
     const links = memoryLinks([{ id: 'd1', uuid: 'u1', ign: 'Steve' }])
     await storeLink(links, { id: 'd1', uuid: 'u1', ign: 'SteveNew' })
     expect(links.rows.get('d1')).toEqual({ id: 'd1', uuid: 'u1', ign: 'SteveNew' })
+  })
+})
+
+function roleMember(roleIds: string[], guildId = 'guild') {
+  const removed: string[] = []
+  const added: string[] = []
+  const cache = new Set(roleIds)
+  return {
+    member: {
+      id: 'discord-user',
+      guild: { id: guildId, members: { me: { permissions: { has: () => true } } } },
+      roles: {
+        cache: { has: (id: string) => cache.has(id), keys: () => cache.keys() },
+        add: vi.fn(async (id: string) => {
+          added.push(id)
+          cache.add(id)
+        }),
+        remove: vi.fn(async (id: string) => {
+          removed.push(id)
+          cache.delete(id)
+        })
+      }
+    } as never,
+    added,
+    removed
+  }
+}
+
+const log = { warn: vi.fn(), error: vi.fn() } as never
+
+describe('verify role lifecycle', () => {
+  it('adds the configured unverified role only in the configured Discord server', async () => {
+    const info = { get: vi.fn(async () => ({ unverifiedRoleId: '111111111111111111' })) }
+    const inServer = roleMember([])
+    await handleGuildMemberAdd({ info, log, serverId: 'guild' }, inServer.member)
+    expect(inServer.added).toEqual(['111111111111111111'])
+
+    const elsewhere = roleMember([], 'other')
+    await handleGuildMemberAdd({ info, log, serverId: 'guild' }, elsewhere.member)
+    expect(elsewhere.added).toEqual([])
+  })
+
+  it('removes the unverified role on verify while retaining the verified role', async () => {
+    const member = roleMember(['111111111111111111'])
+    const ctx = { info: { get: vi.fn(async () => ({ roleId: '222222222222222222', unverifiedRoleId: '111111111111111111' })) }, log } as never
+    await applyVerifiedMember(ctx, member.member, 'Steve')
+    expect(member.added).toEqual(['222222222222222222'])
+    expect(member.removed).toEqual(['111111111111111111'])
+  })
+})
+
+describe('handleGuildDeparture', () => {
+  it('removes managed rank roles but leaves the verified role and other roles alone', async () => {
+    vi.mocked(getUUIDFromUsername).mockResolvedValueOnce('uuid-1')
+    const member = roleMember(['111111111111111111', '222222222222222222', '333333333333333333'])
+    const ctx = {
+      env: { discordServerId: 'guild' },
+      info: { get: vi.fn(async () => ({ roleId: '111111111111111111', rankRoles: [{ rank: 'VIP', roleId: '222222222222222222' }] })) },
+      log,
+      repos: { link: { getByUuid: vi.fn(async () => ({ id: 'discord-user' })) } },
+      discord: { client: { guilds: { fetch: vi.fn(async () => ({ members: { fetch: vi.fn(async () => member.member) } })) } } }
+    } as never
+
+    await handleGuildDeparture(ctx, 'Steve')
+    expect(member.removed).toEqual(['222222222222222222'])
+    expect(member.member.roles.cache.has('111111111111111111')).toBe(true)
+    expect(member.member.roles.cache.has('333333333333333333')).toBe(true)
+  })
+
+  it('does nothing when the player is not linked', async () => {
+    vi.mocked(getUUIDFromUsername).mockResolvedValueOnce('uuid-2')
+    const member = roleMember(['222222222222222222'])
+    const fetch = vi.fn()
+    const ctx = {
+      env: { discordServerId: 'guild' },
+      info: { get: vi.fn(async () => ({ rankRoles: [{ rank: 'VIP', roleId: '222222222222222222' }] })) },
+      log,
+      repos: { link: { getByUuid: vi.fn(async () => null) } },
+      discord: { client: { guilds: { fetch } } }
+    } as never
+
+    await handleGuildDeparture(ctx, 'Steve')
+    expect(member.removed).toEqual([])
+    expect(fetch).not.toHaveBeenCalled()
   })
 })
