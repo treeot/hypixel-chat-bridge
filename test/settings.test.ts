@@ -10,6 +10,7 @@ import {
   parseRanks,
   parseVerifySettings
 } from '../src/app/features/settings'
+import { verifySettings } from '../src/settings/verify'
 
 const ROLE = '123456789012345678'
 
@@ -152,15 +153,21 @@ describe('parseGexpSettings', () => {
 })
 
 describe('parseVerifySettings', () => {
+  it('accepts the guild member role in the zod settings schema', () => {
+    expect(verifySettings.schema.parse({ guildRoleId: ROLE })).toEqual({ guildRoleId: ROLE })
+  })
+
   it('reads the role and template, rejecting a non-ID role', () => {
-    expect(parseVerifySettings({ roleId: ROLE, unverifiedRoleId: ROLE, nicknameTemplate: '{ign} | {discord}' }).settings).toEqual({
+    expect(parseVerifySettings({ roleId: ROLE, unverifiedRoleId: ROLE, guildRoleId: ROLE, nicknameTemplate: '{ign} | {discord}' }).settings).toEqual({
       roleId: ROLE,
       unverifiedRoleId: ROLE,
+      guildRoleId: ROLE,
       nicknameTemplate: '{ign} | {discord}',
       rankRoles: []
     })
     expect(parseVerifySettings({ roleId: 'Verified' }).problems).toEqual(['verify.roleId must be a Discord ID'])
     expect(parseVerifySettings({ unverifiedRoleId: 'Unverified' }).problems).toEqual(['verify.unverifiedRoleId must be a Discord ID'])
+    expect(parseVerifySettings({ guildRoleId: 'Guild' }).problems).toEqual(['verify.guildRoleId must be a Discord ID'])
     expect(parseVerifySettings(null).settings).toEqual({ rankRoles: [] })
   })
 

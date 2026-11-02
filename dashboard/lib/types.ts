@@ -50,6 +50,10 @@ export interface MemberRow {
   weeklyGexp: number
   belowRequirement: boolean
 }
+export interface GuildMembers {
+  name: string
+  ranks: string[]
+}
 export interface FeatureCatalog {
   chatCommands: { toggle: string; usage: string; description: string; requires: string[] }[]
   slashCommands: { name: string; description: string; requires: string[]; alwaysOn: boolean; feature?: 'verify' | 'allianceChecks' }[]

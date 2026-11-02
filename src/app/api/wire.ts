@@ -19,7 +19,7 @@ import { directoryFromGuild, type DiscordDirectory } from './discordDirectory'
 import { roleFor } from './access'
 import type { DashboardDeps, FeatureCatalog, ListsDeps } from './deps'
 import type { ChatFeed } from './feed'
-import { membersFromGuild, NameCache, type MembersResult } from './members'
+import { guildRankNames, membersFromGuild, NameCache, type MembersResult } from './members'
 
 const ROLE_TTL_MS = 60_000
 const UNKNOWN_MEMBER = 10007
@@ -144,7 +144,7 @@ async function members(ctx: AppContext, names: NameCache, accountId: number): Pr
   const resolved = await names.names(guild.members.map(m => m.uuid))
   return {
     ok: true,
-    guild: { name: guild.name },
+    guild: { name: guild.name, ranks: guildRankNames(guild) },
     members: membersFromGuild(guild, { requirement: gexp.weeklyRequirement, graceDays: gexp.graceDays, now: Date.now() }, resolved)
   }
 }

@@ -13,7 +13,7 @@ type RankRole = { rank?: string; roleId?: string }
 
 /** Verify: the role, the nickname template with a live preview for a player called Steve, and the rank → role map. */
 export function VerifyEditor(props: AreaEditorProps) {
-  const { node, value, onChange, issues, readOnly } = props
+  const { node, value, onChange, issues, readOnly, guildRanks = [] } = props
   const obj = asObj(value)
   const nick = fieldNode(node, 'nicknameTemplate')
   const template = typeof obj.nicknameTemplate === 'string' ? obj.nicknameTemplate : ''
@@ -28,6 +28,7 @@ export function VerifyEditor(props: AreaEditorProps) {
     <>
       <GenericRow field="roleId" {...props} />
       <GenericRow field="unverifiedRoleId" {...props} />
+      <GenericRow field="guildRoleId" {...props} />
       {nick && (
         <SettingRow path="nicknameTemplate" node={nick}>
           <SchemaField
@@ -69,7 +70,22 @@ export function VerifyEditor(props: AreaEditorProps) {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="grid content-start gap-2">
                       <FieldLabel path={`${base}.rank`} small />
-                      {rankRoleItem.fields.rank && (
+                      {rankRoleItem.fields.rank && guildRanks.length > 0 ? (
+                        <>
+                          <input
+                            className="input"
+                            list={`guild-ranks-${i}`}
+                            value={entry.rank ?? ''}
+                            disabled={readOnly}
+                            onChange={e => set('rank', e.target.value)}
+                          />
+                          <datalist id={`guild-ranks-${i}`}>
+                            {guildRanks.map(rank => (
+                              <option key={rank} value={rank} />
+                            ))}
+                          </datalist>
+                        </>
+                      ) : rankRoleItem.fields.rank ? (
                         <SchemaField
                           path={`${base}.rank`}
                           node={rankRoleItem.fields.rank}
@@ -78,7 +94,7 @@ export function VerifyEditor(props: AreaEditorProps) {
                           issues={issues}
                           readOnly={readOnly}
                         />
-                      )}
+                      ) : null}
                     </div>
                     <div className="grid content-start gap-2">
                       <FieldLabel path={`${base}.roleId`} small />

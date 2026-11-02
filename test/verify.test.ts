@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/services/mojang', () => ({ getUUIDFromUsername: vi.fn() }))
+vi.mock('../src/services/gexp', () => ({ fetchGuild: vi.fn() }))
 
 import {
   applyVerifiedMember,
@@ -10,10 +11,13 @@ import {
   handleGuildMemberAdd,
   normalizeDiscordLink,
   rankRoleUpdate,
+  removeVerifiedRole,
   renderNickname,
+  syncRankRole,
   storeLink
 } from '../src/app/features/verify'
 import { getUUIDFromUsername } from '../src/services/mojang'
+import { fetchGuild } from '../src/services/gexp'
 import type { LinkEntry } from '../src/storage/repos'
 
 describe('rankRoleUpdate', () => {
@@ -154,6 +158,36 @@ describe('verify role lifecycle', () => {
     await applyVerifiedMember(ctx, member.member, 'Steve')
     expect(member.added).toEqual(['222222222222222222'])
     expect(member.removed).toEqual(['111111111111111111'])
+  })
+
+  it('adds the guild member role when the linked member is in the guild', async () => {
+    vi.mocked(fetchGuild).mockClear()
+    vi.mocked(fetchGuild).mockResolvedValueOnce({ ok: true, guild: { _id: 'g', name: 'G', members: [{ uuid: 'uuid-1', rank: 'Member', expHistory: {} }] } })
+    const member = roleMember([])
+    const ctx = { env: { hypixelApiKey: 'key' }, info: { get: vi.fn(async () => ({ guildRoleId: '333333333333333333' })) }, log } as never
+    await syncRankRole(ctx, member.member, 'uuid-1', {})
+    expect(member.added).toEqual(['333333333333333333'])
+  })
+
+  it('removes the guild member role when the linked member is not in the guild or departs', async () => {
+    vi.mocked(fetchGuild).mockClear()
+    vi.mocked(fetchGuild).mockResolvedValueOnce({ ok: true, guild: { _id: 'g', name: 'G', members: [] } })
+    const member = roleMember(['333333333333333333'])
+    const ctx = { env: { hypixelApiKey: 'key' }, info: { get: vi.fn(async () => ({ guildRoleId: '333333333333333333' })) }, log } as never
+    await syncRankRole(ctx, member.member, 'uuid-1', {})
+    expect(member.removed).toEqual(['333333333333333333'])
+
+    const departed = roleMember(['333333333333333333'])
+    await syncRankRole(ctx, departed.member, 'uuid-1', { departure: true })
+    expect(departed.removed).toEqual(['333333333333333333'])
+    expect(fetchGuild).toHaveBeenCalledTimes(1)
+  })
+
+  it('removes the guild member role when unlinking', async () => {
+    const member = roleMember(['333333333333333333'])
+    const ctx = { info: { get: vi.fn(async () => ({ guildRoleId: '333333333333333333' })) }, log } as never
+    await removeVerifiedRole(ctx, member.member)
+    expect(member.removed).toEqual(['333333333333333333'])
   })
 })
 

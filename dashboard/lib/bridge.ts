@@ -11,6 +11,7 @@ import type {
   FeatureCatalog,
   LinkEntry,
   MemberRow,
+  GuildMembers,
   PlayerListEntry,
   WaitlistEntry
 } from './types'
@@ -97,7 +98,7 @@ export const bridge = {
     call<{ removed: boolean }>('DELETE', `/lists/waitlist/${seg(accountId)}/${seg(id)}`, { actor }),
   links: () => call<{ entries: LinkEntry[] }>('GET', '/lists/links'),
   linkRemove: (actor: string, discordId: string) => call<{ removed: boolean }>('DELETE', `/lists/links/${seg(discordId)}`, { actor }),
-  members: (accountId: number) => call<{ guild: { name: string }; members: MemberRow[] }>('GET', `/guild/${seg(accountId)}/members`),
+  members: (accountId: number) => call<{ guild: GuildMembers; members: MemberRow[] }>('GET', `/guild/${seg(accountId)}/members`),
   chat: (actor: string, accountId: number, chat: 'guild' | 'officer', message: string, author: string) =>
     call<{ accountId: number }>('POST', '/chat', { actor, body: { accountId, chat, message, author } }),
   command: (actor: string, accountId: number, command: string) => call<{ accountId: number }>('POST', '/command', { actor, body: { accountId, command } }),

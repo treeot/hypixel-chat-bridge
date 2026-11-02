@@ -28,7 +28,7 @@ export const EDITOR_KEYS = {
     ],
     hidden: ['applyMessageId', 'applyPostedIn' /* written by Post Apply button; shown as the Apply button status */]
   },
-  verify: { rendered: ['roleId', 'unverifiedRoleId', 'nicknameTemplate', 'rankRoles'] },
+  verify: { rendered: ['roleId', 'unverifiedRoleId', 'guildRoleId', 'nicknameTemplate', 'rankRoles'] },
   filters: { rendered: ['categories', 'blockedWords', 'allowedWords'] },
   guildlb: { rendered: 'every' },
   branding: { rendered: ['name', 'tagline', 'logoUrl', 'accent', 'loginText'] }

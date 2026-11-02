@@ -16,6 +16,7 @@ export const rankRole = z.strictObject({
 const schema = z.strictObject({
   roleId: snowflake.optional(),
   unverifiedRoleId: snowflake.optional(),
+  guildRoleId: snowflake.optional(),
   nicknameTemplate: z
     .string()
     .min(1)
