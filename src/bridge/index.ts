@@ -21,7 +21,7 @@ import { publishSlashCommands, installSlashDispatch } from '../app/commands'
 import { CommandPublisher } from '../app/commandPublisher'
 import { registerInteractions } from '../app/interactions'
 import { handleJoinRequest, handleGuildJoin } from '../app/features/joinRequest'
-import { handleRankChange } from '../app/features/verify'
+import { handleGuildDeparture, handleRankChange } from '../app/features/verify'
 import { handleSlotFreed } from '../app/features/waitlist'
 import { matchGuildKick } from '../minecraft/parser'
 import { createRestApi } from '../app/api/server'
@@ -173,6 +173,9 @@ export class Bridge {
         void handleRankChange(this.ctxFor(id), payload.username, payload.toRank).catch(error =>
           log.error(`Unhandled error in ${scope}:rankChange handler`, error)
         )
+      }
+      if ((payload.type === 'leave' || payload.type === 'kick') && payload.username) {
+        void handleGuildDeparture(this.ctxFor(id), payload.username).catch(error => log.error(`Unhandled error in ${scope}:guildDeparture handler`, error))
       }
       return relayed
     })

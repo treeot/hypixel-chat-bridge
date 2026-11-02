@@ -46,6 +46,7 @@ export interface RankRole {
 
 export interface VerifySettings {
   roleId?: string
+  unverifiedRoleId?: string
   nicknameTemplate?: string
   rankRoles: RankRole[]
 }
@@ -241,6 +242,8 @@ export function parseVerifySettings(raw: unknown): Parsed<VerifySettings> {
   const settings: VerifySettings = { rankRoles }
   const roleId = read.snowflake('roleId')
   if (roleId) settings.roleId = roleId
+  const unverifiedRoleId = read.snowflake('unverifiedRoleId')
+  if (unverifiedRoleId) settings.unverifiedRoleId = unverifiedRoleId
 
   const template = doc.nicknameTemplate
   if (typeof template === 'string' && template.trim()) {

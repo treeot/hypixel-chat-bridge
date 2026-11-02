@@ -1,5 +1,5 @@
 import type { APIEmbed, ChatInputCommandInteraction, GuildMember } from 'discord.js'
-import { escapeMarkdown } from 'discord.js'
+import { escapeMarkdown, PermissionFlagsBits } from 'discord.js'
 import type { AppContext } from '../context'
 import type { LinkEntry } from '../../storage/repos'
 import { FullEmbed } from '../../discord/format'
@@ -117,13 +117,14 @@ const bareUuid = (uuid: string) => uuid.replaceAll('-', '').toLowerCase()
 /**
  * Give the member the Discord role mapped to their current guild rank, removing any stale rank role.
  * Pass `knownRank` (e.g. the rank from a promote/demote chat line) to skip the Hypixel guild lookup.
+ * Pass `departure: true` after a guild leave/kick to remove all managed rank roles without looking up the guild.
  */
-export async function syncRankRole(ctx: AppContext, member: GuildMember, uuid: string, knownRank?: string): Promise<void> {
+export async function syncRankRole(ctx: AppContext, member: GuildMember, uuid: string, options: { knownRank?: string; departure?: boolean }): Promise<void> {
   const { settings } = await loadVerifySettings(ctx.info)
   if (settings.rankRoles.length === 0) return
 
-  let rank = knownRank
-  if (rank === undefined) {
+  let rank = options.knownRank
+  if (!options.departure && rank === undefined) {
     if (!ctx.env.hypixelApiKey) return
     const result = await fetchGuild({ apiKey: ctx.env.hypixelApiKey, log: ctx.log }, { player: uuid })
     if (!result.ok) {
@@ -156,7 +157,27 @@ export async function applyVerifiedMember(ctx: AppContext, member: GuildMember, 
   if (settings.roleId) {
     await member.roles.add(settings.roleId).catch(error => ctx.log.warn('Could not add the verified role', { id: member.id, error: String(error) }))
   }
-  if (uuid) await syncRankRole(ctx, member, uuid)
+  if (settings.unverifiedRoleId && member.roles.cache.has(settings.unverifiedRoleId)) {
+    await member.roles
+      .remove(settings.unverifiedRoleId)
+      .catch(error => ctx.log.warn('Could not remove the unverified role', { id: member.id, error: String(error) }))
+  }
+  if (uuid) await syncRankRole(ctx, member, uuid, { knownRank: undefined })
+}
+
+/** Add the opt-in unverified role when a member joins the configured Discord server. */
+export async function handleGuildMemberAdd(deps: Pick<AppContext, 'info' | 'log'> & { serverId?: string }, member: GuildMember): Promise<void> {
+  if (!deps.serverId || member.guild.id !== deps.serverId) return
+  const { settings } = await loadVerifySettings(deps.info)
+  if (!settings.unverifiedRoleId) return
+  const botMember = member.guild.members.me
+  if (!botMember?.permissions.has(PermissionFlagsBits.ManageRoles)) {
+    deps.log.warn('Cannot add the unverified role without Manage Roles permission', { id: member.id, role: settings.unverifiedRoleId })
+    return
+  }
+  await member.roles
+    .add(settings.unverifiedRoleId)
+    .catch(error => deps.log.warn('Could not add the unverified role', { id: member.id, role: settings.unverifiedRoleId, error: String(error) }))
 }
 
 /**
@@ -177,7 +198,26 @@ export async function handleRankChange(ctx: AppContext, ign: string, newRank?: s
 
   const guild = await ctx.discord.client.guilds.fetch(serverId).catch(() => null)
   const member = guild ? await guild.members.fetch(link.id).catch(() => null) : null
-  if (member) await syncRankRole(ctx, member, uuid, newRank)
+  if (member) {
+    await syncRankRole(ctx, member, uuid, { knownRank: newRank })
+  }
+}
+
+/** Remove managed rank roles after a linked player leaves or is kicked from the Hypixel guild. */
+export async function handleGuildDeparture(ctx: AppContext, ign: string): Promise<void> {
+  const { settings } = await loadVerifySettings(ctx.info)
+  const serverId = ctx.env.discordServerId
+  if (settings.rankRoles.length === 0 || !serverId) return
+  if (!MINECRAFT_NAME.test(ign)) return
+
+  const uuid = await getUUIDFromUsername(ign, ctx.log)
+  if (!uuid) return
+  const link = await ctx.repos.link.getByUuid(uuid)
+  if (!link) return
+
+  const guild = await ctx.discord.client.guilds.fetch(serverId).catch(() => null)
+  const member = guild ? await guild.members.fetch(link.id).catch(() => null) : null
+  if (member) await syncRankRole(ctx, member, uuid, { departure: true })
 }
 
 export async function removeVerifiedRole(ctx: AppContext, member: GuildMember | null | undefined): Promise<void> {
