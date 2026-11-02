@@ -121,7 +121,7 @@ const bareUuid = (uuid: string) => uuid.replaceAll('-', '').toLowerCase()
  */
 export async function syncRankRole(ctx: AppContext, member: GuildMember, uuid: string, options: { knownRank?: string; departure?: boolean }): Promise<void> {
   const { settings } = await loadVerifySettings(ctx.info)
-  if (settings.rankRoles.length === 0 && !settings.guildRoleId) return
+  if (settings.rankRoles.length === 0 && !settings.guildRoleId && !settings.nonGuildRoleId) return
 
   let rank = options.knownRank
   if (!options.departure && rank === undefined) {
@@ -145,6 +145,19 @@ export async function syncRankRole(ctx: AppContext, member: GuildMember, uuid: s
       await member.roles
         .remove(settings.guildRoleId)
         .catch(error => ctx.log.warn('Could not remove the guild member role', { id: member.id, role: settings.guildRoleId, error: String(error) }))
+    }
+  }
+
+  if (settings.nonGuildRoleId) {
+    const hasRole = member.roles.cache.has(settings.nonGuildRoleId)
+    if (rank === undefined && !hasRole) {
+      await member.roles
+        .add(settings.nonGuildRoleId)
+        .catch(error => ctx.log.warn('Could not add the non-guild member role', { id: member.id, role: settings.nonGuildRoleId, error: String(error) }))
+    } else if (rank !== undefined && hasRole) {
+      await member.roles
+        .remove(settings.nonGuildRoleId)
+        .catch(error => ctx.log.warn('Could not remove the non-guild member role', { id: member.id, role: settings.nonGuildRoleId, error: String(error) }))
     }
   }
 
@@ -201,7 +214,7 @@ export async function handleRankChange(ctx: AppContext, ign: string, newRank?: s
   const { settings } = await loadVerifySettings(ctx.info)
   const serverId = ctx.env.discordServerId
   // The rank comes from the chat line itself, so no Hypixel key is needed on this path.
-  if ((settings.rankRoles.length === 0 && !settings.guildRoleId) || !serverId) return
+  if ((settings.rankRoles.length === 0 && !settings.guildRoleId && !settings.nonGuildRoleId) || !serverId) return
   if (!MINECRAFT_NAME.test(ign)) return
 
   const uuid = await getUUIDFromUsername(ign, ctx.log)
@@ -220,7 +233,7 @@ export async function handleRankChange(ctx: AppContext, ign: string, newRank?: s
 export async function handleGuildDeparture(ctx: AppContext, ign: string): Promise<void> {
   const { settings } = await loadVerifySettings(ctx.info)
   const serverId = ctx.env.discordServerId
-  if ((settings.rankRoles.length === 0 && !settings.guildRoleId) || !serverId) return
+  if ((settings.rankRoles.length === 0 && !settings.guildRoleId && !settings.nonGuildRoleId) || !serverId) return
   if (!MINECRAFT_NAME.test(ign)) return
 
   const uuid = await getUUIDFromUsername(ign, ctx.log)
@@ -249,6 +262,11 @@ export async function removeVerifiedRole(ctx: AppContext, member: GuildMember | 
     await member.roles
       .remove(settings.guildRoleId)
       .catch(error => ctx.log.warn('Could not remove the guild member role', { id: member.id, role: settings.guildRoleId, error: String(error) }))
+  }
+  if (settings.nonGuildRoleId && member.roles.cache.has(settings.nonGuildRoleId)) {
+    await member.roles
+      .remove(settings.nonGuildRoleId)
+      .catch(error => ctx.log.warn('Could not remove the non-guild member role', { id: member.id, role: settings.nonGuildRoleId, error: String(error) }))
   }
 }
 

@@ -213,6 +213,10 @@ export const SETTINGS_COPY: Partial<Record<AreaId, Record<string, FieldCopy>>> =
       label: 'Guild member role (optional)',
       help: 'Discord role given to every verified member who is in the Hypixel guild, removed if they leave.'
     },
+    nonGuildRoleId: {
+      label: 'Non-guild member role (optional)',
+      help: 'Discord role given to every verified member who is NOT in the Hypixel guild, removed if they join.'
+    },
     nicknameTemplate: {
       label: 'Nickname template (optional)',
       help: "{ign} becomes the player's Minecraft name. Discord limits nicknames to 32 characters.",

@@ -29,6 +29,7 @@ export function VerifyEditor(props: AreaEditorProps) {
       <GenericRow field="roleId" {...props} />
       <GenericRow field="unverifiedRoleId" {...props} />
       <GenericRow field="guildRoleId" {...props} />
+      <GenericRow field="nonGuildRoleId" {...props} />
       {nick && (
         <SettingRow path="nicknameTemplate" node={nick}>
           <SchemaField

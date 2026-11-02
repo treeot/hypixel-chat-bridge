@@ -48,6 +48,7 @@ export interface VerifySettings {
   roleId?: string
   unverifiedRoleId?: string
   guildRoleId?: string
+  nonGuildRoleId?: string
   nicknameTemplate?: string
   rankRoles: RankRole[]
 }
@@ -247,6 +248,8 @@ export function parseVerifySettings(raw: unknown): Parsed<VerifySettings> {
   if (unverifiedRoleId) settings.unverifiedRoleId = unverifiedRoleId
   const guildRoleId = read.snowflake('guildRoleId')
   if (guildRoleId) settings.guildRoleId = guildRoleId
+  const nonGuildRoleId = read.snowflake('nonGuildRoleId')
+  if (nonGuildRoleId) settings.nonGuildRoleId = nonGuildRoleId
 
   const template = doc.nicknameTemplate
   if (typeof template === 'string' && template.trim()) {

@@ -189,6 +189,36 @@ describe('verify role lifecycle', () => {
     await removeVerifiedRole(ctx, member.member)
     expect(member.removed).toEqual(['333333333333333333'])
   })
+
+  it('adds the non-guild member role when the linked member is not in the guild or departs', async () => {
+    vi.mocked(fetchGuild).mockClear()
+    vi.mocked(fetchGuild).mockResolvedValueOnce({ ok: true, guild: { _id: 'g', name: 'G', members: [] } })
+    const member = roleMember([])
+    const ctx = { env: { hypixelApiKey: 'key' }, info: { get: vi.fn(async () => ({ nonGuildRoleId: '444444444444444444' })) }, log } as never
+    await syncRankRole(ctx, member.member, 'uuid-1', {})
+    expect(member.added).toEqual(['444444444444444444'])
+
+    const departed = roleMember([])
+    await syncRankRole(ctx, departed.member, 'uuid-1', { departure: true })
+    expect(departed.added).toEqual(['444444444444444444'])
+    expect(fetchGuild).toHaveBeenCalledTimes(1)
+  })
+
+  it('removes the non-guild member role when the linked member is in the guild', async () => {
+    vi.mocked(fetchGuild).mockClear()
+    vi.mocked(fetchGuild).mockResolvedValueOnce({ ok: true, guild: { _id: 'g', name: 'G', members: [{ uuid: 'uuid-1', rank: 'Member', expHistory: {} }] } })
+    const member = roleMember(['444444444444444444'])
+    const ctx = { env: { hypixelApiKey: 'key' }, info: { get: vi.fn(async () => ({ nonGuildRoleId: '444444444444444444' })) }, log } as never
+    await syncRankRole(ctx, member.member, 'uuid-1', {})
+    expect(member.removed).toEqual(['444444444444444444'])
+  })
+
+  it('removes the non-guild member role when unlinking', async () => {
+    const member = roleMember(['444444444444444444'])
+    const ctx = { info: { get: vi.fn(async () => ({ nonGuildRoleId: '444444444444444444' })) }, log } as never
+    await removeVerifiedRole(ctx, member.member)
+    expect(member.removed).toEqual(['444444444444444444'])
+  })
 })
 
 describe('handleGuildDeparture', () => {
