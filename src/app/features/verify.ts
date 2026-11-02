@@ -119,12 +119,7 @@ const bareUuid = (uuid: string) => uuid.replaceAll('-', '').toLowerCase()
  * Pass `knownRank` (e.g. the rank from a promote/demote chat line) to skip the Hypixel guild lookup.
  * Pass `departure: true` after a guild leave/kick to remove all managed rank roles without looking up the guild.
  */
-export async function syncRankRole(
-  ctx: AppContext,
-  member: GuildMember,
-  uuid: string,
-  options: { knownRank?: string; departure?: boolean }
-): Promise<void> {
+export async function syncRankRole(ctx: AppContext, member: GuildMember, uuid: string, options: { knownRank?: string; departure?: boolean }): Promise<void> {
   const { settings } = await loadVerifySettings(ctx.info)
   if (settings.rankRoles.length === 0) return
 
@@ -163,18 +158,15 @@ export async function applyVerifiedMember(ctx: AppContext, member: GuildMember, 
     await member.roles.add(settings.roleId).catch(error => ctx.log.warn('Could not add the verified role', { id: member.id, error: String(error) }))
   }
   if (settings.unverifiedRoleId && member.roles.cache.has(settings.unverifiedRoleId)) {
-    await member.roles.remove(settings.unverifiedRoleId).catch(error =>
-      ctx.log.warn('Could not remove the unverified role', { id: member.id, error: String(error) })
-    )
+    await member.roles
+      .remove(settings.unverifiedRoleId)
+      .catch(error => ctx.log.warn('Could not remove the unverified role', { id: member.id, error: String(error) }))
   }
   if (uuid) await syncRankRole(ctx, member, uuid, { knownRank: undefined })
 }
 
 /** Add the opt-in unverified role when a member joins the configured Discord server. */
-export async function handleGuildMemberAdd(
-  deps: Pick<AppContext, 'info' | 'log'> & { serverId?: string },
-  member: GuildMember
-): Promise<void> {
+export async function handleGuildMemberAdd(deps: Pick<AppContext, 'info' | 'log'> & { serverId?: string }, member: GuildMember): Promise<void> {
   if (!deps.serverId || member.guild.id !== deps.serverId) return
   const { settings } = await loadVerifySettings(deps.info)
   if (!settings.unverifiedRoleId) return
@@ -183,9 +175,9 @@ export async function handleGuildMemberAdd(
     deps.log.warn('Cannot add the unverified role without Manage Roles permission', { id: member.id, role: settings.unverifiedRoleId })
     return
   }
-  await member.roles.add(settings.unverifiedRoleId).catch(error =>
-    deps.log.warn('Could not add the unverified role', { id: member.id, role: settings.unverifiedRoleId, error: String(error) })
-  )
+  await member.roles
+    .add(settings.unverifiedRoleId)
+    .catch(error => deps.log.warn('Could not add the unverified role', { id: member.id, role: settings.unverifiedRoleId, error: String(error) }))
 }
 
 /**

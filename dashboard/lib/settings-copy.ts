@@ -208,6 +208,7 @@ export const SETTINGS_COPY: Partial<Record<AreaId, Record<string, FieldCopy>>> =
   },
   verify: {
     roleId: { label: 'Verified role (optional)', help: 'Discord role given to members who link their Minecraft account.' },
+    unverifiedRoleId: { label: 'Unverified role (optional)', help: 'Discord role given to members when they join the server, removed once they verify.' },
     nicknameTemplate: {
       label: 'Nickname template (optional)',
       help: "{ign} becomes the player's Minecraft name. Discord limits nicknames to 32 characters.",

@@ -175,9 +175,7 @@ export class Bridge {
         )
       }
       if ((payload.type === 'leave' || payload.type === 'kick') && payload.username) {
-        void handleGuildDeparture(this.ctxFor(id), payload.username).catch(error =>
-          log.error(`Unhandled error in ${scope}:guildDeparture handler`, error)
-        )
+        void handleGuildDeparture(this.ctxFor(id), payload.username).catch(error => log.error(`Unhandled error in ${scope}:guildDeparture handler`, error))
       }
       return relayed
     })
