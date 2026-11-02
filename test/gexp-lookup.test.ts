@@ -3,9 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('../src/services/hypixel', () => ({ hypixelGet: vi.fn() }))
 
 import { hypixelGet } from '../src/services/hypixel'
-import { fetchGuild, getGuild } from '../src/services/gexp'
+import { clearGuildCache, fetchGuild, getGuild } from '../src/services/gexp'
 
-beforeEach(() => vi.mocked(hypixelGet).mockRestore())
+beforeEach(() => {
+  vi.mocked(hypixelGet).mockRestore()
+  clearGuildCache()
+})
 
 describe('fetchGuild', () => {
   it('returns the guild with join times', async () => {
@@ -42,10 +45,29 @@ describe('fetchGuild', () => {
     expect(await fetchGuild({ apiKey: 'k' }, { player: 'u1' })).toEqual({ ok: true, guild: null })
 
     vi.mocked(hypixelGet).mockResolvedValue({ data: { success: false } } as never)
-    expect(await fetchGuild({ apiKey: 'k' }, { player: 'u1' })).toEqual({ ok: false })
+    expect(await fetchGuild({ apiKey: 'k' }, { player: 'u2' })).toEqual({ ok: false })
 
     vi.mocked(hypixelGet).mockRejectedValue(new Error('timeout'))
-    expect(await fetchGuild({ apiKey: 'k' }, { player: 'u1' })).toEqual({ ok: false })
+    expect(await fetchGuild({ apiKey: 'k' }, { player: 'u3' })).toEqual({ ok: false })
+  })
+
+  it('caches a successful lookup and re-fetches after clearing', async () => {
+    vi.mocked(hypixelGet).mockResolvedValue({ data: { success: true, guild: { _id: 'g1', name: 'Guild', members: [] } } } as never)
+    const first = await fetchGuild({ apiKey: 'k' }, { id: 'g1' })
+    const second = await fetchGuild({ apiKey: 'k' }, { id: 'g1' })
+    expect(second).toEqual(first)
+    expect(hypixelGet).toHaveBeenCalledTimes(1)
+
+    clearGuildCache()
+    await fetchGuild({ apiKey: 'k' }, { id: 'g1' })
+    expect(hypixelGet).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not cache a failed lookup', async () => {
+    vi.mocked(hypixelGet).mockResolvedValue({ data: { success: false } } as never)
+    await fetchGuild({ apiKey: 'k' }, { id: 'g9' })
+    vi.mocked(hypixelGet).mockResolvedValue({ data: { success: true, guild: { _id: 'g9', name: 'Later', members: [] } } } as never)
+    expect(await fetchGuild({ apiKey: 'k' }, { id: 'g9' })).toEqual({ ok: true, guild: { _id: 'g9', name: 'Later', members: [] } })
   })
 
   it('needs a lookup key', async () => {

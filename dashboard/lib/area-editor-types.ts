@@ -23,6 +23,8 @@ export interface AreaEditorProps<V = unknown> {
   accountId?: number
   /** The bot's Discord channels and roles; null when unavailable (fall back to typed ids). */
   discord: DiscordDirectory | null
+  /** Rank names from the selected account's current Hypixel guild; empty when unavailable. */
+  guildRanks?: readonly string[]
   /** Every account the bot knows (label, id, online…), for naming accounts with lib/labels accountName. */
   accounts: AccountInfo[]
   /**

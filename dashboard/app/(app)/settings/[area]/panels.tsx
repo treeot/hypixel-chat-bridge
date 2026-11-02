@@ -21,6 +21,7 @@ export function AreaForm({
   readOnly,
   accountId,
   discord,
+  guildRanks = [],
   accounts,
   accountsUnavailable,
   missingKey = null
@@ -31,6 +32,7 @@ export function AreaForm({
   readOnly: boolean
   accountId?: number
   discord: DiscordDirectory | null
+  guildRanks?: readonly string[]
   accounts: AccountInfo[]
   /** The account list couldn't be read, so `accounts` is empty rather than known. */
   accountsUnavailable: boolean
@@ -46,6 +48,7 @@ export function AreaForm({
       partial={accountId !== undefined}
       options={FORM_OPTIONS[area]}
       discord={discord}
+      guildRanks={guildRanks}
       editor={AREA_EDITORS[area]}
       accounts={accounts}
       accountsUnavailable={accountsUnavailable}

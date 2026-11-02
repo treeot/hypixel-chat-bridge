@@ -31,6 +31,17 @@ function guildRanks(raw: unknown[]): NonNullable<Guild['ranks']> {
   })
 }
 
+// Short-lived cache so a burst of verifies (or the bot and dashboard fetching together) doesn't hit
+// the Hypixel guild endpoint repeatedly. Only successful lookups are cached; a transient failure must
+// not be remembered. Keyed by the lookup type and value, not the API key.
+const GUILD_CACHE_TTL_MS = 60 * 1000
+const guildCache = new Map<string, { at: number; value: GuildLookup }>()
+
+/** Clear the fetchGuild cache (tests). */
+export function clearGuildCache(): void {
+  guildCache.clear()
+}
+
 /** Fetch a guild by player uuid, guild id or name. `guild: null` = no such guild; `ok: false` = the request failed. */
 export async function fetchGuild(deps: { apiKey: string; log?: Logger }, opts: { player?: string; id?: string; name?: string }): Promise<GuildLookup> {
   const params: Record<string, string> = {}
@@ -42,25 +53,31 @@ export async function fetchGuild(deps: { apiKey: string; log?: Logger }, opts: {
     return { ok: false }
   }
 
+  const cacheKey = `${Object.keys(params)[0]}:${Object.values(params)[0]}`
+  const hit = guildCache.get(cacheKey)
+  if (hit && Date.now() - hit.at < GUILD_CACHE_TTL_MS) return hit.value
+
   try {
     const { data } = await hypixelGet('/v2/guild', deps.apiKey, params)
     if (!data?.success) return { ok: false }
-    if (!data.guild) return { ok: true, guild: null }
-    const guild = data.guild
-    return {
-      ok: true,
-      guild: {
-        _id: guild._id,
-        name: guild.name,
-        members: (guild.members ?? []).map((m: any) => ({
-          uuid: m.uuid,
-          rank: m.rank,
-          ...(typeof m.joined === 'number' ? { joined: m.joined } : {}),
-          expHistory: m.expHistory ?? {}
-        })),
-        ...(Array.isArray(guild.ranks) ? { ranks: guildRanks(guild.ranks) } : {})
-      }
-    }
+    const value: GuildLookup = data.guild
+      ? {
+          ok: true,
+          guild: {
+            _id: data.guild._id,
+            name: data.guild.name,
+            members: (data.guild.members ?? []).map((m: any) => ({
+              uuid: m.uuid,
+              rank: m.rank,
+              ...(typeof m.joined === 'number' ? { joined: m.joined } : {}),
+              expHistory: m.expHistory ?? {}
+            })),
+            ...(Array.isArray(data.guild.ranks) ? { ranks: guildRanks(data.guild.ranks) } : {})
+          }
+        }
+      : { ok: true, guild: null }
+    guildCache.set(cacheKey, { at: Date.now(), value })
+    return value
   } catch (error) {
     deps.log?.error('Error fetching guild from Hypixel API', error, { opts })
     return { ok: false }

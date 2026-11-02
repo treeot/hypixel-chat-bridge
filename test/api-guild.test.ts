@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { membersFromGuild, NameCache } from '../src/app/api/members'
+import { guildRankNames, membersFromGuild, NameCache } from '../src/app/api/members'
 import { startApi } from './helpers/apiHarness'
 
 describe('membersFromGuild', () => {
@@ -17,6 +17,13 @@ describe('membersFromGuild', () => {
       { uuid: 'a', username: 'Alice', rank: 'Member', joined: 1, weeklyGexp: 150, belowRequirement: true },
       { uuid: 'b', username: null, rank: 'Officer', joined: null, weeklyGexp: 5000, belowRequirement: false }
     ])
+  })
+})
+
+describe('guildRankNames', () => {
+  it('returns trimmed, unique configured guild rank names', () => {
+    expect(guildRankNames({ ranks: [{ name: ' Member ' }, { name: 'Officer' }, { name: ' Member ' }] })).toEqual(['Member', 'Officer'])
+    expect(guildRankNames({})).toEqual([])
   })
 })
 
@@ -69,5 +76,12 @@ describe('GET /guild/:accountId/members', () => {
   it('passes the failure status through', async () => {
     api = await startApi({ guild: { members: async () => ({ ok: false, status: 503, error: 'Account 1 is offline' }) } })
     expect((await api.call('GET', '/guild/1/members')).status).toBe(503)
+  })
+
+  it('includes guild rank names in the member response', async () => {
+    api = await startApi({ guild: { members: async () => ({ ok: true, guild: { name: 'G', ranks: ['Member', 'Officer'] }, members: [] }) } })
+    const response = await api.call('GET', '/guild/1/members')
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ guild: { name: 'G', ranks: ['Member', 'Officer'] }, members: [] })
   })
 })

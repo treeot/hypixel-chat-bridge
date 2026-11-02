@@ -8,7 +8,12 @@ export interface MemberRow {
   weeklyGexp: number
   belowRequirement: boolean
 }
-export type MembersResult = { ok: true; guild: { name: string }; members: MemberRow[] } | { ok: false; status: 404 | 409 | 502 | 503; error: string }
+export type MembersResult =
+  { ok: true; guild: { name: string; ranks: string[] }; members: MemberRow[] } | { ok: false; status: 404 | 409 | 502 | 503; error: string }
+
+export function guildRankNames(guild: Pick<Guild, 'ranks'>): string[] {
+  return [...new Set((guild.ranks ?? []).map(rank => rank.name.trim()).filter(Boolean))]
+}
 
 export function membersFromGuild(guild: Guild, opts: { requirement: number; graceDays: number; now: number }, names: Map<string, string | null>): MemberRow[] {
   const summary = gexpSummary(guild, opts)

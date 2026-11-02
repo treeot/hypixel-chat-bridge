@@ -513,6 +513,7 @@ export function SchemaForm({
   partial = false,
   options = {},
   discord = null,
+  guildRanks = [],
   editor: Editor,
   accounts = [],
   accountsUnavailable = false,
@@ -530,6 +531,8 @@ export function SchemaForm({
   options?: FormOptions
   /** The bridge's Discord channels and roles; null falls back to typed ids. */
   discord?: DiscordDirectory | null
+  /** Rank names from the selected account's current Hypixel guild; empty when unavailable. */
+  guildRanks?: readonly string[]
   /** A custom body for this area (from AREA_EDITORS); the generic fields render without one. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- editors narrow the value to their area's type
   editor?: ComponentType<AreaEditorProps<any>>
@@ -635,6 +638,7 @@ export function SchemaForm({
       partial={partial}
       accountId={accountId}
       discord={discord}
+      guildRanks={guildRanks}
       accounts={accounts}
       accountsUnavailable={accountsUnavailable}
       missingKey={missingKey}

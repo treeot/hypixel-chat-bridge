@@ -17,6 +17,8 @@ const schema = z
   .strictObject({
     roleId: snowflake.optional(),
     unverifiedRoleId: snowflake.optional(),
+    guildRoleId: snowflake.optional(),
+    nonGuildRoleId: snowflake.optional(),
     nicknameTemplate: z
       .string()
       .min(1)

@@ -61,6 +61,9 @@ export default async function SettingsAreaPage({ params, searchParams }: { param
 
   const overridable = isOverridable(area)
   const tab = overridable && account && list.some(a => String(a.id) === account) ? account : 'shared'
+  const rankAccountId = tab === 'shared' ? current?.id : Number(tab)
+  const guildRanksResult = area === 'verify' && rankAccountId ? await bridge.members(rankAccountId) : null
+  const guildRanks = guildRanksResult?.ok ? guildRanksResult.data.guild.ranks : []
   let body: React.ReactNode
   if (tab !== 'shared') {
     const id = Number(tab)
@@ -75,6 +78,7 @@ export default async function SettingsAreaPage({ params, searchParams }: { param
         readOnly={readOnly}
         accountId={id}
         discord={discord}
+        guildRanks={guildRanks}
         accounts={list}
         accountsUnavailable={accountsUnavailable}
         missingKey={missingKey}
@@ -91,6 +95,7 @@ export default async function SettingsAreaPage({ params, searchParams }: { param
         initial={settings.data.settings[area]}
         readOnly={readOnly}
         discord={discord}
+        guildRanks={guildRanks}
         accounts={list}
         accountsUnavailable={accountsUnavailable}
         missingKey={missingKey}
