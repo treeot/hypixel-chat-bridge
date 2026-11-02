@@ -84,6 +84,7 @@ export function VerifyEditor(props: AreaEditorProps) {
                               <option key={rank} value={rank} />
                             ))}
                           </datalist>
+                          <FieldErrors path={`${base}.rank`} issues={issues} />
                         </>
                       ) : rankRoleItem.fields.rank ? (
                         <SchemaField

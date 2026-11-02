@@ -57,6 +57,33 @@ describe('SettingsStore', () => {
     expect(writes).toEqual([])
   })
 
+  it('rejects a duplicate rank role on write but keeps duplicates readable', async () => {
+    const { info, writes } = memoryInfo()
+    const store = new SettingsStore(info)
+    const dup = [
+      { rank: 'Beginner Angler', roleId: '100000000000000001' },
+      { rank: 'beginner angler', roleId: '100000000000000002' }
+    ]
+    await expect(store.write('verify', { rankRoles: dup })).rejects.toMatchObject({
+      area: 'verify',
+      issues: [expect.stringMatching(/^rankRoles\.1\.rank: /)]
+    })
+    expect(writes).toEqual([])
+
+    // Unique ranks save fine.
+    await store.write('verify', {
+      rankRoles: [
+        { rank: 'Beginner Angler', roleId: '100000000000000001' },
+        { rank: 'Fish Fanatic', roleId: '100000000000000002' }
+      ]
+    })
+    expect(writes).toEqual(['verify'])
+
+    // A duplicate config already in the DB stays visible so it can be edited and fixed.
+    const read = await new SettingsStore(memoryInfo({ verify: { rankRoles: dup } }).info).read('verify')
+    expect(read.rankRoles).toHaveLength(2)
+  })
+
   it('writes the stored shape (commands flat) to the area doc', async () => {
     const { info, docs } = memoryInfo()
     await new SettingsStore(info).write('commands', { prefix: '?', toggles: { networth: false } })
