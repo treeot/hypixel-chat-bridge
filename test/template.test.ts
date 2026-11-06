@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { escapeMd, renderTemplate, safeWebhookUsername, templateValues, truncate, type TemplateValues } from '../src/discord/renderers/template'
 
 const v = (o: Partial<TemplateValues> = {}): TemplateValues => ({
+  guild: undefined,
   source: undefined,
   chat: 'Guild',
   rank: '[MVP+]',
@@ -18,6 +19,8 @@ describe('renderTemplate', () => {
     ['{rank} {name} {guildRank}', v({ guildRank: undefined }), '[MVP+] Steve'],
     ['{source} {rank} {name} {guildRank}', v({ rank: undefined, guildRank: undefined }), 'Steve'],
     ['{source} {rank} {name} {guildRank}', v({ source: '[GuildA]' }), '[GuildA] [MVP+] Steve [Elite]'],
+    ['{guild} {rank} {name}', v({ guild: 'Ducks' }), 'Ducks [MVP+] Steve'],
+    ['[{guild}] {name}', v(), 'Steve'],
     ['{source} **{rank} {name}:** {message}', v({ rank: undefined }), '**Steve:** hi'],
     ['{chat} | {name}', v(), 'Guild | Steve'],
     ['{{name}} {name} {unknown}', v(), '{name} Steve {unknown}']
@@ -30,7 +33,8 @@ describe('renderTemplate', () => {
   })
 
   it('builds values from a render input', () => {
-    expect(templateValues({ account: { id: '1' }, kind: 'officer', sender: 'Steve', message: 'x', sourceLabel: 'GuildA' })).toEqual({
+    expect(templateValues({ account: { id: '1', label: 'Ducks' }, kind: 'officer', sender: 'Steve', message: 'x', sourceLabel: 'GuildA' })).toEqual({
+      guild: 'Ducks',
       source: '[GuildA]',
       sourceName: 'GuildA',
       chat: 'Officer',

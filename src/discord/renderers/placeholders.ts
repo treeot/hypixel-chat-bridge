@@ -6,8 +6,12 @@ import type { RenderInput } from '../../core/contracts'
  *
  * `{rank}`, `{guildRank}` and `{source}` come wrapped in brackets ([MVP+]); the `…Name` versions are
  * the bare text (MVP+), for templates that want their own wrapping like `({guildRankName})`.
+ *
+ * `{guild}` is this account's own label, set on every line (including an account's own), so a channel
+ * shared by several accounts can tag each line with the guild it came from. `{source}`, by contrast,
+ * is only filled for lines relayed in from an allied guild.
  */
-export const PLACEHOLDERS = ['source', 'sourceName', 'chat', 'rank', 'rankName', 'name', 'guildRank', 'guildRankName', 'message'] as const
+export const PLACEHOLDERS = ['guild', 'source', 'sourceName', 'chat', 'rank', 'rankName', 'name', 'guildRank', 'guildRankName', 'message'] as const
 export type Placeholder = (typeof PLACEHOLDERS)[number]
 export type TemplateValues = Record<Placeholder, string | undefined>
 
@@ -15,6 +19,7 @@ const bracket = (value: string | undefined) => (value ? `[${value}]` : undefined
 
 export function templateValues(input: RenderInput): TemplateValues {
   return {
+    guild: input.account.label || undefined,
     source: bracket(input.sourceLabel),
     sourceName: input.sourceLabel || undefined,
     chat: input.kind === 'guild' ? 'Guild' : 'Officer',

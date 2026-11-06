@@ -8,6 +8,7 @@ export { renderTemplate, type Placeholder, type TemplateValues }
 
 /** The variables a template can use, in chip order, with what each becomes. */
 export const PLACEHOLDERS: { key: Placeholder; meaning: string }[] = [
+  { key: 'guild', meaning: "this account's own guild label, e.g. Guild 1; set on every line, including your own" },
   { key: 'source', meaning: 'allied guild label on relayed lines, e.g. [Alt]; empty for your own guild' },
   { key: 'chat', meaning: 'Guild or Officer' },
   { key: 'rank', meaning: 'Hypixel rank, e.g. [MVP+]' },
@@ -21,6 +22,7 @@ export const PLACEHOLDERS: { key: Placeholder; meaning: string }[] = [
 
 /** Sample line for previews: Steve, [MVP+], guild rank Officer, saying "hello". */
 export const SAMPLE_VALUES: TemplateValues = {
+  guild: 'Guild 1',
   source: '[Main]',
   sourceName: 'Main',
   chat: 'Guild',

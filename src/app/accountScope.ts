@@ -56,12 +56,18 @@ export interface AccountLookup<A> {
 export function resolveAccount<A>(
   accounts: AccountLookup<A>,
   explicit: number | null,
-  channelId: string | null
+  channelId: string | null,
+  opts: { rejectSharedWithoutChoice?: boolean } = {}
 ): { ok: true; account: A } | { ok: false; error: string } {
   if (explicit !== null) {
     const account = accounts.get(explicit)
     return account ? { ok: true, account } : { ok: false, error: `There is no account ${explicit}.` }
   }
-  const owned = channelId ? accounts.byChannel(channelId)[0]?.account : undefined
-  return { ok: true, account: owned ?? accounts.defaultAccount() }
+  const owners = channelId ? accounts.byChannel(channelId) : []
+  // One account can own a channel as both its guild and officer chat, so count distinct accounts, not entries.
+  const distinct = new Set(owners.map(o => o.account))
+  if (opts.rejectSharedWithoutChoice && distinct.size > 1) {
+    return { ok: false, error: `This channel is shared by ${distinct.size} guilds. Choose which one with the \`${ACCOUNT_OPTION}\` option.` }
+  }
+  return { ok: true, account: owners[0]?.account ?? accounts.defaultAccount() }
 }
