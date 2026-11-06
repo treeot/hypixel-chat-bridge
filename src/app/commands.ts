@@ -5,7 +5,7 @@ import { SimpleEmbed } from '../discord/format'
 import type { AppContext } from './context'
 import type { SlashCommand } from './context'
 import { isAdmin, isStaff } from './permissions'
-import { ACCOUNT_OPTION, resolveAccount, withAccount, withAccountOption } from './accountScope'
+import { ACCOUNT_OPTION, ACCOUNT_SCOPED_COMMANDS, resolveAccount, withAccount, withAccountOption } from './accountScope'
 import { moderationCommands } from './commands/moderation'
 import { utilityCommands } from './commands/utility'
 import { gexpCommands } from './commands/gexp'
@@ -118,7 +118,9 @@ async function runCommand(interaction: ChatInputCommandInteraction, ctx: AppCont
     return
   }
 
-  const choice = resolveAccount(ctx.accounts, interaction.options.getInteger(ACCOUNT_OPTION), interaction.channelId)
+  const choice = resolveAccount(ctx.accounts, interaction.options.getInteger(ACCOUNT_OPTION), interaction.channelId, {
+    rejectSharedWithoutChoice: ACCOUNT_SCOPED_COMMANDS.has(command.name)
+  })
   if (!choice.ok) {
     await interaction.reply({ embeds: [SimpleEmbed('failure', choice.error)], ephemeral: true })
     return

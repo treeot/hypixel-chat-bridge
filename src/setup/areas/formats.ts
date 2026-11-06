@@ -55,7 +55,7 @@ export const TEMPLATE_LABELS: Record<TemplateKey, string> = {
 }
 
 const PLACEHOLDER_HELP =
-  'Placeholders: `{source}` `{chat}` `{rank}` `{name}` `{guildRank}` `{message}`. Without brackets: `{sourceName}` `{rankName}` `{guildRankName}`.'
+  'Placeholders: `{guild}` `{source}` `{chat}` `{rank}` `{name}` `{guildRank}` `{message}`. Without brackets: `{sourceName}` `{rankName}` `{guildRankName}`. `{guild}` is this account’s own label — use it to tag lines by guild when several accounts share a channel.'
 
 export function bridgedChannels(accounts: readonly AccountView[]): Array<{ channelId: string; label: string }> {
   const labels = new Map<string, string[]>()

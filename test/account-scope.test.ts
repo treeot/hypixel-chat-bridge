@@ -79,13 +79,31 @@ describe('withAccountOption', () => {
 describe('resolveAccount', () => {
   const lookup = {
     get: (id: number) => (({ 1: 'A1', 2: 'A2' }) as Record<number, string>)[id],
-    byChannel: (channelId: string) => (channelId === 'cb' ? [{ account: 'A2' }] : []),
+    byChannel: (channelId: string) =>
+      channelId === 'cb'
+        ? [{ account: 'A2' }]
+        : channelId === 'shared'
+          ? [{ account: 'A1' }, { account: 'A2' }]
+          : channelId === 'dual' // one account owns the channel as both its guild and officer chat
+            ? [{ account: 'A1' }, { account: 'A1' }]
+            : [],
     defaultAccount: () => 'A1'
   }
   it('uses the explicit option first', () => expect(resolveAccount(lookup, 2, 'ca')).toEqual({ ok: true, account: 'A2' }))
   it('rejects an unknown explicit id', () => expect(resolveAccount(lookup, 9, null)).toEqual({ ok: false, error: 'There is no account 9.' }))
   it('then the account owning the channel', () => expect(resolveAccount(lookup, null, 'cb')).toEqual({ ok: true, account: 'A2' }))
   it('then account 1', () => expect(resolveAccount(lookup, null, 'elsewhere')).toEqual({ ok: true, account: 'A1' }))
+  it('still picks the first owner in a shared channel when not told to reject', () =>
+    expect(resolveAccount(lookup, null, 'shared')).toEqual({ ok: true, account: 'A1' }))
+  it('rejects an ambiguous shared channel when asked to', () =>
+    expect(resolveAccount(lookup, null, 'shared', { rejectSharedWithoutChoice: true })).toEqual({
+      ok: false,
+      error: 'This channel is shared by 2 guilds. Choose which one with the `account` option.'
+    }))
+  it('does not treat one account owning guild+officer as shared', () =>
+    expect(resolveAccount(lookup, null, 'dual', { rejectSharedWithoutChoice: true })).toEqual({ ok: true, account: 'A1' }))
+  it('an explicit choice overrides the shared-channel rejection', () =>
+    expect(resolveAccount(lookup, 2, 'shared', { rejectSharedWithoutChoice: true })).toEqual({ ok: true, account: 'A2' }))
 })
 
 describe('ACCOUNT_SCOPED_COMMANDS', () => {

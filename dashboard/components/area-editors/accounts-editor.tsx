@@ -77,6 +77,37 @@ export function AccountsEditor({
   }
   const added = newAccountItem(value ?? { nextId: 2, list: [] }, reserved)
 
+  // Combine two guilds: point both at one channel + one relay group, so their chats share a Discord channel and relay in-game.
+  const guildChannelOf = (id: number) => list.find(r => r.id === id)?.guildChannelId ?? accounts.find(a => a.id === id)?.guildChannelId
+  const relayGroupOf = (id: number) => list.find(r => r.id === id)?.relayGroup ?? accounts.find(a => a.id === id)?.relayGroup
+  // Only accounts the UI can edit (config/env accounts are changed in the host's config).
+  const combinable = ids.filter(id => accounts.find(a => a.id === id)?.source !== 'env')
+  const [combineA, setCombineA] = useState<number | ''>('')
+  const [combineB, setCombineB] = useState<number | ''>('')
+  const applyPatches = (patches: Map<number, Partial<AccountRow>>) => {
+    let next = [...list]
+    for (const [id, patch] of patches) {
+      const idx = next.findIndex(r => r.id === id)
+      if (idx >= 0) next[idx] = { ...next[idx], ...patch }
+      else next = [...next, { id, enabled: accounts.find(a => a.id === id)?.enabled ?? true, ...patch }]
+    }
+    next.sort((a, b) => a.id - b.id)
+    onChange({ ...(value ?? {}), list: stripLockedRows(next, accounts) })
+  }
+  const combineGuilds = () => {
+    if (combineA === '' || combineB === '' || combineA === combineB) return
+    const channel = guildChannelOf(combineA)
+    if (!channel) return
+    const group = (relayGroupOf(combineA) || relayGroupOf(combineB) || 'combined').toLowerCase()
+    applyPatches(
+      new Map([
+        [combineA, { relayGroup: group }],
+        [combineB, { guildChannelId: channel, relayGroup: group }]
+      ])
+    )
+    setOpen(prev => new Set(prev).add(combineA as number).add(combineB as number))
+  }
+
   // With one account its fields are shown; with more, each starts folded to a one-line summary.
   const [open, setOpen] = useState<Set<number>>(() => new Set(ids.length === 1 ? ids : []))
   const toggle = (id: number) =>
@@ -111,6 +142,57 @@ export function AccountsEditor({
       )}
       {ids.length === 0 && !accountsUnavailable && (
         <p className="px-5 py-4 text-sm text-muted-foreground">No accounts yet. Add one to connect a Minecraft account.</p>
+      )}
+      {!readOnly && !accountsUnavailable && combinable.length >= 2 && (
+        <div className="setting-row-stacked">
+          <div>
+            <p className="setting-label">Combine two guilds</p>
+            <p className="setting-help">
+              Point both at one Discord channel and one relay group, so their chats share a channel and relay to each other in-game. Set the{' '}
+              <code>{'{guild}'}</code> tag under Formats so each line shows its guild.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-2 text-[13px]">
+            <select
+              className="input w-auto"
+              aria-label="First guild"
+              value={combineA}
+              onChange={e => setCombineA(e.target.value ? Number(e.target.value) : '')}
+            >
+              <option value="">Guild…</option>
+              {combinable.map(id => (
+                <option key={id} value={id}>
+                  {accountTitle({ id, label: names.find(n => n.id === id)?.label }, names)}
+                </option>
+              ))}
+            </select>
+            <span className="pb-2 text-muted-foreground">+</span>
+            <select
+              className="input w-auto"
+              aria-label="Second guild"
+              value={combineB}
+              onChange={e => setCombineB(e.target.value ? Number(e.target.value) : '')}
+            >
+              <option value="">Guild…</option>
+              {combinable
+                .filter(id => id !== combineA)
+                .map(id => (
+                  <option key={id} value={id}>
+                    {accountTitle({ id, label: names.find(n => n.id === id)?.label }, names)}
+                  </option>
+                ))}
+            </select>
+            <button
+              type="button"
+              className="btn-secondary btn-sm"
+              disabled={combineA === '' || combineB === '' || combineA === combineB || !guildChannelOf(combineA)}
+              title={combineA !== '' && !guildChannelOf(combineA) ? 'The first guild needs a guild chat channel first.' : undefined}
+              onClick={combineGuilds}
+            >
+              Combine
+            </button>
+          </div>
+        </div>
       )}
       {ids.map(id => {
         const index = list.findIndex(r => r.id === id)

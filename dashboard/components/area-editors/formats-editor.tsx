@@ -7,11 +7,27 @@ import { IconPlus } from '@/components/icons'
 import { DiscordPicker, FieldErrors } from '@/components/schema-form'
 import { Switch } from '@/components/switch'
 import type { AreaEditorProps } from '@/lib/area-editor-types'
+import type { AccountInfo } from '@/lib/types'
 import { firstFreeChannel } from '@/lib/discord-picker'
 import { fieldCopy } from '@/lib/settings-copy'
 import { AreaNote, withKey } from './rows'
-import { DiscordPreview } from './discord-preview'
+import { DiscordPreview, EventPreview, type SampleEvent } from './discord-preview'
 import { TemplateEditor } from './template-editor'
+
+type Scene = 'own' | 'ally' | 'shared' | 'officer' | 'event'
+type EventKind = 'join' | 'leave' | 'promote'
+const SAMPLE_EVENTS: Record<EventKind, SampleEvent> = {
+  join: { title: 'Member Joined', username: 'Steve', description: 'Steve joined the guild.', tone: 'success' },
+  leave: { title: 'Member Left', username: 'Steve', description: 'Steve left the guild.', tone: 'failure' },
+  promote: { title: 'Guild Promotion', username: 'Steve', description: 'Steve was promoted from Member to Officer.', tone: 'info' }
+}
+const SCENE_LABEL: Record<Scene, string> = {
+  own: 'Your guild line',
+  ally: 'Line from an allied guild',
+  shared: 'Shared channel (two guilds)',
+  officer: 'Officer chat line',
+  event: 'Guild event'
+}
 
 type Override = {
   mode?: RenderMode | ''
@@ -29,6 +45,21 @@ const TEMPLATES_FOR: Record<RenderMode, TemplateKey[]> = {
   image: []
 }
 const SHORT_MODE: Record<RenderMode, string> = { webhook: 'Webhook', embed: 'Embed', plain: 'Plain text', image: 'Image' }
+
+/** The template each mode writes its sender identity into, where a {guild} tag belongs. Image draws its own line. */
+const IDENTITY_KEY: Partial<Record<RenderMode, TemplateKey>> = { webhook: 'webhookName', embed: 'embedFooter', plain: 'plain' }
+const IDENTITY_SPOT: Partial<Record<RenderMode, string>> = { webhook: 'name', embed: 'footer', plain: 'line' }
+
+/** True when two or more enabled accounts post to the same Discord channel, so its lines need a {guild} tag to stay distinct. */
+function hasCombinedChannel(accounts: AccountInfo[]): boolean {
+  const counts = new Map<string, number>()
+  for (const account of accounts) {
+    if (!account.enabled) continue
+    for (const channel of [account.guildChannelId, account.officerChannelId]) if (channel) counts.set(channel, (counts.get(channel) ?? 0) + 1)
+  }
+  for (const count of counts.values()) if (count >= 2) return true
+  return false
+}
 
 const copyOf = (path: string) => fieldCopy('formats', path)
 const label = (path: string, fallback: string) => copyOf(path)?.label ?? fallback
@@ -143,10 +174,11 @@ export function FormatsEditor({ value, onChange, issues, readOnly, discord, acco
   const sharedMode: RenderMode = isMode(v.mode) ? v.mode : 'webhook'
   const sharedTemplates = { ...DEFAULT_TEMPLATES, ...v.templates } as Record<TemplateKey, string>
   const sharedEvent = (k: GuildEventType) => v.events?.[k] !== false
-  // The bot labels only lines relayed from an allied guild in the same shared chat group; your own guild's lines have no label.
-  const [fromAlly, setFromAlly] = useState(false)
+  // Preview scenario: own line, a line relayed from an ally, a shared channel, officer chat, or a guild event.
+  const [scene, setScene] = useState<Scene>('own')
+  const [eventKind, setEventKind] = useState<EventKind>('join')
   const allyLabel = accounts.filter(a => a.label && a.relayGroup).at(-1)?.label ?? 'Ally'
-  const source = fromAlly ? `[${allyLabel}]` : ''
+  const source = scene === 'ally' ? `[${allyLabel}]` : ''
   const channels = Object.entries(v.channels ?? {})
   const keys = channels.map(([k]) => k)
 
@@ -157,6 +189,16 @@ export function FormatsEditor({ value, onChange, issues, readOnly, discord, acco
     ...(v.events ? { events: v.events } : {}),
     ...(v.embedTimestamp !== undefined ? { embedTimestamp: v.embedTimestamp } : {})
   }
+  // When a channel is shared by several guilds, nudge adding {guild} to the mode's identity line so lines stay labelled.
+  const identityKey = IDENTITY_KEY[sharedMode]
+  const recommendGuildTag = Boolean(identityKey) && hasCombinedChannel(accounts) && !sharedTemplates[identityKey as TemplateKey].includes('{guild}')
+  const addGuildTag = () => {
+    if (!identityKey) return
+    const base = v.templates?.[identityKey] ?? (identityKey === 'embedFooter' ? '' : DEFAULT_TEMPLATES[identityKey])
+    const next = identityKey === 'embedFooter' ? (base ? `{guild} • ${base}` : '{guild}') : `{guild} ${base}`.trim()
+    setShared(withKey(shared, 'templates', { ...(shared.templates ?? {}), [identityKey]: next }))
+  }
+
   const setChannels = (entries: [string, Override][]) => onChange(withKey(v, 'channels', entries.length ? Object.fromEntries(entries) : undefined))
   const setChannel = (key: string, next: Override) => setChannels(channels.map(([k, o]) => [k, k === key ? next : asOverride(o)]))
   const renameChannel = (from: string, to: string) => setChannels(channels.map(([k, o]) => [k === from ? to : k, asOverride(o)]))
@@ -174,20 +216,82 @@ export function FormatsEditor({ value, onChange, issues, readOnly, discord, acco
         <ModeSelect path="mode" value={v.mode} inherited="webhook" readOnly={readOnly} issues={issues} onChange={m => setShared(withKey(shared, 'mode', m))} />
         <div className="grid gap-2">
           <p className="text-[13px] font-medium">Preview in Discord</p>
-          <DiscordPreview mode={sharedMode} templates={sharedTemplates} timestamp={v.embedTimestamp === true} source={source} botName="Bridge" />
-          <label className="flex w-fit items-center gap-2 text-[13px]">
-            <input type="checkbox" className="accent-[hsl(var(--accent))]" checked={fromAlly} onChange={e => setFromAlly(e.target.checked)} />
-            Preview a line from an allied guild
-          </label>
+          {scene === 'event' ? (
+            <EventPreview event={SAMPLE_EVENTS[eventKind]} timestamp={v.embedTimestamp === true} />
+          ) : scene === 'shared' ? (
+            <div className="grid gap-1.5">
+              <DiscordPreview mode={sharedMode} templates={sharedTemplates} timestamp={v.embedTimestamp === true} source="" botName="Bridge" guild="Guild 1" />
+              <DiscordPreview
+                mode={sharedMode}
+                templates={sharedTemplates}
+                timestamp={v.embedTimestamp === true}
+                source=""
+                botName="Bridge"
+                guild="Guild 2"
+                sender="Alex"
+              />
+            </div>
+          ) : (
+            <DiscordPreview
+              mode={sharedMode}
+              templates={sharedTemplates}
+              timestamp={v.embedTimestamp === true}
+              source={source}
+              botName="Bridge"
+              chat={scene === 'officer' ? 'Officer' : 'Guild'}
+            />
+          )}
+          <div className="flex flex-wrap items-center gap-2 text-[13px]">
+            <label className="flex items-center gap-2">
+              Show
+              <select className="input w-auto" aria-label="Preview scenario" value={scene} onChange={e => setScene(e.target.value as Scene)}>
+                {(Object.keys(SCENE_LABEL) as Scene[]).map(s => (
+                  <option key={s} value={s}>
+                    {SCENE_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {scene === 'event' && (
+              <select className="input w-auto" aria-label="Event type" value={eventKind} onChange={e => setEventKind(e.target.value as EventKind)}>
+                <option value="join">Member joined</option>
+                <option value="leave">Member left</option>
+                <option value="promote">Promotion</option>
+              </select>
+            )}
+          </div>
           <p className="setting-help">
-            A sample guild chat line from Steve ([MVP+], guild rank Officer).{' '}
-            {fromAlly
-              ? `Lines relayed from another guild in the same shared chat group start with that guild's label, ${`[${allyLabel}]`}.`
-              : "Your own guild's lines have no account label; {source} only fills in for lines relayed from an allied guild."}{' '}
-            Guild events always post as an embed.
+            {scene === 'shared'
+              ? 'Two guilds posting to one shared channel. Add {guild} to the templates so each line shows which guild it came from.'
+              : scene === 'ally'
+                ? `Lines relayed from another guild in the same chat group start with that guild's label, ${`[${allyLabel}]`}.`
+                : scene === 'officer'
+                  ? 'An officer chat line; {chat} becomes “Officer”.'
+                  : scene === 'event'
+                    ? 'Guild events always post as an embed, whatever the message style.'
+                    : 'A sample guild chat line from Steve ([MVP+], guild rank Officer). Use {guild} to tag a line with this account’s own guild label.'}
           </p>
         </div>
       </div>
+      {recommendGuildTag && (
+        <div className="setting-row-stacked">
+          <p className="text-[13px] leading-5">
+            <span className="font-medium">Recommended:</span>{' '}
+            <span className="text-muted-foreground">
+              A Discord channel is shared by more than one guild. Add <span className="font-mono">{'{guild}'}</span> to the {IDENTITY_SPOT[sharedMode]} so every
+              line shows which guild it came from.
+            </span>{' '}
+            <button
+              type="button"
+              className="badge cursor-pointer font-mono hover:border-border-strong hover:text-foreground disabled:cursor-default disabled:opacity-60"
+              onClick={addGuildTag}
+              disabled={readOnly}
+            >
+              {'Add {guild}'}
+            </button>
+          </p>
+        </div>
+      )}
       <div className="setting-row-stacked">
         <div>
           <p className="setting-label">{label('templates', 'Message templates')}</p>
