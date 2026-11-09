@@ -189,6 +189,7 @@ export function createDashboardDeps(ctx: AppContext, feed: ChatFeed): DashboardD
         relayGroup: a.config.relayGroup ?? null,
         guildChannelId: a.config.guildChannelId,
         officerChannelId: a.config.officerChannelId ?? null,
+        staffRoleId: a.config.staffRoleId ?? null,
         ...accountOrigin(ctx.env.accounts, a.id)
       })),
     settings: {

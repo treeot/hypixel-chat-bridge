@@ -23,6 +23,7 @@ export function accountConfigsFromEnv(accounts: readonly AccountEnv[]): AccountC
     if (a.officerChannelId) config.officerChannelId = a.officerChannelId
     const group = a.relayGroup?.trim().toLowerCase()
     if (group) config.relayGroup = group
+    if (a.staffRoleId) config.staffRoleId = a.staffRoleId
     return config
   })
 }

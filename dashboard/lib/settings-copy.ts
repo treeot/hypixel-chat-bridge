@@ -125,6 +125,10 @@ export const SETTINGS_COPY: Partial<Record<AreaId, Record<string, FieldCopy>>> =
       label: 'Shared chat group (optional)',
       help: 'Give two accounts the same word, e.g. allies, and their guild chats are copied to each other. Leave blank to keep this guild separate.',
       placeholder: 'e.g. allies'
+    },
+    'list.*.staffRoleId': {
+      label: 'Staff role (optional)',
+      help: 'Role allowed to run staff commands on this guild only. Added to the global staff role, not a replacement. Leave blank to use only the global staff role.'
     }
   },
   relay: {

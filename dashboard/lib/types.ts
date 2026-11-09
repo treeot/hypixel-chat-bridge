@@ -9,8 +9,10 @@ export interface AccountInfo {
   /** The channels the account relays to (absent from older bots). */
   guildChannelId?: string
   officerChannelId?: string | null
+  /** Role that runs this guild's scoped staff commands (absent from older bots). */
+  staffRoleId?: string | null
   source: 'env' | 'settings'
-  locked: ('guildChannelId' | 'officerChannelId' | 'relayGroup' | 'label')[]
+  locked: ('guildChannelId' | 'officerChannelId' | 'relayGroup' | 'label' | 'staffRoleId')[]
 }
 export interface AuditEntry {
   id: string

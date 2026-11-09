@@ -15,7 +15,8 @@ export const ACCOUNT_ITEM_SPECS: FieldSpec[] = [
   { kind: 'text', key: 'label', label: 'Label (tag on relayed lines)', maxLength: 16, optional: true, emptyText: 'default (G<id>)' },
   { kind: 'text', key: 'relayGroup', label: 'Relay group (blank = none)', maxLength: 32, optional: true, emptyText: 'none' },
   { kind: 'channel', key: 'guildChannelId', label: 'Guild chat channel' },
-  { kind: 'channel', key: 'officerChannelId', label: 'Officer chat channel', optional: true }
+  { kind: 'channel', key: 'officerChannelId', label: 'Officer chat channel', optional: true },
+  { kind: 'role', key: 'staffRoleId', label: 'Staff role (this guild only)', optional: true }
 ]
 
 interface Item {
@@ -24,6 +25,7 @@ interface Item {
   relayGroup?: string
   guildChannelId?: string
   officerChannelId?: string
+  staffRoleId?: string
 }
 
 const itemOf = (view: AccountView): Item =>
@@ -32,7 +34,8 @@ const itemOf = (view: AccountView): Item =>
     label: view.label,
     relayGroup: view.relayGroup,
     guildChannelId: view.guildChannelId,
-    officerChannelId: view.officerChannelId
+    officerChannelId: view.officerChannelId,
+    staffRoleId: view.staffRoleId
   })
 const locksOf = (view: AccountView): Locks => ({ ...view.locked })
 const name = (view: AccountView) => `#${view.id} ${view.label ?? `G${view.id}`}`

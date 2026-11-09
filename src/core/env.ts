@@ -27,6 +27,7 @@ export interface AccountEnv {
   guildChannelId: string
   officerChannelId?: string
   relayGroup?: string
+  staffRoleId?: string
 }
 
 export interface Env {
@@ -79,7 +80,8 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): Env {
     guildChannelId: required('GUILD_CHANNEL_ID', snowflake),
     officerChannelId: optional('OFFICER_CHANNEL_ID', snowflake),
     relayGroup: optional('RELAY_GROUP'),
-    label: optional('ACCOUNT_LABEL')
+    label: optional('ACCOUNT_LABEL'),
+    staffRoleId: optional('ACCOUNT_1_STAFF_ROLE_ID', snowflake)
   }
   if (first.guildChannelId) accounts.push(strip(first as AccountEnv))
 
@@ -102,7 +104,8 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): Env {
         guildChannelId,
         officerChannelId: optional(`${p}OFFICER_CHANNEL_ID`, snowflake),
         relayGroup: optional(`${p}RELAY_GROUP`),
-        label: optional(`${p}LABEL`)
+        label: optional(`${p}LABEL`),
+        staffRoleId: optional(`${p}STAFF_ROLE_ID`, snowflake)
       })
     )
   }

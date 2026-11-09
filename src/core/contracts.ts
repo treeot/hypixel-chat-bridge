@@ -98,6 +98,8 @@ export interface AccountConfig {
   officerChannelId?: string
   /** Lower-cased relay group name; enabled accounts sharing it relay chat to each other. */
   relayGroup?: string
+  /** Role that may run account-scoped commands on this guild only. Added to the global staff role, not a replacement. */
+  staffRoleId?: string
 }
 
 /** Microsoft device-code sign-in prompt. `expiresAt` is epoch seconds. */

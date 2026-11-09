@@ -134,6 +134,8 @@ export function buildGroups(settings: Record<string, unknown>, catalog: FeatureC
 /** Returns the full new value for the owning area with one switch flipped. */
 export function applySwitch(settings: Record<string, unknown>, sw: Pick<Switch, 'area' | 'path'>, on: boolean): { area: AreaId; value: unknown } {
   const value = structuredClone(settings[sw.area] ?? {}) as Record<string, unknown>
+  const safe = (key: string) => key !== '__proto__' && key !== 'constructor' && key !== 'prototype'
+  if (!sw.path.every(safe)) throw new Error(`Unsafe switch path: ${sw.path.join('.')}`)
   let cur = value
   for (const key of sw.path.slice(0, -1)) {
     if (typeof cur[key] !== 'object' || cur[key] === null) cur[key] = {}

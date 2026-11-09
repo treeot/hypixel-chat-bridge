@@ -43,6 +43,8 @@ The first login of each account DMs a Microsoft device code to OWNER_ID; the tok
 | `ACCOUNT_<n>_OFFICER_CHANNEL_ID` | no | — | Officer chat channel of account n. |
 | `ACCOUNT_<n>_RELAY_GROUP` | no | — | Relay group of account n. |
 | `ACCOUNT_<n>_LABEL` | no | `G<n>` | Label of account n (max 16 characters). |
+| `ACCOUNT_1_STAFF_ROLE_ID` | no | — | Role allowed to run account-scoped staff commands on account 1 only. Added to STAFF_ROLE_ID (any guild), not a replacement. |
+| `ACCOUNT_<n>_STAFF_ROLE_ID` | no | — | Role allowed to run account-scoped staff commands on account n only. Added to STAFF_ROLE_ID (any guild), not a replacement. |
 
 ## Storage
 

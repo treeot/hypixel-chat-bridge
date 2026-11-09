@@ -86,6 +86,7 @@ const help: SlashCommand = {
             `Guild Channel: <#${account.guildChannelId}>`,
             ...(account.officerChannelId ? [`Officer Channel: <#${account.officerChannelId}>`] : []),
             ...(ctx.env.staffRoleId ? [`Staff Role: <@&${ctx.env.staffRoleId}>`] : []),
+            ...(account.staffRoleId ? [`Guild Staff Role: <@&${account.staffRoleId}>`] : []),
             ...(ctx.env.adminRoleId ? [`Admin Role: <@&${ctx.env.adminRoleId}>`] : []),
             `Version: ${inlineCode(PROJECT_VERSION)}`
           ].join('\n')

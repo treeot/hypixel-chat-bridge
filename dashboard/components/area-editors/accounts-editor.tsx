@@ -14,13 +14,20 @@ import { accountTitle, stripLockedRows, type AccountRow } from '@/lib/settings-e
 type AccountsValue = { nextId?: number; list?: AccountRow[] } | undefined
 
 const HOST_NOTE = "Set by whoever hosts the bot. Change it in the bot's config."
-const FIELDS = ['label', 'guildChannelId', 'officerChannelId', 'relayGroup'] as const
+const FIELDS = ['label', 'guildChannelId', 'officerChannelId', 'relayGroup', 'staffRoleId'] as const
 
 /** "#guild-chat" for a channel id the bot's server has; the id itself when the directory doesn't list it. */
 function channelLabel(discord: DiscordDirectory | null, id: string | null | undefined): string | null {
   if (!id) return null
   const channel = discord?.channels.find(c => c.id === id)
   return channel ? `#${channel.name}` : id
+}
+
+/** "@Staff" for a role id the bot's server has; the id itself when the directory doesn't list it. */
+function roleLabel(discord: DiscordDirectory | null, id: string | null | undefined): string | null {
+  if (!id) return null
+  const role = discord?.roles.find(r => r.id === id)
+  return role ? `@${role.name}` : id
 }
 
 function rowNode(node: FieldNode): Extract<FieldNode, { kind: 'object' }> | null {
@@ -261,9 +268,11 @@ export function AccountsEditor({
                     ? info?.label
                     : key === 'relayGroup'
                       ? info?.relayGroup
-                      : key === 'guildChannelId' || key === 'officerChannelId'
-                        ? channelLabel(discord, info?.[key])
-                        : null
+                      : key === 'staffRoleId'
+                        ? roleLabel(discord, info?.staffRoleId)
+                        : key === 'guildChannelId' || key === 'officerChannelId'
+                          ? channelLabel(discord, info?.[key])
+                          : null
                 return (
                   <div key={key} className="grid gap-2">
                     <FieldLabel path={`${path}.${key}`} small />

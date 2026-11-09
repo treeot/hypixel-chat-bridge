@@ -71,15 +71,18 @@ export async function publishSlashCommands(ctx: AppContext): Promise<void> {
   log.info(`${payload.length} slash command(s) published`)
 }
 
-/** True if the interaction's user satisfies the command's permission gate. Without a staff role, staff commands are owner-only. */
-function hasPermission(interaction: ChatInputCommandInteraction, command: SlashCommand, ctx: AppContext): boolean {
+/**
+ * True if the interaction's user satisfies the command's permission gate. Without a staff role, staff commands are owner-only.
+ * `accountStaffRoleId` is the resolved guild's own staff role; it only counts for that guild's scoped commands.
+ */
+function hasPermission(interaction: ChatInputCommandInteraction, command: SlashCommand, ctx: AppContext, accountStaffRoleId?: string): boolean {
   switch (command.permission) {
     case 'all':
       return true
     case 'owner':
       return isAdmin(interaction.user.id, interaction.member?.roles, ctx.env)
     case 'staff':
-      return isStaff(interaction.user.id, interaction.member?.roles, ctx.env)
+      return isStaff(interaction.user.id, interaction.member?.roles, ctx.env, accountStaffRoleId)
   }
 }
 
@@ -104,28 +107,31 @@ async function runCommand(interaction: ChatInputCommandInteraction, ctx: AppCont
 
   log.info(`${interaction.user.tag} ran /${interaction.commandName}`)
 
-  const staffRole = ctx.env.staffRoleId
-  if (!hasPermission(interaction, command, ctx)) {
-    const required =
-      command.permission === 'owner'
-        ? ctx.env.adminRoleId
-          ? `Required permission: <@&${ctx.env.adminRoleId}>`
-          : `Required user: <@!${ctx.env.ownerId}>`
-        : staffRole
-          ? `Required permission: <@&${staffRole}>`
-          : `Required user: <@!${ctx.env.ownerId}>`
-    await interaction.reply({ embeds: [SimpleEmbed('failure', [`You don't have permission to do that.`, required].join('\n'))], ephemeral: true })
-    return
-  }
-
+  const scopedCommand = ACCOUNT_SCOPED_COMMANDS.has(command.name)
   const choice = resolveAccount(ctx.accounts, interaction.options.getInteger(ACCOUNT_OPTION), interaction.channelId, {
-    rejectSharedWithoutChoice: ACCOUNT_SCOPED_COMMANDS.has(command.name)
+    rejectSharedWithoutChoice: scopedCommand
   })
   if (!choice.ok) {
     await interaction.reply({ embeds: [SimpleEmbed('failure', choice.error)], ephemeral: true })
     return
   }
   const scoped = withAccount(ctx, choice.account)
+
+  // A guild's own staff role only grants its scoped commands, so global staff commands stay global.
+  const accountStaffRole = scopedCommand ? choice.account.config.staffRoleId : undefined
+  if (!hasPermission(interaction, command, ctx, accountStaffRole)) {
+    const staffRoles = [ctx.env.staffRoleId, accountStaffRole].filter(Boolean).map(id => `<@&${id}>`)
+    const required =
+      command.permission === 'owner'
+        ? ctx.env.adminRoleId
+          ? `Required permission: <@&${ctx.env.adminRoleId}>`
+          : `Required user: <@!${ctx.env.ownerId}>`
+        : staffRoles.length
+          ? `Required permission: ${staffRoles.join(' or ')}`
+          : `Required user: <@!${ctx.env.ownerId}>`
+    await interaction.reply({ embeds: [SimpleEmbed('failure', [`You don't have permission to do that.`, required].join('\n'))], ephemeral: true })
+    return
+  }
 
   const gated = await commandGate(command, ctx)
   if (gated) {
