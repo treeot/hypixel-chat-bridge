@@ -21,6 +21,7 @@ ACCOUNT_2_LABEL=Beta
 | `ACCOUNT_2_OFFICER_CHANNEL_ID` | Optional officer chat channel. |
 | `ACCOUNT_2_RELAY_GROUP` | Optional. Accounts with the same group share chat. |
 | `ACCOUNT_2_LABEL` | Optional short name (default `G2`). |
+| `ACCOUNT_2_STAFF_ROLE_ID` | Optional. Role that may run staff commands on this guild only. |
 
 On first start each new account DMs the owner (`OWNER_ID`) a Microsoft sign-in code. Sign in with **that guild's** Minecraft account. The bot caches the login in the database, so redeploys don't ask again.
 
@@ -59,7 +60,11 @@ Two accounts may share one Discord channel. Each line still appears there once.
 
 ## Commands with several accounts
 
-With two or more accounts, slash commands that act through a Minecraft account (`/kick`, `/mute`, `/unmute`, `/promote`, `/demote`, `/setrank`, `/invite`, `/execute`, `/online`, `/inactive`, `/reqs`, `/gexp`, `/guildtop`, `/members`) get an optional `account` choice. Without it they use the account that owns the channel you run them in, otherwise account 1. In-game `!` commands reply through the account that saw them. See [commands.md](commands.md).
+With two or more accounts, slash commands that act through a Minecraft account (`/kick`, `/mute`, `/unmute`, `/promote`, `/demote`, `/setrank`, `/invite`, `/execute`, `/online`, `/inactive`, `/reqs`, `/gexp`, `/guildtop`, `/members`) get an optional `account` choice. Without it they use the account that owns the channel you run them in, otherwise account 1. In a channel shared by two guilds, these commands refuse to run until you pick which guild with `account`. In-game `!` commands reply through the account that saw them. See [commands.md](commands.md).
+
+## Per-guild staff roles
+
+`STAFF_ROLE_ID` and `ADMIN_ROLE_ID` apply to every guild. To let a role run staff commands on **one guild only**, give that account its own staff role. Set it per account in `/setup` → **Accounts** or in the dashboard, or with `ACCOUNT_1_STAFF_ROLE_ID` for guild 1, `ACCOUNT_2_STAFF_ROLE_ID` for guild 2, and so on (an environment value wins over the dashboard). A per-guild role is **added to** the global staff role, never a replacement, and it only grants the account-scoped staff commands listed above — on that guild. Admins and the owner can still act on any guild.
 
 ## Safety
 

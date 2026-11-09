@@ -6,7 +6,7 @@ import { compact, isRecord, snowflake, type SettingsModel } from './schema'
 
 /** `accounts` doc. Env accounts come first and win field by field; DB entries with an env id are overlays. */
 
-export const ACCOUNT_FIELDS = ['guildChannelId', 'officerChannelId', 'relayGroup', 'label'] as const
+export const ACCOUNT_FIELDS = ['guildChannelId', 'officerChannelId', 'relayGroup', 'label', 'staffRoleId'] as const
 export type AccountField = (typeof ACCOUNT_FIELDS)[number]
 export const MAX_ACCOUNTS = 10
 
@@ -14,7 +14,8 @@ const FIELD_LABELS: Record<AccountField, string> = {
   guildChannelId: 'The guild channel',
   officerChannelId: 'The officer channel',
   relayGroup: 'The relay group',
-  label: 'The label'
+  label: 'The label',
+  staffRoleId: 'The staff role'
 }
 
 const label = z
@@ -30,7 +31,8 @@ const entrySchema = z.strictObject({
   label: label.optional(),
   guildChannelId: snowflake.optional(),
   officerChannelId: snowflake.optional(),
-  relayGroup: relayGroup.optional()
+  relayGroup: relayGroup.optional(),
+  staffRoleId: snowflake.optional()
 })
 export type AccountEntry = z.infer<typeof entrySchema>
 
@@ -73,6 +75,8 @@ export interface AccountView {
   guildChannelId?: string
   officerChannelId?: string
   relayGroup?: string
+  /** Role that may run this guild's scoped staff commands; set in the dashboard/setup or by ACCOUNT_<n>_STAFF_ROLE_ID (env wins). */
+  staffRoleId?: string
   locked: Partial<Record<AccountField, string>>
 }
 
@@ -80,10 +84,13 @@ const ENV_SUFFIX: Record<AccountField, string> = {
   guildChannelId: 'GUILD_CHANNEL_ID',
   officerChannelId: 'OFFICER_CHANNEL_ID',
   relayGroup: 'RELAY_GROUP',
-  label: 'LABEL'
+  label: 'LABEL',
+  staffRoleId: 'STAFF_ROLE_ID'
 }
 
 export function envVarFor(index: number, field: AccountField): string {
+  // The staff role is always ACCOUNT_<n>_STAFF_ROLE_ID, even for account 1, so it never collides with the global STAFF_ROLE_ID.
+  if (field === 'staffRoleId') return `ACCOUNT_${index}_STAFF_ROLE_ID`
   if (index !== 1) return `ACCOUNT_${index}_${ENV_SUFFIX[field]}`
   return field === 'label' ? 'ACCOUNT_LABEL' : ENV_SUFFIX[field]
 }
@@ -117,6 +124,7 @@ export function mergeAccounts(envAccounts: readonly AccountEnv[], settings: Acco
       guildChannelId: env.guildChannelId,
       officerChannelId: env.officerChannelId ?? overlay?.officerChannelId,
       relayGroup: env.relayGroup?.trim().toLowerCase() || overlay?.relayGroup,
+      staffRoleId: env.staffRoleId ?? overlay?.staffRoleId,
       locked: envLocks(env)
     })
   })
@@ -131,6 +139,7 @@ export function mergeAccounts(envAccounts: readonly AccountEnv[], settings: Acco
         guildChannelId: entry.guildChannelId,
         officerChannelId: entry.officerChannelId,
         relayGroup: entry.relayGroup,
+        staffRoleId: entry.staffRoleId,
         locked: {}
       })
     )
@@ -153,7 +162,8 @@ export function toConfigs(views: readonly AccountView[]): { configs: AccountConf
         enabled: view.enabled,
         guildChannelId: view.guildChannelId,
         officerChannelId: view.officerChannelId,
-        relayGroup: view.relayGroup
+        relayGroup: view.relayGroup,
+        staffRoleId: view.staffRoleId
       })
     )
   }

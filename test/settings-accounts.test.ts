@@ -28,6 +28,20 @@ describe('accounts model', () => {
     expect(envVarFor(1, 'relayGroup')).toBe('RELAY_GROUP')
     expect(envVarFor(3, 'officerChannelId')).toBe('ACCOUNT_3_OFFICER_CHANNEL_ID')
     expect(envVarFor(3, 'label')).toBe('ACCOUNT_3_LABEL')
+    expect(envVarFor(1, 'staffRoleId')).toBe('ACCOUNT_1_STAFF_ROLE_ID')
+    expect(envVarFor(2, 'staffRoleId')).toBe('ACCOUNT_2_STAFF_ROLE_ID')
+  })
+
+  it('a dashboard-set staff role threads to the config, and env wins over it', () => {
+    const settings: AccountsSettings = { nextId: 3, list: [{ id: 2, enabled: true, guildChannelId: G2, staffRoleId: '100000000000000077' }] }
+    const dbConfig = toConfigs(mergeAccounts(env, settings)).configs.find(c => c.id === 2)
+    expect(dbConfig?.staffRoleId).toBe('100000000000000077')
+
+    const envWithRole: AccountEnv[] = [{ index: 1, guildChannelId: G1, staffRoleId: '100000000000000011' }]
+    const overlay: AccountsSettings = { nextId: 2, list: [{ id: 1, enabled: true, staffRoleId: '100000000000000022' }] }
+    const [view] = mergeAccounts(envWithRole, overlay)
+    expect(view.staffRoleId).toBe('100000000000000011')
+    expect(view.locked.staffRoleId).toBe('ACCOUNT_1_STAFF_ROLE_ID')
   })
 
   it('with an empty DB, configs equal the env-only configs', () => {
@@ -36,6 +50,13 @@ describe('accounts model', () => {
       { index: 2, guildChannelId: G2, officerChannelId: O1, relayGroup: ' Main ', label: 'Alt' }
     ]
     expect(toConfigs(mergeAccounts(envs, empty))).toEqual({ configs: accountConfigsFromEnv(envs), problems: [] })
+  })
+
+  it('threads an env staff role through to the account config', () => {
+    const envs: AccountEnv[] = [{ index: 1, guildChannelId: G1, staffRoleId: '100000000000000099' }]
+    const [view] = mergeAccounts(envs, empty)
+    expect(view.staffRoleId).toBe('100000000000000099')
+    expect(toConfigs([view]).configs[0].staffRoleId).toBe('100000000000000099')
   })
 
   it('locks env-set fields and lets the DB fill the rest', () => {

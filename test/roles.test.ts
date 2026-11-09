@@ -19,4 +19,13 @@ describe('isAdmin and isStaff', () => {
     expect(isStaff('2', ['other'], env)).toBe(false)
     expect(isAdmin('2', ['admin'], { ownerId: '1' })).toBe(false)
   })
+  it('a guild staff role counts only when that guild is the one passed in', () => {
+    const scoped = { ownerId: '1' }
+    expect(isStaff('2', ['g2'], scoped, 'g2')).toBe(true)
+    expect(isStaff('2', ['g2'], scoped)).toBe(false)
+    expect(isStaff('2', ['g2'], scoped, 'g1')).toBe(false)
+  })
+  it('the global staff role still works alongside a guild role', () => {
+    expect(isStaff('2', ['staff'], env, 'g2')).toBe(true)
+  })
 })

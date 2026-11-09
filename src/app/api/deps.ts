@@ -20,6 +20,8 @@ export interface AccountInfo {
   /** The Discord channels the account relays to, so the dashboard can name the ones the config sets. */
   guildChannelId: string
   officerChannelId: string | null
+  /** Role that runs this guild's scoped staff commands, or null. */
+  staffRoleId: string | null
   /** env: set up in the bot's environment config; settings: added in the dashboard. */
   source: 'env' | 'settings'
   /** Fields the environment sets for this account; a settings overlay cannot change them. */

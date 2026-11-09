@@ -120,6 +120,20 @@ export const ENV_VARS: readonly EnvVarDoc[] = [
   { name: 'ACCOUNT_<n>_OFFICER_CHANNEL_ID', group: 'accounts', required: false, readBy: 'bridge', description: 'Officer chat channel of account n.' },
   { name: 'ACCOUNT_<n>_RELAY_GROUP', group: 'accounts', required: false, readBy: 'bridge', description: 'Relay group of account n.' },
   { name: 'ACCOUNT_<n>_LABEL', group: 'accounts', required: false, readBy: 'bridge', default: 'G<n>', description: 'Label of account n (max 16 characters).' },
+  {
+    name: 'ACCOUNT_1_STAFF_ROLE_ID',
+    group: 'accounts',
+    required: false,
+    readBy: 'bridge',
+    description: 'Role allowed to run account-scoped staff commands on account 1 only. Added to STAFF_ROLE_ID (any guild), not a replacement.'
+  },
+  {
+    name: 'ACCOUNT_<n>_STAFF_ROLE_ID',
+    group: 'accounts',
+    required: false,
+    readBy: 'bridge',
+    description: 'Role allowed to run account-scoped staff commands on account n only. Added to STAFF_ROLE_ID (any guild), not a replacement.'
+  },
 
   {
     name: 'DATABASE_URL',

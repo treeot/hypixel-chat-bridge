@@ -52,7 +52,15 @@ export function commandOn(toggles: Record<string, unknown> | undefined, key: str
   return toggles?.[key] !== false
 }
 
-export type AccountRow = { id: number; enabled?: boolean; label?: string; guildChannelId?: string; officerChannelId?: string; relayGroup?: string }
+export type AccountRow = {
+  id: number
+  enabled?: boolean
+  label?: string
+  guildChannelId?: string
+  officerChannelId?: string
+  relayGroup?: string
+  staffRoleId?: string
+}
 
 /** Drop the values the bot's config sets from the rows of config accounts, as the bridge does on import: the config always wins. */
 export function stripLockedRows(rows: readonly AccountRow[], accounts: readonly AccountInfo[]): AccountRow[] {

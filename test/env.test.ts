@@ -58,6 +58,17 @@ describe('loadEnv', () => {
     expect(env.accounts[1]).toMatchObject({ relayGroup: 'main', label: 'Alt Guild' })
   })
 
+  it('parses per-account staff roles for account 1 and extra accounts', () => {
+    const env = loadEnv({
+      ...base,
+      ACCOUNT_1_STAFF_ROLE_ID: '111111111111111111',
+      ACCOUNT_2_GUILD_CHANNEL_ID: '423456789012345678',
+      ACCOUNT_2_STAFF_ROLE_ID: '222222222222222222'
+    })
+    expect(env.accounts[0].staffRoleId).toBe('111111111111111111')
+    expect(env.accounts[1].staffRoleId).toBe('222222222222222222')
+  })
+
   it('enables REST API only when token is set, default port 3000', () => {
     expect(loadEnv({ ...base, REST_API_TOKEN: 'x'.repeat(32) }).restApi).toEqual({ port: 3000, token: 'x'.repeat(32) })
   })

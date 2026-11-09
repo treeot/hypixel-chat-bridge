@@ -22,7 +22,7 @@ export interface ChatRow {
 type Opt = ApplicationCommandOptionData & { options?: readonly Opt[]; required?: boolean }
 
 const PERMISSION: Record<SlashCommand['permission'], string> = { all: 'Everyone', staff: 'Staff', owner: 'Owner' }
-const cell = (s: string) => s.replace(/\|/g, '\\|').replace(/\n/g, ' ')
+const cell = (s: string) => s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ')
 const args = (options: readonly Opt[] = []) => options.map(o => (o.required ? `<${o.name}>` : `[${o.name}]`)).join(' ')
 const join = (...parts: string[]) => parts.filter(Boolean).join(' ')
 
