@@ -223,6 +223,11 @@ export class Bridge {
 
     const { log } = this.deps
     log.info('Starting bridge')
+    log.info('Permissions', {
+      ownerId: Boolean(env.ownerId),
+      adminRole: env.adminRoleId ? 'set' : 'unset',
+      staffRole: env.staffRoleId ? 'set' : 'unset'
+    })
     for (const { level, text } of disabledFeatures(this.deps.env)) log[level](text)
 
     await this.store.connect()
