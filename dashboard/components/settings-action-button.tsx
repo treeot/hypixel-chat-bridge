@@ -18,7 +18,7 @@ export function SettingsActionButton({
   className = 'btn-secondary',
   children
 }: {
-  action: 'refreshRanks' | 'postApply'
+  action: 'refreshRanks' | 'postApply' | 'pushMotd'
   accountId: number
   /** One short line under the button saying what it does. */
   note?: string

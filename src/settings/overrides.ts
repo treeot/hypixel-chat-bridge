@@ -1,16 +1,17 @@
 import { z } from 'zod'
 import { gexpSchema } from './gexp'
 import { joinRequestsSchema } from './joinRequests'
+import { motdSchema } from './motd'
 import type { SettingsOf } from './registry'
 import { compact, isRecord } from './schema'
 
-export const OVERRIDABLE_AREAS = ['joinRequests', 'gexp'] as const
+export const OVERRIDABLE_AREAS = ['joinRequests', 'gexp', 'motd'] as const
 export type OverridableArea = (typeof OVERRIDABLE_AREAS)[number]
 export type OverrideOf<K extends OverridableArea> = Partial<SettingsOf<K>>
 export type Overrides = { [K in OverridableArea]: Record<string, OverrideOf<K>> }
-export const OVERRIDE_DOC_ID = /^(joinRequests|gexp):(\d{1,2})$/
+export const OVERRIDE_DOC_ID = /^(joinRequests|gexp|motd):(\d{1,2})$/
 
-const SCHEMAS = { joinRequests: joinRequestsSchema.partial(), gexp: gexpSchema.partial() }
+const SCHEMAS = { joinRequests: joinRequestsSchema.partial(), gexp: gexpSchema.partial(), motd: motdSchema.partial() }
 
 export function isOverridable(area: string): area is OverridableArea {
   return (OVERRIDABLE_AREAS as readonly string[]).includes(area)
@@ -25,7 +26,7 @@ export function overrideSchema<K extends OverridableArea>(area: K): z.ZodType<Ov
 }
 
 export function emptyOverrides(): Overrides {
-  return { joinRequests: {}, gexp: {} }
+  return { joinRequests: {}, gexp: {}, motd: {} }
 }
 
 export function readOverride<K extends OverridableArea>(area: K, raw: unknown): OverrideOf<K> {

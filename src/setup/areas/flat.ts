@@ -19,6 +19,7 @@ export interface FlatAreaDef {
   effects?: Effect[]
   summary?(state: SetupState): string[]
   perAccount?: boolean
+  action?: { label: string; build(accountId?: number): Effect }
 }
 
 export function flatArea(def: FlatAreaDef): SetupArea {
@@ -51,9 +52,10 @@ export function flatArea(def: FlatAreaDef): SetupArea {
         ...(overridable ? scopeLines(state, overridable, accountId) : []),
         ...fieldLines(specs, value)
       ]
+      const actionButton = def.action ? [button(encodeId(def.id, 'action', editScope), def.action.label)] : []
       return {
         embeds: [panelEmbed(`${def.emoji} ${def.label}`, lines)],
-        components: [...rows, ...(picker ? [picker] : []), buttonRow([...buttons, reset, homeButton()])]
+        components: [...rows, ...(picker ? [picker] : []), buttonRow([...buttons, ...actionButton, reset, homeButton()])]
       }
     },
 
@@ -72,6 +74,8 @@ export function flatArea(def: FlatAreaDef): SetupArea {
           return { kind: 'save', area: def.id, value: SETTINGS[def.id].defaults, scope: ROOT, notice: `${def.label} reset to defaults.`, effects: def.effects }
         case 'ed':
           return { kind: 'modal', modal: fieldModal(def.id, editScope, specs, current(state, accountId), {}, Number(id.arg), def.label) }
+        case 'action':
+          return def.action ? { kind: 'effect', effect: def.action.build(accountId), scope: id.scope } : STALE
       }
       const applied = applyFieldInput(specs, current(state, accountId), id, input)
       if (!applied.ok) return { kind: 'error', message: applied.message }

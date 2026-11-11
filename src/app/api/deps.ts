@@ -43,7 +43,7 @@ export interface SettingsDeps {
   /** Side effects /setup runs after a save: reconcileAccounts, refreshSafety, republishCommands. Returns notices. */
   afterWrite(areas: readonly AreaId[]): Promise<string[]>
   /** Explicit actions: refreshRanks / postApply for one account. */
-  runAction(action: 'refreshRanks' | 'postApply', accountId: number): Promise<string>
+  runAction(action: 'refreshRanks' | 'postApply' | 'pushMotd', accountId: number): Promise<string>
   importBundle(text: string): Promise<{ ok: true; written: AreaId[]; notices: string[] } | { ok: false; errors: string[] }>
   catalog(): FeatureCatalog
 }

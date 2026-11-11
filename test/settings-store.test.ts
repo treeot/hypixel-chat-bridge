@@ -107,7 +107,7 @@ describe('SettingsStore', () => {
     expect(docs.get('gexp:2')).toEqual({ weeklyRequirement: 80_000 })
     expect(await store.readEffective('gexp', 2)).toEqual({ enabled: true, weeklyRequirement: 80_000, graceDays: 7 })
     expect(await store.readEffective('gexp', 3)).toEqual({ enabled: true, weeklyRequirement: 50_000, graceDays: 7 })
-    expect(await store.readOverrides([1, 2])).toEqual({ joinRequests: {}, gexp: { '2': { weeklyRequirement: 80_000 } } })
+    expect(await store.readOverrides([1, 2])).toEqual({ joinRequests: {}, gexp: { '2': { weeklyRequirement: 80_000 } }, motd: {} })
     await expect(store.writeOverride('gexp', 2, { weeklyRequirement: -1 })).rejects.toBeInstanceOf(SettingsValidationError)
     await expect(store.writeOverride('gexp', 2, { bogus: 1 })).rejects.toBeInstanceOf(SettingsValidationError)
   })

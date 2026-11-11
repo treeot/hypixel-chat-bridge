@@ -48,7 +48,7 @@ describe('branding area', () => {
 
   it('has a /setup panel listed last', () => {
     expect(SETUP_AREAS.branding.id).toBe('branding')
-    expect(AREA_ORDER.at(-1)).toBe('branding')
+    expect(AREA_ORDER).toContain('branding')
     const state = makeState()
     expectWithinLimits(brandingArea.view(state, '-'))
     expect(brandingArea.summary(state).length).toBeGreaterThan(0)

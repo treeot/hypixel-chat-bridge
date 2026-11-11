@@ -64,6 +64,16 @@ async function refreshRanks(ctx: AppContext, accountId: number): Promise<string>
   return parts.join(' ')
 }
 
+async function pushMotd(ctx: AppContext, accountId: number): Promise<string> {
+  const account = ctx.accounts.get(accountId)
+  if (!account || !account.online) throw new Error(`Account #${accountId} is offline; connect it and push the MOTD again.`)
+  const { message } = await ctx.settings.readEffective('motd', accountId)
+  if (!message) throw new Error('No message of the day is set for this account.')
+  const result = account.execute(`/g motd ${message}`, { priority: true })
+  if (!result.ok) throw new Error(`The message of the day was blocked by the safety filter (${result.reason}).`)
+  return 'Message of the day sent to the guild.'
+}
+
 /** Only account 1 replaces and clears the shared doc's Apply ids, so another guild posting in the same channel never deletes account 1's live button. */
 async function postApply(ctx: AppContext, accountId: number): Promise<string> {
   const shared = await ctx.settings.read('joinRequests')
@@ -103,6 +113,8 @@ export async function runEffect(ctx: AppContext, effect: Effect): Promise<string
       return refreshRanks(ctx, effect.accountId)
     case 'postApply':
       return postApply(ctx, effect.accountId)
+    case 'pushMotd':
+      return pushMotd(ctx, effect.accountId)
     case 'republishCommands':
       await ctx.republishCommands?.()
       return 'Slash commands updated in Discord.'

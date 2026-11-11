@@ -57,7 +57,7 @@ export function settingsRoutes(deps: Pick<DashboardDeps, 'settings' | 'audit' | 
       write: true,
       run: async ({ params, actor }) => {
         const accountId = accountIdOf(params.accountId)
-        if (params.action !== 'refreshRanks' && params.action !== 'postApply') return fail(404, 'Unknown action')
+        if (params.action !== 'refreshRanks' && params.action !== 'postApply' && params.action !== 'pushMotd') return fail(404, 'Unknown action')
         if (!accountId) return fail(400, 'accountId must be a positive whole number')
         let message: string
         try {

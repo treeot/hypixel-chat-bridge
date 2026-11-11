@@ -106,6 +106,8 @@ export default async function SettingsAreaPage({ params, searchParams }: { param
   // Post Apply acts on the open account tab, or on the top-bar account from the All accounts tab.
   // Ranks has its Import ranks button inside each account's section instead.
   const applyAccount = tab !== 'shared' ? list.find(a => String(a.id) === tab) : current
+  // Push to guild MOTD acts on the open account tab only; one MOTD is pushed per guild.
+  const motdAccount = area === 'motd' && tab !== 'shared' ? list.find(a => String(a.id) === tab) : undefined
   const action =
     !readOnly && missingKey === null && applyAccount && area === 'joinRequests' ? (
       <SettingsActionButton
@@ -114,6 +116,14 @@ export default async function SettingsAreaPage({ params, searchParams }: { param
         note={`Posts in ${accountName(applyAccount, list)}'s Apply button channel. Posting again replaces the old message.`}
       >
         Post Apply button for {accountName(applyAccount, list)}
+      </SettingsActionButton>
+    ) : !readOnly && motdAccount ? (
+      <SettingsActionButton
+        action="pushMotd"
+        accountId={motdAccount.id}
+        note={`Runs /g motd in ${accountName(motdAccount, list)}'s guild. The bot must be online.`}
+      >
+        Push to guild MOTD for {accountName(motdAccount, list)}
       </SettingsActionButton>
     ) : null
 

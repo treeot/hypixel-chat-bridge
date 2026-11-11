@@ -96,7 +96,7 @@ describe('runSetupCommand', () => {
     expect(confirm).toMatch(/^setup:import:-:confirm:[0-9a-f]{12}$/)
     expect(imports.take(confirm.split(':')[4])).toEqual({
       settings: { relay: { guild: true, officer: false } },
-      overrides: { joinRequests: {}, gexp: {} },
+      overrides: { joinRequests: {}, gexp: {}, motd: {} },
       notes: []
     })
   })

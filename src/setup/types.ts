@@ -52,6 +52,7 @@ export type Effect =
   | { kind: 'refreshSafety' }
   | { kind: 'refreshRanks'; accountId: number }
   | { kind: 'postApply'; accountId: number }
+  | { kind: 'pushMotd'; accountId: number }
   | { kind: 'republishCommands' }
 
 export type Outcome =

@@ -40,7 +40,7 @@ export async function importBundle(text: string): Promise<Imported> {
 }
 
 export async function runSettingsAction(
-  action: 'refreshRanks' | 'postApply',
+  action: 'refreshRanks' | 'postApply' | 'pushMotd',
   accountId: number
 ): Promise<{ ok: true; message: string } | { ok: false; message: string; hostDetail?: string }> {
   const user = await requireRole('admin')

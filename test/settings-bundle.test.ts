@@ -64,7 +64,7 @@ describe('settings bundle', () => {
     expect(parsed).toEqual({
       ok: true,
       settings: { accounts: { nextId: 2, list: [{ id: 1, enabled: true }] } },
-      overrides: { joinRequests: {}, gexp: {} },
+      overrides: { joinRequests: {}, gexp: {}, motd: {} },
       notes: ['Kept the environment value for account #1 guildChannelId (set by GUILD_CHANNEL_ID).']
     })
   })

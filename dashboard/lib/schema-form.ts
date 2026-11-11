@@ -124,7 +124,8 @@ export const AREA_LABELS: Record<AreaId, string> = {
   verify: 'Verify',
   guildlb: 'GuildLB',
   features: 'Features',
-  branding: 'Branding'
+  branding: 'Branding',
+  motd: 'Message of the Day'
 }
 
 /** The toast after an import: "Imported Accounts, Ranks and Join requests". */

@@ -7,6 +7,7 @@ import { formatsSettings } from './formats'
 import { gexpSettings } from './gexp'
 import { guildlbSettings } from './guildlb'
 import { joinRequestsSettings } from './joinRequests'
+import { motdSettings } from './motd'
 import { ranksSettings } from './ranks'
 import { relaySettings } from './relay'
 import type { SettingsModel } from './schema'
@@ -24,7 +25,8 @@ export const SETTINGS = {
   verify: verifySettings,
   guildlb: guildlbSettings,
   features: featuresSettings,
-  branding: brandingSettings
+  branding: brandingSettings,
+  motd: motdSettings
 } as const
 
 export type AreaId = keyof typeof SETTINGS

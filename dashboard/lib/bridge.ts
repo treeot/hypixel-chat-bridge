@@ -82,7 +82,7 @@ export const bridge = {
     call<{ value: unknown }>('PUT', `/settings/${seg(area)}/override/${seg(accountId)}`, { actor, body: { value } }),
   exportSettings: () => call<Record<string, unknown>>('GET', '/settings/export'),
   importSettings: (actor: string, bundle: string) => call<{ written: string[]; notices: string[] }>('POST', '/settings/import', { actor, body: { bundle } }),
-  settingsAction: (actor: string, action: 'refreshRanks' | 'postApply', accountId: number) =>
+  settingsAction: (actor: string, action: 'refreshRanks' | 'postApply' | 'pushMotd', accountId: number) =>
     call<{ message: string }>('POST', `/settings/actions/${action}/${seg(accountId)}`, { actor, body: {} }),
   catalog: () => call<FeatureCatalog>('GET', '/features/catalog'),
   list: (name: 'whitelist' | 'blacklist') => call<{ entries: PlayerListEntry[] }>('GET', `/lists/${name}`),

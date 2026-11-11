@@ -74,7 +74,7 @@ describe('import confirmation', () => {
         filters: { categories: { slurs: true, profanity: true, links: true, advertising: true, personalInfo: true }, blockedWords: [], allowedWords: [] },
         accounts: { nextId: 2, list: [] }
       },
-      overrides: { joinRequests: { '2': { autoAccept: true } }, gexp: {} },
+      overrides: { joinRequests: { '2': { autoAccept: true } }, gexp: {}, motd: {} },
       notes: []
     })
     const result = await handleImportButton(idOf(`setup:import:-:confirm:${token}`), s, imports)
@@ -145,7 +145,7 @@ describe("import keeps this deployment's Apply message", () => {
     const imports = new PendingImports()
     const token = imports.add({
       settings: { joinRequests: { ...defaultSettings().joinRequests, capacity: 80, ...fileIds } },
-      overrides: { joinRequests: { '2': { autoDeny: true, ...fileIds } }, gexp: {} },
+      overrides: { joinRequests: { '2': { autoDeny: true, ...fileIds } }, gexp: {}, motd: {} },
       notes: []
     })
     await handleImportButton(idOf(`setup:import:-:confirm:${token}`), s, imports)
@@ -158,7 +158,7 @@ describe("import keeps this deployment's Apply message", () => {
     const imports = new PendingImports()
     const token = imports.add({
       settings: { joinRequests: { ...defaultSettings().joinRequests, capacity: 90 } },
-      overrides: { joinRequests: { '2': { autoDeny: true } }, gexp: {} },
+      overrides: { joinRequests: { '2': { autoDeny: true } }, gexp: {}, motd: {} },
       notes: []
     })
     await handleImportButton(idOf(`setup:import:-:confirm:${token}`), s, imports)
@@ -169,7 +169,7 @@ describe("import keeps this deployment's Apply message", () => {
   it('keeps local apply ids of an override whose account is not configured (orphan id in the file)', async () => {
     const { services: s, docs } = services({ 'joinRequests:7': { autoAccept: true, applyChannelId: CH, applyMessageId: MSG, applyPostedIn: CH } })
     const imports = new PendingImports()
-    const token = imports.add({ settings: {}, overrides: { joinRequests: { '7': { autoDeny: true, ...fileIds } }, gexp: {} }, notes: [] })
+    const token = imports.add({ settings: {}, overrides: { joinRequests: { '7': { autoDeny: true, ...fileIds } }, gexp: {}, motd: {} }, notes: [] })
     await handleImportButton(idOf(`setup:import:-:confirm:${token}`), s, imports)
     expect(docs.get('joinRequests:7')).toEqual({ autoDeny: true, applyChannelId: CH, applyMessageId: MSG, applyPostedIn: CH })
   })
@@ -179,7 +179,7 @@ describe("import keeps this deployment's Apply message", () => {
     const imports = new PendingImports()
     const token = imports.add({
       settings: { joinRequests: { ...defaultSettings().joinRequests, ...fileIds } },
-      overrides: { joinRequests: { '1': { capacity: 50, ...fileIds } }, gexp: {} },
+      overrides: { joinRequests: { '1': { capacity: 50, ...fileIds } }, gexp: {}, motd: {} },
       notes: []
     })
     await handleImportButton(idOf(`setup:import:-:confirm:${token}`), s, imports)

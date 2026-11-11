@@ -41,7 +41,7 @@ describe('createSetupServices', () => {
   it('loads per-account overrides into the state', async () => {
     const { ctx, docs } = fakeCtx()
     docs.set('gexp:1', { weeklyRequirement: 5000 })
-    expect((await createSetupServices(ctx).loadState('gexp')).overrides).toEqual({ joinRequests: {}, gexp: { '1': { weeklyRequirement: 5000 } } })
+    expect((await createSetupServices(ctx).loadState('gexp')).overrides).toEqual({ joinRequests: {}, gexp: { '1': { weeklyRequirement: 5000 } }, motd: {} })
   })
 
   it('an account-scoped write goes to the override doc', async () => {
@@ -113,6 +113,32 @@ describe('createSetupServices', () => {
   it('postApply needs a channel', async () => {
     const { ctx } = fakeCtx()
     await expect(createSetupServices(ctx).runEffect({ kind: 'postApply', accountId: 1 })).rejects.toThrow('Pick an Apply button channel first.')
+  })
+
+  it('pushMotd runs /g motd with the effective message', async () => {
+    const { ctx, docs, account } = fakeCtx()
+    docs.set('motd', { message: 'Welcome all' })
+    docs.set('motd:1', { message: 'Guild-only MOTD' })
+    expect(await createSetupServices(ctx).runEffect({ kind: 'pushMotd', accountId: 1 })).toBe('Message of the day sent to the guild.')
+    expect(account.execute).toHaveBeenCalledWith('/g motd Guild-only MOTD', { priority: true })
+  })
+
+  it('pushMotd needs the account online', async () => {
+    const { ctx, docs } = fakeCtx({ online: false })
+    docs.set('motd', { message: 'Welcome all' })
+    await expect(createSetupServices(ctx).runEffect({ kind: 'pushMotd', accountId: 1 })).rejects.toThrow(/offline/)
+  })
+
+  it('pushMotd needs a message set', async () => {
+    const { ctx } = fakeCtx()
+    await expect(createSetupServices(ctx).runEffect({ kind: 'pushMotd', accountId: 1 })).rejects.toThrow('No message of the day is set for this account.')
+  })
+
+  it('pushMotd surfaces a safety-filter block', async () => {
+    const { ctx, docs, account } = fakeCtx()
+    docs.set('motd', { message: 'buy gold at example.com' })
+    account.execute.mockReturnValueOnce({ ok: false as const, reason: 'advertising' })
+    await expect(createSetupServices(ctx).runEffect({ kind: 'pushMotd', accountId: 1 })).rejects.toThrow(/safety filter \(advertising\)/)
   })
 
   it('loads override docs for extra account ids too (orphan ids in an import file)', async () => {

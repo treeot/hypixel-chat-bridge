@@ -9,7 +9,7 @@ export const AREA_GROUPS: { title: string; areas: AreaId[] }[] = [
   { title: 'Bot', areas: ['features', 'accounts', 'formats', 'commands'] },
   { title: 'Members', areas: ['ranks', 'joinRequests', 'gexp', 'verify'] },
   { title: 'Alliance & safety', areas: ['filters', 'guildlb'] },
-  { title: 'Dashboard', areas: ['branding'] }
+  { title: 'Dashboard', areas: ['branding', 'motd'] }
 ]
 
 /** Areas left out of the settings sidebar: Chat relay's two switches live on Features, and /settings/relay goes there. */
@@ -28,7 +28,8 @@ export const AREA_DESCRIPTIONS: Partial<Record<AreaId, string>> = {
   verify: 'The roles and nickname given to members who link their Minecraft account.',
   guildlb: 'Checks against the shared GuildLB alliance list.',
   features: 'Turn whole features and commands on or off. Switches save as soon as you flip them.',
-  branding: 'The name, logo, colour and login text shown on this dashboard.'
+  branding: 'The name, logo, colour and login text shown on this dashboard.',
+  motd: 'A message of the day for your guild. Set it here, then push it to run /g motd in game.'
 }
 
 /**
@@ -258,6 +259,9 @@ export const SETTINGS_COPY: Partial<Record<AreaId, Record<string, FieldCopy>>> =
     },
     accent: { label: 'Accent colour', help: 'Used for highlights and switches. Pick one or type a hex code like #8b5cf6.', placeholder: '#8b5cf6' },
     loginText: { label: 'Login page text', help: 'Shown on the login card under the name.' }
+  },
+  motd: {
+    message: { label: 'Message of the day', help: 'Sent in-game with /g motd when you push it.' }
   }
 }
 

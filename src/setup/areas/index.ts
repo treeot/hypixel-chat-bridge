@@ -9,6 +9,7 @@ import { formatsArea } from './formats'
 import { gexpArea } from './gexp'
 import { guildlbArea } from './guildlb'
 import { joinRequestsArea } from './joinRequests'
+import { motdArea } from './motd'
 import { ranksArea } from './ranks'
 import { relayArea } from './relay'
 import { verifyArea } from './verify'
@@ -25,7 +26,8 @@ export const SETUP_AREAS: Record<AreaId, SetupArea> = {
   verify: verifyArea,
   guildlb: guildlbArea,
   features: featuresArea,
-  branding: brandingArea
+  branding: brandingArea,
+  motd: motdArea
 }
 
 export const AREA_ORDER: readonly AreaId[] = [
@@ -40,7 +42,8 @@ export const AREA_ORDER: readonly AreaId[] = [
   'verify',
   'guildlb',
   'features',
-  'branding'
+  'branding',
+  'motd'
 ]
 
 export function isAreaId(value: string): value is AreaId {
