@@ -16,6 +16,8 @@ export interface CommandToRun {
   onRepeat?: () => unknown
   onDrop?: () => unknown
   varied?: boolean
+  /** Checked just before the line is sent; when it returns true the line is dropped unsent (used to cancel the rest of a multi-part message after one part fails). */
+  skip?: () => boolean
 }
 
 export interface QueueOptions {
@@ -124,7 +126,12 @@ export class CommandQueue {
         const port = this.port()
         if (!port) break
         const entry = this.queue.shift()
-        if (entry) await this.runOne(port, entry)
+        if (!entry) continue
+        if (entry.skip?.()) {
+          entry.onDrop?.()
+          continue
+        }
+        await this.runOne(port, entry)
       }
     } finally {
       this.running = false

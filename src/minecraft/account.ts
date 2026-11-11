@@ -194,15 +194,27 @@ export class Account extends EventEmitter {
     const { parts, truncated } = splitForChat(head, body, this.queueOpts.maxLength)
     if (parts.length === 0) return { ok: false, reason: 'blocked' }
 
+    // Re-check every part (fail closed) before any of them is queued.
+    const commands: string[] = []
     for (const part of parts) {
-      if (!this.online) return { ok: false, reason: 'offline' }
       const g = guardCommand(part, this.safety)
       if (!g.ok) {
         this.log.warn('Blocked outbound message part', { reason: g.reason })
         return { ok: false, reason: 'filtered', filterReason: g.reason }
       }
-      const result = await this.sendLine(g.command)
-      if (!result.ok) return result
+      commands.push(g.command)
+    }
+
+    // Queue all parts in one synchronous burst so a line sent concurrently on this account
+    // cannot land between them. A failed part cancels the ones still queued (stop on failure).
+    let cancelled = false
+    const pending = commands.map(command => this.sendLine(command, () => cancelled))
+    for (const result of pending) {
+      const settled = await result
+      if (!settled.ok) {
+        cancelled = true
+        return settled
+      }
     }
     return truncated ? { ok: true, truncated: true } : { ok: true }
   }
@@ -223,10 +235,11 @@ export class Account extends EventEmitter {
     return g
   }
 
-  private sendLine(command: string): Promise<SendResult> {
+  private sendLine(command: string, skip?: () => boolean): Promise<SendResult> {
     return new Promise(resolve => {
       this.queue.enqueue({
         command,
+        skip,
         regex: [
           { exp: this.echoFor(command), exec: () => resolve({ ok: true }) },
           { exp: /^We blocked your comment /, exec: () => resolve({ ok: false, reason: 'blocked' }) },

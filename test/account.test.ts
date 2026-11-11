@@ -388,6 +388,34 @@ describe('Account sends', () => {
     await expect(result).resolves.toEqual({ ok: true })
   })
 
+  it('keeps a multi-part message contiguous when another line is sent at the same time', async () => {
+    const s = await online()
+    s.latest().autoEcho = true
+    const long = Array(60).fill('aaaa').join(' ')
+    const p1 = s.account.sendChatAwait('guild', 'Steve', long)
+    const p2 = s.account.sendChatAwait('guild', 'Bob', 'hi')
+    await vi.advanceTimersByTimeAsync(10_000)
+    await Promise.all([p1, p2])
+    const lines = s.latest().chatted
+    const steveParts = lines.filter(l => l.startsWith('/gc Steve:'))
+    expect(steveParts.length).toBe(2)
+    const first = lines.findIndex(l => l.startsWith('/gc Steve:'))
+    // Both of Steve's parts must sit together; Bob's line must not land between them.
+    expect(lines[first + 1]?.startsWith('/gc Steve:')).toBe(true)
+    const bob = lines.findIndex(l => l.startsWith('/gc Bob:'))
+    expect(bob).toBeGreaterThan(first + 1)
+  })
+
+  it('does not send later parts once an earlier part fails', async () => {
+    const s = await online()
+    const long = Array(60).fill('aaaa').join(' ')
+    const result = s.account.sendChatAwait('guild', 'Steve', long)
+    await vi.advanceTimersByTimeAsync(10_000) // first part times out (no echo)
+    await expect(result).resolves.toEqual({ ok: false, reason: 'timeout' })
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(s.latest().chatted.filter(l => l.startsWith('/gc Steve:')).length).toBe(1)
+  })
+
   it('refuses chat while muted (mute guard)', async () => {
     const s = await online()
     s.latest().emit('messagestr', 'Your mute will expire in 1h')
