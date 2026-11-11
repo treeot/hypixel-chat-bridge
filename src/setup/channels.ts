@@ -39,6 +39,9 @@ export async function probeChannel(client: Client, channelId: string): Promise<C
   const channel = await client.channels.fetch(channelId).catch(() => null)
   const me = client.user
   if (!channel || !me || !channel.isTextBased() || channel.isDMBased()) return null
-  const permissions = channel.permissionsFor(me)
+  // Resolve against the bot's own guild member so a cold member cache can't make permissionsFor
+  // return null (which would read as "missing" and mislabel the channel). Matches webhooks.ts.
+  const member = 'guild' in channel ? (channel.guild.members.me ?? me) : me
+  const permissions = channel.permissionsFor(member)
   return { has: permission => permissions?.has(PermissionFlagsBits[permission]) ?? false }
 }

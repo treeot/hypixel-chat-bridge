@@ -120,7 +120,10 @@ export function discordWebhookChannels(client: Client<true>): (channelId: string
     if (!(channel instanceof TextChannel) && !(channel instanceof NewsChannel)) return null
     return {
       id: channel.id,
-      canManageWebhooks: () => channel.permissionsFor(client.user)?.has(PermissionFlagsBits.ManageWebhooks) ?? false,
+      // Check via the bot's own guild member, not the User: permissionsFor(User) resolves through the
+      // member cache and returns null (read as "denied") when the bot member isn't cached, which would
+      // wrongly force embed mode forever. guild.members.me is always populated for the bot's own guild.
+      canManageWebhooks: () => channel.permissionsFor(channel.guild.members.me ?? client.user)?.has(PermissionFlagsBits.ManageWebhooks) ?? false,
       fetchWebhooks: async () => [...(await channel.fetchWebhooks()).values()],
       createWebhook: opts => channel.createWebhook(opts)
     }
