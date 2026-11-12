@@ -13,7 +13,11 @@ import { accountTitle, stripLockedRows, type AccountRow } from '@/lib/settings-e
 
 type AccountsValue = { nextId?: number; list?: AccountRow[] } | undefined
 
-const HOST_NOTE = "Set by whoever hosts the bot. Change it in the bot's config."
+/** Where a locked field comes from: the env var by name when the bot says which one. */
+const envNote = (envVar: string | undefined) =>
+  envVar
+    ? `Set by the environment variable ${envVar}, which overrides the dashboard and /setup. Change it in the bot's environment variables.`
+    : "Set by an environment variable, which overrides the dashboard and /setup. Change it in the bot's environment variables."
 const FIELDS = ['label', 'guildChannelId', 'officerChannelId', 'relayGroup', 'staffRoleId'] as const
 
 /** "#guild-chat" for a channel id the bot's server has; the id itself when the directory doesn't list it. */
@@ -234,7 +238,7 @@ export function AccountsEditor({
                 <h3 id={`${headingId}-${id}`} className="setting-label">
                   {title}
                 </h3>
-                {env && <span className="badge">From the bot&apos;s config</span>}
+                {env && <span className="badge">From env config</span>}
                 {info && <span className={info.online ? 'badge badge-success' : 'badge'}>{info.online ? 'Online' : 'Offline'}</span>}
                 {!enabled && <span className="badge">Off</span>}
                 {!expanded && channel && <span className="hidden truncate text-[13px] text-muted-foreground sm:inline">{channel}</span>}
@@ -279,7 +283,7 @@ export function AccountsEditor({
                     {locked ? (
                       <div>
                         {shown && <p className="text-sm">{shown}</p>}
-                        <p className="setting-help">{HOST_NOTE}</p>
+                        <p className="setting-help">{envNote(info?.envVars?.[key])}</p>
                       </div>
                     ) : (
                       <SchemaField

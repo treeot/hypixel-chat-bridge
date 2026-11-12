@@ -6,7 +6,7 @@ import { IconBridge } from '@/components/icons'
 import { discordSpans, previewTemplate } from '@/lib/template-preview'
 
 // Discord's dark theme, so the preview reads like the real channel whatever the dashboard's accent is.
-const D = { bg: '#313338', text: '#dbdee1', muted: '#949ba4', embed: '#2b2d31', badge: '#5865f2', mention: '#c9cdfb' }
+export const D = { bg: '#313338', text: '#dbdee1', muted: '#949ba4', embed: '#2b2d31', badge: '#5865f2', mention: '#c9cdfb' }
 const SAMPLE = { name: 'Steve', rank: '[MVP+]', guildRank: 'Officer', message: 'hello' }
 // The embed's side colour for an [MVP+] sender (src/discord/format.ts RANK_STYLES).
 const MVP_PLUS = '#55ffff'
@@ -17,7 +17,7 @@ function Markdown({ text }: { text: string }) {
   )
 }
 
-function Avatar({ head, name = SAMPLE.name }: { head?: boolean; name?: string }) {
+export function Avatar({ head, name = SAMPLE.name }: { head?: boolean; name?: string }) {
   return head ? (
     <img src={`https://mc-heads.net/avatar/${name}/40`} alt="" width={40} height={40} className="size-10 shrink-0 rounded-full" />
   ) : (
@@ -27,7 +27,7 @@ function Avatar({ head, name = SAMPLE.name }: { head?: boolean; name?: string })
   )
 }
 
-function Header({ name }: { name: string }) {
+export function Header({ name }: { name: string }) {
   return (
     <p className="flex flex-wrap items-baseline gap-x-1.5">
       <span className="font-medium text-white">{name || ''}</span>
@@ -149,6 +149,8 @@ export interface SampleEvent {
   description?: string
   username?: string
   tone: keyof typeof TONE_COLOUR
+  /** With more than one guild, every event names its guild in the footer. */
+  guild?: string
 }
 
 /** How a guild event (join, leave, promote…) looks in Discord. Events always post as an embed. Mirrors renderEventEmbed. */
@@ -165,9 +167,9 @@ export function EventPreview({ event, timestamp }: { event: SampleEvent; timesta
               {event.title}
             </p>
             {event.description && <p className="mt-1 whitespace-pre-wrap break-words text-sm">{event.description}</p>}
-            {timestamp && (
+            {(event.guild || timestamp) && (
               <p className="mt-2 text-xs" style={{ color: D.text }}>
-                Today at 12:00
+                {[event.guild, timestamp && 'Today at 12:00'].filter(Boolean).join(' • ')}
               </p>
             )}
           </div>

@@ -13,6 +13,7 @@ import { FormatsEditor } from '@/components/area-editors/formats-editor'
 import { JoinRequestsEditor } from '@/components/area-editors/join-requests-editor'
 import { GuildlbEditor } from '@/components/area-editors/notes-editors'
 import { VerifyEditor } from '@/components/area-editors/verify-editor'
+import { MotdEditor } from '@/components/area-editors/motd-editor'
 
 export type { AreaEditorProps } from './area-editor-types'
 
@@ -35,7 +36,8 @@ const EDITORS: Record<EditorArea, ComponentType<AreaEditorProps<any>>> = {
   verify: VerifyEditor,
   filters: FiltersEditor,
   guildlb: GuildlbEditor,
-  branding: BrandingEditor
+  branding: BrandingEditor,
+  motd: MotdEditor
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- as above

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { GUILD_EVENT_TYPES, type GuildEventType } from '../core/contracts'
+import { EVENT_ROUTES, GUILD_EVENT_TYPES, type EventRoute, type GuildEventType } from '../core/contracts'
 import { RENDER_MODES, TEMPLATE_KEYS, type FormatOverride, type TemplateKey } from '../discord/renderers/settings'
 import { isRecord, snowflake, type SettingsModel } from './schema'
 
@@ -18,6 +18,10 @@ const templatesSchema = z.strictObject(
 const eventsSchema = z.strictObject(
   Object.fromEntries(GUILD_EVENT_TYPES.map(key => [key, z.boolean().optional()])) as Record<GuildEventType, z.ZodOptional<z.ZodBoolean>>
 )
+const route = z.enum(EVENT_ROUTES)
+const eventRoutesSchema = z.strictObject(
+  Object.fromEntries(GUILD_EVENT_TYPES.map(key => [key, route.optional()])) as Record<GuildEventType, z.ZodOptional<typeof route>>
+)
 const overrideSchema = z.strictObject({
   mode: mode.optional(),
   templates: templatesSchema.optional(),
@@ -29,11 +33,31 @@ const formatsSchema = z.strictObject({
   templates: templatesSchema.optional(),
   events: eventsSchema.optional(),
   embedTimestamp: z.boolean().optional(),
+  /** Which channels each guild event goes to, for every account. Shared only: a channel override can't move events. */
+  eventRoutes: eventRoutesSchema.optional(),
   channels: z.record(snowflake, overrideSchema).optional()
 })
 
+export type EventRoutes = Partial<Record<GuildEventType, EventRoute>>
+
 export interface FormatsSettings extends FormatOverride {
+  eventRoutes?: EventRoutes
   channels?: Record<string, FormatOverride>
+}
+
+/** Where an event goes unless set: joins, leaves and kicks to the officer channel, the rest to the guild channel. */
+export const DEFAULT_EVENT_ROUTES: Record<GuildEventType, EventRoute> = Object.fromEntries(
+  GUILD_EVENT_TYPES.map(type => [type, type === 'join' || type === 'leave' || type === 'kick' ? 'officer' : 'guild'])
+) as Record<GuildEventType, EventRoute>
+
+function readEventRoutes(raw: unknown): EventRoutes | undefined {
+  if (!isRecord(raw)) return undefined
+  const out: EventRoutes = {}
+  for (const key of GUILD_EVENT_TYPES) {
+    const route = raw[key]
+    if (typeof route === 'string' && (EVENT_ROUTES as readonly string[]).includes(route)) out[key] = route as EventRoute
+  }
+  return Object.keys(out).length ? out : undefined
 }
 
 function readOverride(raw: unknown): FormatOverride {
@@ -62,6 +86,8 @@ function readOverride(raw: unknown): FormatOverride {
 
 export function readFormats(raw: unknown): FormatsSettings {
   const out: FormatsSettings = readOverride(raw)
+  const routes = isRecord(raw) ? readEventRoutes(raw.eventRoutes) : undefined
+  if (routes) out.eventRoutes = routes
   if (isRecord(raw) && isRecord(raw.channels)) {
     const channels: Record<string, FormatOverride> = {}
     for (const [channelId, override] of Object.entries(raw.channels)) {
@@ -100,6 +126,7 @@ export function withOverride(settings: FormatsSettings, scope: string, override:
 
   if (scope === DEFAULT_SCOPE) {
     const out: FormatsSettings = { ...clean }
+    if (settings.eventRoutes) out.eventRoutes = settings.eventRoutes
     if (settings.channels) out.channels = settings.channels
     return out
   }
@@ -107,6 +134,7 @@ export function withOverride(settings: FormatsSettings, scope: string, override:
   if (Object.keys(clean).length) channels[scope] = clean
   else delete channels[scope]
   const out: FormatsSettings = { ...overrideFor(settings, DEFAULT_SCOPE) }
+  if (settings.eventRoutes) out.eventRoutes = settings.eventRoutes
   if (Object.keys(channels).length) out.channels = channels
   return out
 }

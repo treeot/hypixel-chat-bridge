@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Minecraft's look for in-game previews (MOTD). Monocraft, SIL Open Font License: public/fonts/Monocraft-LICENSE.txt. */
+@font-face {
+  font-family: 'Monocraft';
+  src: url('/fonts/Monocraft.ttf') format('truetype');
+  font-display: swap;
+}
+
 @layer base {
   /* Near-monochrome neutrals tinted a few degrees toward the accent, with one violet reserved
      for state. --danger, --success and --warning are for destructive actions, health and soft alerts. */

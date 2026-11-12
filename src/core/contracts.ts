@@ -38,6 +38,8 @@ export interface RelayEvent {
   username?: string
   /** For promote/demote: the guild rank the player now holds, read straight from the chat line. */
   toRank?: string
+  /** The guild it happened in (the account's label), shown in the event embed's footer when there are several guilds. */
+  guildLabel?: string
 }
 
 export interface RenderInput {
@@ -101,6 +103,10 @@ export interface AccountConfig {
   /** Role that may run account-scoped commands on this guild only. Added to the global staff role, not a replacement. */
   staffRoleId?: string
 }
+
+/** Which of an account's channels a guild event is posted to. Turning an event off is the Formats event switch. */
+export const EVENT_ROUTES = ['guild', 'officer', 'both'] as const
+export type EventRoute = (typeof EVENT_ROUTES)[number]
 
 /** Microsoft device-code sign-in prompt. `expiresAt` is epoch seconds. */
 export interface AuthCodeInfo {

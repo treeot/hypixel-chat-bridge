@@ -29,7 +29,7 @@ export const AREA_DESCRIPTIONS: Partial<Record<AreaId, string>> = {
   guildlb: 'Checks against the shared GuildLB alliance list.',
   features: 'Turn whole features and commands on or off. Switches save as soon as you flip them.',
   branding: 'The name, logo, colour and login text shown on this dashboard.',
-  motd: 'A message of the day for your guild. Set it here, then push it to run /g motd in game.'
+  motd: 'Your guild’s message of the day: up to 5 lines with Minecraft colours. Set it here, then push it to set it in game.'
 }
 
 /**
@@ -89,7 +89,12 @@ function formatCopy(prefix: string): Record<string, FieldCopy> {
       options: MODE_OPTIONS
     },
     [`${prefix}templates`]: { label: 'Message templates', help: 'The text of each relayed line. Leave any blank to use the default.' },
-    [`${prefix}events`]: { label: 'Guild events', help: 'Which guild events are posted to Discord.' },
+    [`${prefix}events`]: {
+      label: 'Guild events',
+      help: prefix
+        ? 'Turn an event off in this channel only. Where events go is set in the shared settings above.'
+        : 'Where each guild event is posted: the guild channel, the officer channel, both, or off. Joins, leaves and kicks go to the officer channel by default.'
+    },
     [`${prefix}embedTimestamp`]: {
       label: 'Show the time on embeds',
       help: 'Adds the time each message was sent under Embed-style messages and guild event embeds.'
@@ -138,6 +143,13 @@ export const SETTINGS_COPY: Partial<Record<AreaId, Record<string, FieldCopy>>> =
   },
   formats: {
     ...formatCopy(''),
+    eventRoutes: { label: 'Where guild events go', help: 'For each event: the guild channel, the officer channel, or both. Applies to every guild.' },
+    ...Object.fromEntries(
+      Object.entries(EVENT_LABELS).map(([key, label]) => [
+        `eventRoutes.${key}`,
+        { label, options: { guild: 'Guild channel', officer: 'Officer channel', both: 'Both channels' } }
+      ])
+    ),
     channels: { label: 'Channel overrides', help: 'Give a single Discord channel its own message style.' },
     'channels.*': { label: 'Channel' },
     ...formatCopy('channels.*.')
@@ -191,7 +203,26 @@ export const SETTINGS_COPY: Partial<Record<AreaId, Record<string, FieldCopy>>> =
     waitlistNotifyChannelId: { label: 'Waitlist notifications channel', help: 'Where the bot tells staff a spot opened for a waitlisted player.' },
     applyChannelId: { label: 'Apply button channel', help: 'Where the Apply button is posted.' },
     applyMessageId: { label: 'Apply button message' },
-    applyPostedIn: { label: 'Apply button posted in' }
+    applyPostedIn: { label: 'Apply button posted in' },
+    applyEmbed: { label: 'Apply message' },
+    'applyEmbed.authorName': { label: 'Author name' },
+    'applyEmbed.authorIconUrl': { label: 'Author icon link' },
+    'applyEmbed.authorUrl': { label: 'Author name link' },
+    'applyEmbed.title': { label: 'Title' },
+    'applyEmbed.url': { label: 'Title link' },
+    'applyEmbed.description': { label: 'Description' },
+    'applyEmbed.color': { label: 'Colour' },
+    'applyEmbed.fields': { label: 'Fields' },
+    'applyEmbed.fields.*': { label: 'Field' },
+    'applyEmbed.fields.*.name': { label: 'Field name' },
+    'applyEmbed.fields.*.value': { label: 'Field value' },
+    'applyEmbed.fields.*.inline': { label: 'Inline' },
+    'applyEmbed.imageUrl': { label: 'Image link' },
+    'applyEmbed.thumbnailUrl': { label: 'Thumbnail link' },
+    'applyEmbed.footerText': { label: 'Footer text' },
+    'applyEmbed.footerIconUrl': { label: 'Footer icon link' },
+    'applyEmbed.showHowTo': { label: 'Explain the Apply button' },
+    applyButtonLabel: { label: 'Apply button label' }
   },
   gexp: {
     enabled: { label: 'Weekly requirement on', help: 'Track weekly GEXP and list members below the requirement.' },
@@ -261,7 +292,7 @@ export const SETTINGS_COPY: Partial<Record<AreaId, Record<string, FieldCopy>>> =
     loginText: { label: 'Login page text', help: 'Shown on the login card under the name.' }
   },
   motd: {
-    message: { label: 'Message of the day', help: 'Sent in-game with /g motd when you push it.' }
+    message: { label: 'Message of the day', help: 'Up to 5 lines, set in game with /g motd when you push it.' }
   }
 }
 

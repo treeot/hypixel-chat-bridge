@@ -1,4 +1,4 @@
 import type { SlashCommand } from '../../context'
-import members from './members'
+import online from './online'
 
-export const statsCommands: SlashCommand[] = [members]
+export const statsCommands: SlashCommand[] = [online]

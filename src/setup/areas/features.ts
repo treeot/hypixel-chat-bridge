@@ -7,7 +7,7 @@ export const featuresArea = flatArea({
   emoji: '🎚️',
   description: 'Turn whole features on or off. Single slash commands can be switched off from the dashboard.',
   specs: (): FieldSpec[] => [
-    { kind: 'toggle', key: 'verify', label: 'Verify and link (/verify, /link and related)' },
+    { kind: 'toggle', key: 'verify', label: 'Verify and link (/verify and related)' },
     { kind: 'toggle', key: 'allianceChecks', label: 'GuildLB alliance checks and /alliance' }
   ],
   effects: [{ kind: 'republishCommands' }]

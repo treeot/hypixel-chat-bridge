@@ -8,6 +8,8 @@ export interface ManagedAccount {
   readonly username: string | undefined
   start(): Promise<void>
   stop(): Promise<void>
+  /** Takes a config that differs only in fields that don't need a reconnect (staff role, event routing). */
+  reconfigure?(config: AccountConfig): void
 }
 
 export interface SyncReport {
@@ -100,6 +102,7 @@ export class AccountManager<A extends ManagedAccount = ManagedAccount> {
     for (const config of [...configs].sort((a, b) => a.id - b.id)) {
       const current = this.accounts.get(config.id)
       if (current && sameConfig(current.config, config)) {
+        current.reconfigure?.(config)
         next.set(config.id, current)
         continue
       }

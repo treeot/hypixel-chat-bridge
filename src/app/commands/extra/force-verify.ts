@@ -1,8 +1,8 @@
 import { ApplicationCommandOptionType } from 'discord.js'
 import type { SlashCommand } from '../../context'
 import { FullEmbed, SimpleEmbed } from '../../../discord/format'
-import { hypixelGet } from '../../../services/hypixel'
-import { getUUIDFromUsername } from '../../../services/mojang'
+import { hypixelFailureText, hypixelGet } from '../../../services/hypixel'
+import { lookupUuid } from '../../../services/mojang'
 import { applyVerifiedMember, MINECRAFT_NAME, storeLink } from '../../features/verify'
 import { hypixelKey } from '../../requirements'
 
@@ -22,10 +22,26 @@ const forceVerify: SlashCommand = {
     if (!MINECRAFT_NAME.test(username))
       return interaction.editReply({ embeds: [SimpleEmbed('failure', 'Give a valid Minecraft username (2-16 letters, digits or _).')] })
 
-    const uuid = await getUUIDFromUsername(username, ctx.log)
-    if (!uuid) return interaction.editReply({ embeds: [SimpleEmbed('failure', `Could not find a Minecraft account named ${username}.`)] })
+    const lookup = await lookupUuid(username, ctx.log)
+    if (!lookup.ok) {
+      const why =
+        lookup.reason === 'notFound'
+          ? `Could not find a Minecraft account named ${username}.`
+          : `Could not reach the Minecraft account servers to look up ${username}. Try again in a minute.`
+      return interaction.editReply({ embeds: [SimpleEmbed('failure', why)] })
+    }
+    const { uuid } = lookup
 
-    const { data } = await hypixelGet('/v2/player', hypixelKey(ctx.env), { uuid })
+    let response: Awaited<ReturnType<typeof hypixelGet>>
+    try {
+      response = await hypixelGet('/v2/player', hypixelKey(ctx.env), { uuid })
+    } catch (error) {
+      const text = hypixelFailureText(error)
+      if (!text) throw error
+      ctx.log.warn('Hypixel lookup failed during /force-verify', { error: String(error) })
+      return interaction.editReply({ embeds: [SimpleEmbed('failure', text)] })
+    }
+    const { data } = response
     const ign: string = typeof data?.player?.displayname === 'string' ? data.player.displayname : username
     await storeLink(ctx.repos.link, { id: target.id, uuid, ign })
 

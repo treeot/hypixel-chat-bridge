@@ -15,6 +15,16 @@ export interface RouterOptions {
   dedupTtlMs: number
   now: () => number
   intercept?: (accountId: AccountId, payload: RelayChat) => Promise<boolean>
+  routeEvent: RouteEvent
+}
+
+/** Where an event goes and how it reads there; the bridge supplies one that follows Formats → Guild events. */
+export type RouteEvent = (account: AccountConfig, event: RelayEvent, accountCount: number) => Promise<{ channels: string[]; event: RelayEvent }>
+
+/** Without a router setting: the event's own chat channel, unchanged. */
+const ownChannel: RouteEvent = async (account, event) => {
+  const channel = channelFor(account, event.chat)
+  return { channels: channel ? [channel] : [], event }
 }
 
 export function dedupKey(group: string, chat: Chat, sender: string, message: string): string {
@@ -44,7 +54,7 @@ export class Router {
     private readonly log: Logger,
     opts: Partial<RouterOptions> = {}
   ) {
-    this.opts = { marker: DEFAULT_RELAY_MARKER, dedupTtlMs: 10_000, now: Date.now, ...opts }
+    this.opts = { marker: DEFAULT_RELAY_MARKER, dedupTtlMs: 10_000, now: Date.now, routeEvent: ownChannel, ...opts }
     this.dedup = new DedupCache(this.opts.dedupTtlMs, this.opts.now)
   }
 
@@ -73,8 +83,15 @@ export class Router {
   async onMinecraftEvent(accountId: AccountId, event: RelayEvent): Promise<void> {
     const source = this.accounts().find(a => a.config.id === accountId)
     if (!source || !source.config.enabled) return
-    const channel = channelFor(source.config, event.chat)
-    if (channel) await this.guarded(`Discord event post for account ${accountId}`, () => this.discord.postEvent(channel, event))
+    let routed: Awaited<ReturnType<RouteEvent>>
+    try {
+      routed = await this.opts.routeEvent(source.config, event, this.accounts().length)
+    } catch (error) {
+      this.log.warn('Could not route a guild event; using its own channel', { error: String(error) })
+      routed = await ownChannel(source.config, event, this.accounts().length)
+    }
+    for (const channel of routed.channels)
+      await this.guarded(`Discord event post for account ${accountId}`, () => this.discord.postEvent(channel, routed.event))
   }
 
   async onDiscordChat(msg: IncomingDiscordChat): Promise<SendResult | void> {

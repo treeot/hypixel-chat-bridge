@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { applyEmbedSchema, EMBED_LIMITS } from './applyEmbed'
 import { objectModel, snowflake } from './schema'
 
 export const RULE_TYPES = ['skyblockLevel', 'catacombsLevel', 'networth', 'skillAverage', 'slayerXp'] as const
@@ -63,7 +64,15 @@ export const joinRequestsSchema = z.strictObject({
   waitlistNotifyChannelId: snowflake.optional(),
   applyChannelId: snowflake.optional(),
   applyMessageId: snowflake.optional(),
-  applyPostedIn: snowflake.optional()
+  applyPostedIn: snowflake.optional(),
+  /** The guild's own Apply message embed (requirements, ranks, contacts). Absent: the built-in "Apply to <guild>" message. */
+  applyEmbed: applyEmbedSchema.optional(),
+  /** Text on the Apply button. Blank: "Apply". */
+  applyButtonLabel: z
+    .string()
+    .max(EMBED_LIMITS.buttonLabel)
+    .refine(t => t.trim().length > 0, 'cannot be blank')
+    .optional()
 })
 export type JoinRequestsSettings = z.infer<typeof joinRequestsSchema>
 

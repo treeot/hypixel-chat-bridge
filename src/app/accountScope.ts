@@ -22,7 +22,7 @@ export const ACCOUNT_SCOPED_COMMANDS: ReadonlySet<string> = new Set([
   'inactive',
   'reqs',
   'gexp',
-  'members'
+  'online'
 ])
 
 /** Discord requires required options first, so `account` goes last (inside each subcommand when there are any). */

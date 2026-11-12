@@ -7,7 +7,10 @@ const events: string[] = []
 
 class FakeAccount implements ManagedAccount {
   username: string | undefined
-  constructor(readonly config: AccountConfig) {}
+  constructor(public config: AccountConfig) {}
+  reconfigure(config: AccountConfig) {
+    this.config = config
+  }
   get id() {
     return this.config.id
   }
@@ -38,6 +41,16 @@ describe('AccountManager.sync', () => {
       [2, 'New'],
       [4, 'G4']
     ])
+  })
+
+  it('applies a staff role change in place, without restarting the bot', async () => {
+    const m = manager([cfg(1)])
+    const kept = m.get(1)
+    const report = await m.sync([cfg(1, { staffRoleId: '100000000000000001' })], { start: true })
+    expect(report).toEqual({ added: [], removed: [], changed: [] })
+    expect(m.get(1)).toBe(kept)
+    expect(m.get(1)?.config).toMatchObject({ staffRoleId: '100000000000000001' })
+    expect(events).toEqual([])
   })
 
   it('stops the old bot before starting its replacement (one live bot per account)', async () => {

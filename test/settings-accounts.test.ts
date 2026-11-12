@@ -163,8 +163,16 @@ describe('accounts model', () => {
 describe('accountOrigin', () => {
   it('reports env accounts with the fields env sets, and others as settings', () => {
     const envs: AccountEnv[] = [{ index: 1, guildChannelId: G1, label: 'Main', relayGroup: 'ally' }]
-    expect(accountOrigin(envs, 1)).toEqual({ source: 'env', locked: ['guildChannelId', 'relayGroup', 'label'] })
-    expect(accountOrigin([{ index: 2, guildChannelId: G2 }], 2)).toEqual({ source: 'env', locked: ['guildChannelId'] })
-    expect(accountOrigin(envs, 3)).toEqual({ source: 'settings', locked: [] })
+    expect(accountOrigin(envs, 1)).toEqual({
+      source: 'env',
+      locked: ['guildChannelId', 'relayGroup', 'label'],
+      envVars: { guildChannelId: 'GUILD_CHANNEL_ID', relayGroup: 'RELAY_GROUP', label: 'ACCOUNT_LABEL' }
+    })
+    expect(accountOrigin([{ index: 2, guildChannelId: G2 }], 2)).toEqual({
+      source: 'env',
+      locked: ['guildChannelId'],
+      envVars: { guildChannelId: 'ACCOUNT_2_GUILD_CHANNEL_ID' }
+    })
+    expect(accountOrigin(envs, 3)).toEqual({ source: 'settings', locked: [], envVars: {} })
   })
 })

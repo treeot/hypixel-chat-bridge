@@ -39,6 +39,8 @@ export interface AccountOptions {
 const CHAT_PREFIX: Record<Chat, string> = { guild: '/gc', officer: '/oc' }
 /** Safety net for out-of-band DB edits; /setup → Chat filters reloads every account on save. */
 export const SAFETY_REFRESH_MS = 10 * 60_000
+/** How often an online account runs `/g online`, so the member list (autocomplete, /online) stays fresh. */
+export const ONLINE_REFRESH_MS = 10 * 60_000
 const ECHO_PREFIX_CHARS = 24
 
 function escapeRegExp(value: string): string {
@@ -66,12 +68,13 @@ export class Account extends EventEmitter {
   private watchdog: ReturnType<typeof setTimeout> | undefined
   private stableTimer: ReturnType<typeof setTimeout> | undefined
   private safetyTimer: ReturnType<typeof setInterval> | undefined
+  private onlineTimer: ReturnType<typeof setInterval> | undefined
   private attempts = 0
   private alerted = false
   private safety: SafetySettings = DEFAULT_SAFETY
   private _mutedUntil: number | null = null
 
-  constructor(private readonly opts: AccountOptions) {
+  constructor(private opts: AccountOptions) {
     super()
     this.id = opts.config.id
     this.log = opts.log.child(`account:${opts.config.id}`)
@@ -91,6 +94,11 @@ export class Account extends EventEmitter {
 
   get config(): AccountConfig {
     return this.opts.config
+  }
+
+  /** Swaps in settings that need no reconnect (the manager only calls this when connection fields are unchanged). */
+  reconfigure(config: AccountConfig): void {
+    this.opts = { ...this.opts, config }
   }
 
   get state(): AccountState {
@@ -123,6 +131,9 @@ export class Account extends EventEmitter {
     // stop() (and maybe another start()) may have run while the settings loaded.
     if (run !== this.runSeq) return
     this.safetyTimer = setInterval(() => void this.refreshSafety(), SAFETY_REFRESH_MS)
+    this.onlineTimer = setInterval(() => {
+      if (this.online) this.execute('/g online')
+    }, ONLINE_REFRESH_MS)
     // A restart() during the load already went through backoff and owns the next connect (the cast undoes TS's narrowing across the await).
     if ((this._state as AccountState) === 'connecting' && !this.bot) this.connect()
   }
@@ -131,6 +142,8 @@ export class Account extends EventEmitter {
     this.runSeq++
     clearInterval(this.safetyTimer)
     this.safetyTimer = undefined
+    clearInterval(this.onlineTimer)
+    this.onlineTimer = undefined
     this.clearReconnect()
     this.teardownBot()
     this.setState('stopped')

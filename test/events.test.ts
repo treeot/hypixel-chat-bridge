@@ -37,6 +37,12 @@ describe('classifyEvent', () => {
 })
 
 describe('renderEventEmbed', () => {
+  it('puts the guild label in the footer of membership events', () => {
+    const [embed] = renderEventEmbed({ type: 'join', chat: 'guild', tone: 'success', title: 'Member Joined', guildLabel: 'Main' }).embeds!
+    expect(embed.footer).toEqual({ text: 'Main' })
+    expect(renderEventEmbed({ type: 'login', chat: 'guild', tone: 'success', title: 'Steve joined.' }).embeds![0].footer).toBeUndefined()
+  })
+
   it('renders a compact, escaped, ping-free embed posted by the bot', () => {
     expect(renderEventEmbed(event('Steve_X was promoted from Member to Elite'))).toEqual({
       via: 'bot',

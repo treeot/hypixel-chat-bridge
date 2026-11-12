@@ -5,6 +5,32 @@ import { isEnabled } from '../util/toggles'
 import { commandsSettings, normalizeCommandMessage } from '../settings/commands'
 import { disabledLine, firstMissing, MissingKeyError } from './requirements'
 
+/** The footer for in-game command embeds: the guild's label when there are several guilds, else the sender's guild rank. */
+export function commandFooter(ctx: Pick<AppContext, 'accounts' | 'minecraft'>, guildRank: string | undefined): string | undefined {
+  if (ctx.accounts.list().length > 1) return ctx.minecraft.config?.label || undefined
+  return guildRank?.trim() || undefined
+}
+
+/** In-game command embeds get `footer` in place of their own (sender and Hypixel rank); without one they keep theirs. */
+export function withCommandFooter(ctx: AppContext, footer: string | undefined): AppContext {
+  const discord = ctx.discord
+  if (!discord || !footer) return ctx
+  return {
+    ...ctx,
+    discord: {
+      accountId: discord.accountId,
+      get client() {
+        return discord.client
+      },
+      get ready() {
+        return discord.ready
+      },
+      sendEmbed: (chat, embed, components) => discord.sendEmbed(chat, { ...embed, footer: { text: footer } }, components),
+      forAccount: id => discord.forAccount(id)
+    }
+  }
+}
+
 /** A command whose key is missing is answered with `!<trigger> is disabled: <ENV> is not set.`; a disabled command relays normally. */
 export async function dispatchChatCommand(ctx: AppContext, payload: RelayChat, commands: readonly ChatCommand[] = chatCommands): Promise<boolean> {
   const doc = await ctx.info.get('commands')
@@ -26,7 +52,7 @@ export async function dispatchChatCommand(ctx: AppContext, payload: RelayChat, c
   }
 
   try {
-    await command.execute(ctx, { ...payload, message })
+    await command.execute(withCommandFooter(ctx, ctx.accounts ? commandFooter(ctx, payload.guildRank) : undefined), { ...payload, message })
   } catch (error) {
     if (error instanceof MissingKeyError) replyDisabled(error.envVar)
     else ctx.log.error(`Chat command "${command.name}" failed`, error)

@@ -1,6 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js'
 import type { SlashCommand } from '../../context'
 import { SimpleEmbed } from '../../../discord/format'
+import { commandMention } from '../../commandMentions'
 
 const linked: SlashCommand = {
   name: 'linked',
@@ -15,7 +16,7 @@ const linked: SlashCommand = {
 
     if (!entry) {
       return interaction.reply({
-        content: `❌ You are not linked to the bot. Use \`/link <player>\` and try again.`,
+        content: `❌ You are not linked to the bot. Use ${commandMention('verify')} and try again.`,
         components: [
           new ActionRowBuilder<ButtonBuilder>().addComponents([
             new ButtonBuilder().setCustomId('link-account').setLabel('Link Account').setStyle(ButtonStyle.Primary)

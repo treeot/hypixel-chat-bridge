@@ -13,6 +13,8 @@ export interface AccountInfo {
   staffRoleId?: string | null
   source: 'env' | 'settings'
   locked: ('guildChannelId' | 'officerChannelId' | 'relayGroup' | 'label' | 'staffRoleId')[]
+  /** The env var behind each locked field, e.g. GUILD_CHANNEL_ID (absent from older bots). */
+  envVars?: Partial<Record<'guildChannelId' | 'officerChannelId' | 'relayGroup' | 'label' | 'staffRoleId', string>>
 }
 export interface AuditEntry {
   id: string
@@ -57,7 +59,13 @@ export interface GuildMembers {
   ranks: string[]
 }
 export interface FeatureCatalog {
-  chatCommands: { toggle: string; usage: string; description: string; requires: string[] }[]
+  chatCommands: {
+    toggle: string
+    /** What players type after the prefix; the first is the main name (absent from older bots). */ triggers?: string[]
+    usage: string
+    description: string
+    requires: string[]
+  }[]
   slashCommands: { name: string; description: string; requires: string[]; alwaysOn: boolean; feature?: 'verify' | 'allianceChecks' }[]
   /** guildlbApi is missing from bots older than the API keys section. */
   missingEnv: Record<'hypixel' | 'guildlbGuild', string | null> & { guildlbApi?: string | null }

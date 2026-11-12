@@ -4,8 +4,8 @@ import type { AppContext } from '../context'
 import type { LinkEntry } from '../../storage/repos'
 import { FullEmbed } from '../../discord/format'
 import { footer } from '../../discord/brand'
-import { hypixelGet } from '../../services/hypixel'
-import { getUUIDFromUsername } from '../../services/mojang'
+import { hypixelFailureText, hypixelGet } from '../../services/hypixel'
+import { getUUIDFromUsername, lookupUuid } from '../../services/mojang'
 import { fetchGuild } from '../../services/gexp'
 import { loadVerifySettings, type RankRole } from './settings'
 import { hypixelKey } from '../requirements'
@@ -84,10 +84,29 @@ export async function verifyAndLink(
 ): Promise<VerifyResult> {
   if (!MINECRAFT_NAME.test(username)) return { ok: false, embed: failure('Verification Error', 'Give a valid Minecraft username (2-16 letters, digits or _).') }
 
-  const uuid = await getUUIDFromUsername(username, ctx.log)
-  if (!uuid) return { ok: false, embed: failure('Verification Error', `Could not find a Minecraft account named ${escapeMarkdown(username)}.`) }
+  const lookup = await lookupUuid(username, ctx.log)
+  if (!lookup.ok)
+    return {
+      ok: false,
+      embed: failure(
+        'Verification Error',
+        lookup.reason === 'notFound'
+          ? `Could not find a Minecraft account named ${escapeMarkdown(username)}.`
+          : `Could not reach the Minecraft account servers to look up ${escapeMarkdown(username)}. Try again in a minute.`
+      )
+    }
+  const { uuid } = lookup
 
-  const { data } = await hypixelGet('/v2/player', hypixelKey(ctx.env), { uuid })
+  let response: Awaited<ReturnType<typeof hypixelGet>>
+  try {
+    response = await hypixelGet('/v2/player', hypixelKey(ctx.env), { uuid })
+  } catch (error) {
+    const text = hypixelFailureText(error)
+    if (!text) throw error
+    ctx.log.warn('Hypixel lookup failed during /verify', { error: String(error) })
+    return { ok: false, embed: failure('Verification Error', text) }
+  }
+  const { data } = response
   const tag = discordTagFor(user)
   const check = checkHypixelDiscord(data?.player, tag)
   if (!check.ok) return { ok: false, embed: socialCheckEmbed(check, username, tag) }

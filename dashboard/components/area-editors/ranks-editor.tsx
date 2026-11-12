@@ -197,9 +197,10 @@ export function RanksEditor({ node, value, onChange, issues, readOnly, accounts,
                         </button>
                       )}
                     </div>
+                    {/* Each field spans a label row and a control row of the shared grid, so inputs line up even when one help text wraps. */}
                     <div className="grid gap-4 sm:grid-cols-2">
                       {TEXT_FIELDS.map(key => (
-                        <div key={key} className="grid content-start gap-2">
+                        <div key={key} className="row-span-2 grid grid-rows-subgrid gap-2">
                           <FieldLabel path={`${path}.${key}`} small />
                           {item?.fields[key] ? (
                             <SchemaField
@@ -213,7 +214,7 @@ export function RanksEditor({ node, value, onChange, issues, readOnly, accounts,
                           ) : null}
                         </div>
                       ))}
-                      <div className="grid content-start gap-2">
+                      <div className="row-span-2 grid grid-rows-subgrid gap-2">
                         <FieldLabel path={`${path}.color`} small />
                         <ColourField path={`${path}.color`} value={rank.color} readOnly={readOnly} issues={issues} onChange={next => set('color', next)} />
                       </div>

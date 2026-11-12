@@ -2,7 +2,7 @@ import type { AppContext } from '../context'
 import { getOwnGuild } from '../../services/guild'
 import type { Guild } from '../../services/gexp'
 
-export type SnapshotFailure = 'notLoggedIn' | 'uuid' | 'guild'
+export type SnapshotFailure = 'notLoggedIn' | 'uuid' | 'noGuild' | 'guild'
 
 export type GuildSnapshot = { ok: true; guild: Guild; memberCount: number } | { ok: false; reason: SnapshotFailure }
 
@@ -27,7 +27,9 @@ export function snapshotError(reason: SnapshotFailure): string {
       return "The bridge account hasn't logged in yet."
     case 'uuid':
       return 'Could not look up the bridge account (Mojang API).'
+    case 'noGuild':
+      return 'Hypixel says the bridge account is not in a guild. Check it is logged in on the right Minecraft account and has joined the guild.'
     case 'guild':
-      return "Could not fetch the bridge account's guild from Hypixel."
+      return "Could not fetch the bridge account's guild from Hypixel (API error, see the bot logs)."
   }
 }

@@ -30,5 +30,7 @@ export function renderEventEmbed(event: RelayEvent, timestamp = false): Outbound
       : { name: truncate(heading, LIMITS.embedAuthor) }
   }
   if (event.description) embed.description = truncate(escapeMd(event.description), LIMITS.embedDescription)
+  // Discord joins the footer and the timestamp as "Main • Today at 12:27".
+  if (event.guildLabel) embed.footer = { text: truncate(event.guildLabel, LIMITS.embedFooter) }
   return { via: 'bot', embeds: [embed], allowedMentions: NO_MENTIONS }
 }

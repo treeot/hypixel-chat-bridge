@@ -8,6 +8,8 @@ import { parseRenderSettings, resolveChannelFormat } from '../discord/renderers/
 import { mergeAccounts, type AccountView } from '../settings/accounts'
 import { isOverridable, mergeOverride } from '../settings/overrides'
 import { mergeRanks } from '../settings/ranks'
+import { motdCommands } from '../settings/motd'
+import { guardCommand, parseSafetySettings } from '../safety'
 import type { AllSettings, AreaId } from '../settings/registry'
 import { discordRemover, replaceApplyMessage } from './applyMessage'
 import { bridgedChannels } from './areas/formats'
@@ -68,10 +70,20 @@ async function pushMotd(ctx: AppContext, accountId: number): Promise<string> {
   const account = ctx.accounts.get(accountId)
   if (!account || !account.online) throw new Error(`Account #${accountId} is offline; connect it and push the MOTD again.`)
   const { message } = await ctx.settings.readEffective('motd', accountId)
-  if (!message) throw new Error('No message of the day is set for this account.')
-  const result = account.execute(`/g motd ${message}`, { priority: true })
-  if (!result.ok) throw new Error(`The message of the day was blocked by the safety filter (${result.reason}).`)
-  return 'Message of the day sent to the guild.'
+  const commands = motdCommands(message)
+  if (!commands.length) throw new Error('No message of the day is set for this account.')
+  // Check every line before clearing, so a blocked line never leaves the guild with half a MOTD.
+  const safety = parseSafetySettings(await ctx.settings.read('filters'))
+  for (const [i, command] of commands.entries()) {
+    const check = guardCommand(command, safety)
+    if (!check.ok) throw new Error(`Line ${i} of the message of the day was blocked by the safety filter (${check.reason}).`)
+  }
+  for (const command of commands) {
+    const result = account.execute(command, { priority: true })
+    if (!result.ok) throw new Error(`The message of the day was blocked by the safety filter (${result.reason}).`)
+  }
+  const lines = commands.length - 1
+  return `Message of the day sent to the guild (${lines} line${lines === 1 ? '' : 's'}).`
 }
 
 /** Only account 1 replaces and clears the shared doc's Apply ids, so another guild posting in the same channel never deletes account 1's live button. */

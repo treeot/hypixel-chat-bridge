@@ -1,6 +1,6 @@
 import type { APIEmbedField } from 'discord.js'
 import type { AppContext } from '../context'
-import { getUUIDFromUsername, getUsernameFromUUID } from '../../services/mojang'
+import { getUsernameFromUUID, lookupUuid } from '../../services/mojang'
 import { selectMember, type SelectedProfile } from '../../services/skyblockProfile'
 import { FullEmbed, headUrl, rankStyle } from '../../discord/format'
 import { hypixelKey } from '../requirements'
@@ -20,11 +20,15 @@ export function targetIgn(message: string, senderUsername: string): string {
 
 export async function resolvePlayer(ctx: AppContext, rawIgn: string, chat: Chat = 'guild'): Promise<{ uuid: string; ign: string } | null> {
   if (rawIgn.length > 16 || rawIgn.length < 1) return null
-  const uuid = await getUUIDFromUsername(rawIgn, ctx.log)
-  if (!uuid) {
-    sayIn(ctx, chat, `Cannot find the user.`, { priority: true })
+  const lookup = await lookupUuid(rawIgn, ctx.log)
+  if (!lookup.ok) {
+    // "Not found" only when the name really doesn't exist; a failed lookup says so, so players retry instead of doubting the name.
+    sayIn(ctx, chat, lookup.reason === 'notFound' ? `Cannot find the user.` : `Couldn't look up ${rawIgn} right now. Try again in a minute.`, {
+      priority: true
+    })
     return null
   }
+  const { uuid } = lookup
   const ign = (await getUsernameFromUUID(uuid, ctx.log)) ?? rawIgn
   return { uuid, ign }
 }

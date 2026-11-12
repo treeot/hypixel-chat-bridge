@@ -238,9 +238,25 @@ function parseChat(match: RegExpMatchArray, ctx: ParseContext): ParsedLine {
   return { kind: 'chat', payload: { chat, username, rank, guildRank, message: text, imageUrl, self, relayed } }
 }
 
+/**
+ * One roster line of `/g online` or `/g list`: `[MVP+] Steve ●  Alex ●`. System output, never chat (chat lines
+ * start with `Guild >`, `Officer >` or a sender), so a player cannot fake one.
+ */
+const ROSTER_LINE = new RegExp(String.raw`^\s*(?:${RANK}\w{1,16} ●\s*)+$`)
+const ROSTER_NAME = new RegExp(String.raw`${RANK}(\w{1,16}) ●`, 'g')
+export const ONLINE_COUNT = /^Online Members: (\d+)/
+
+/** The player names on a `/g online` / `/g list` roster line, or [] for any other line. */
+export function rosterNames(line: string): string[] {
+  if (!ROSTER_LINE.test(line)) return []
+  return [...line.matchAll(ROSTER_NAME)].map(m => m[1])
+}
+
 export function extractGuildMembers(message: string): { add: string[]; remove: string[] } {
   const add: string[] = []
   const remove: string[] = []
+
+  add.push(...rosterNames(message))
 
   const chatMatch = message.match(GUILD_OFFICER_CHAT)
   if (chatMatch) add.push(chatMatch[3])

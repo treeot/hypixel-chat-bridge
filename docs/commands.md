@@ -32,8 +32,8 @@ Permissions: **Everyone**; **Staff** = members with `STAFF_ROLE_ID` (owner-only 
 | `/invite <username>` † | Staff | Invites the given user to the guild |
 | `/kick <username> [reason]` † | Staff | Kicks the given user from the guild for the given reason |
 | `/linked` | Everyone | Check who you're linked as |
-| `/members` † | Everyone | Lists the guild members the bot is tracking, with a live online count. |
 | `/mute <username> <time>` † | Staff | Mutes the given user for the given time period |
+| `/online` † | Everyone | Shows which guild members are online right now, by guild rank. |
 | `/ping` | Everyone | Shows the bot's Discord gateway ping and uptime. |
 | `/promote <username>` † | Staff | Promotes the given user by one guild rank |
 | `/reqs` † | Staff | Lists guild members who don't meet the join requirements |

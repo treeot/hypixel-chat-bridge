@@ -10,6 +10,7 @@ import { accountName } from '@/lib/labels'
 import { fieldCopy } from '@/lib/settings-copy'
 import type { DiscordDirectory } from '@/lib/types'
 import { AmountInput } from './amount-input'
+import { ApplyMessageEditor } from './apply-message-editor'
 import { asObj, GenericRow, NEEDS_KEY_TAG } from './rows'
 
 type Rule = { type?: unknown; min?: unknown }
@@ -192,7 +193,32 @@ export function JoinRequestsEditor(props: AreaEditorProps) {
   const noKey = Boolean(missingKey)
   const obj = asObj(value)
   const tabAccount = accountId === undefined ? undefined : accounts.find(a => a.id === accountId)
-  const row = (field: string) => <GenericRow key={field} field={field} {...props} locked={noKey && NEEDS_HYPIXEL.has(field)} />
+  const applyMessage = (
+    <ApplyMessageEditor
+      key="applyMessage"
+      embed={obj.applyEmbed && typeof obj.applyEmbed === 'object' ? (obj.applyEmbed as Parameters<typeof ApplyMessageEditor>[0]['embed']) : undefined}
+      buttonLabel={typeof obj.applyButtonLabel === 'string' ? obj.applyButtonLabel : undefined}
+      fallbackTitle={tabAccount ? `Apply to ${tabAccount.label}` : 'Apply to the guild'}
+      discord={discord}
+      issues={issues}
+      readOnly={readOnly}
+      onChange={next => {
+        const out = { ...obj }
+        for (const key of ['applyEmbed', 'applyButtonLabel'] as const) {
+          if (next[key] === undefined) delete out[key]
+          else out[key] = next[key]
+        }
+        onChange(out)
+      }}
+    />
+  )
+  // The Apply message's title and text share one editor with a live preview.
+  const row = (field: string) =>
+    field === 'applyTitle' ? (
+      applyMessage
+    ) : field === 'applyText' ? null : (
+      <GenericRow key={field} field={field} {...props} locked={noKey && NEEDS_HYPIXEL.has(field)} />
+    )
   return (
     <>
       {TOP.map(row)}

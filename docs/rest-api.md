@@ -111,7 +111,7 @@ Every endpoint marked **write** below needs an `X-Actor` header holding the Disc
 |---|---|---|---|---|
 | GET | `/dashboard/access?discordId=<id>` | | `{ role: "admin" \| "staff" \| "none" }`. Owner is admin; `STAFF_ROLE_ID` holders in the bot's server are staff (checked live, cached 60 s). | |
 | GET | `/dashboard/discord` | | `{ server: { id, name }, channels: [{ id, name, category, type }], roles: [{ id, name, color }] }`: the bot's server. Text and announcement channels in category then channel order; roles highest first, without @everyone and bot-managed roles. Cached 60 s. `503` while Discord is not connected. | |
-| GET | `/accounts` | | `{ accounts: [{ id, label, enabled, online, username, relayGroup, guildChannelId, officerChannelId, source, locked }] }`: `source` is `env` (set up in the bot's environment) or `settings`; `locked` lists the fields the environment sets, which a settings overlay cannot change. | |
+| GET | `/accounts` | | `{ accounts: [{ id, label, enabled, online, username, relayGroup, guildChannelId, officerChannelId, source, locked, envVars }] }`: `source` is `env` (set up in the bot's environment) or `settings`; `locked` lists the fields the environment sets, which a settings overlay cannot change; `envVars` names the env var behind each locked field. | |
 | GET | `/settings` | | `{ settings, overrides }`: every settings area plus per-account overrides. | |
 | GET | `/settings/export` | | The settings bundle, the same file `/setup export` produces. | |
 | POST | `/settings/import` | `{ bundle: string }` (up to 256 KB) | `{ written, notices }`; `400` with `issues` when the bundle is invalid. | yes |
