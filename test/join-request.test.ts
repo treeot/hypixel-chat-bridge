@@ -4,6 +4,7 @@ import { evaluateRules, type ReqRule } from '../src/services/reqs'
 import type { JoinDecision } from '../src/services/membership'
 import type { GuildSnapshot } from '../src/app/features/guildState'
 import {
+  announceToRelayPeers,
   evaluateJoinRequest,
   isRepeatRequest,
   joinRequestButtons,
@@ -17,6 +18,7 @@ import {
 } from '../src/app/features/joinRequest'
 import { staffChannelIds } from '../src/app/features/staffPost'
 import { parseLine } from '../src/minecraft/parser'
+import { silentLogger } from './helpers/log'
 
 const RULE: ReqRule = { type: 'skyblockLevel', min: 200 }
 const evaluated = (level?: number): JoinDecision => ({
@@ -313,5 +315,33 @@ describe('isRepeatRequest', () => {
 describe('join-request parsing', () => {
   it('ignores a guild chat line that quotes a join request', () => {
     expect(parseLine('Guild > [VIP] Evil [Member]: Steve has requested to join the Guild!', { selfUsername: 'Bot' })?.kind).not.toBe('guildJoinRequest')
+  })
+})
+
+describe('announceToRelayPeers', () => {
+  const peer = (id: number, relayGroup?: string) => ({
+    id,
+    config: { id, label: `G${id}`, enabled: true, ...(relayGroup ? { relayGroup } : {}) },
+    sendChatAwait: vi.fn(async () => ({ ok: true as const }))
+  })
+
+  it('tells the other guilds in the relay group, once per joiner', async () => {
+    const source = peer(1, 'main')
+    const inGroup = peer(2, 'main')
+    const outside = peer(3, 'other')
+    const ctx = { minecraft: source, accounts: { enabled: () => [source, inGroup, outside] }, log: silentLogger() }
+    await announceToRelayPeers(ctx as never, 'Newbie')
+    await announceToRelayPeers(ctx as never, 'newbie')
+    expect(inGroup.sendChatAwait).toHaveBeenCalledTimes(1)
+    expect(inGroup.sendChatAwait).toHaveBeenCalledWith('guild', '»[G1]', 'Welcome Newbie!')
+    expect(source.sendChatAwait).not.toHaveBeenCalled()
+    expect(outside.sendChatAwait).not.toHaveBeenCalled()
+  })
+
+  it('does nothing without a relay group', async () => {
+    const source = peer(1)
+    const other = peer(2)
+    await announceToRelayPeers({ minecraft: source, accounts: { enabled: () => [source, other] }, log: silentLogger() } as never, 'Solo')
+    expect(other.sendChatAwait).not.toHaveBeenCalled()
   })
 })

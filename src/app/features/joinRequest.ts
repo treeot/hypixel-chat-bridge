@@ -1,6 +1,7 @@
 import { ButtonStyle, ComponentType, escapeMarkdown, type APIActionRowComponent, type APIButtonComponent, type APIEmbed } from 'discord.js'
 import type { AppContext } from '../context'
 import { DedupCache } from '../../relay/dedup'
+import { DEFAULT_RELAY_MARKER } from '../../core/accounts'
 import { FullEmbed, headUrl } from '../../discord/format'
 import { getUUIDFromUsername } from '../../services/mojang'
 import { decideMembership, fetchPlayerMetrics, type JoinDecision } from '../../services/membership'
@@ -321,6 +322,22 @@ export async function handleJoinRequest(ctx: AppContext, username: string): Prom
   executeIfOnline(account, `/oc ${joinRequestSummary(result)}`)
 }
 
+const recentAnnouncements = new DedupCache(60_000)
+
+/** Tells the other guilds in this account's relay group that someone joined, since a bot's own `/gc` line is never relayed. */
+export async function announceToRelayPeers(ctx: Pick<AppContext, 'minecraft' | 'accounts' | 'log'>, username: string): Promise<void> {
+  const source = ctx.minecraft.config
+  const group = source.relayGroup
+  if (!group || recentAnnouncements.seen(`${group}:${username.toLowerCase()}`)) return
+  const peers = ctx.accounts.enabled().filter(peer => peer.id !== source.id && peer.config.relayGroup === group)
+  await Promise.all(
+    peers.map(async peer => {
+      const result = await peer.sendChatAwait('guild', `${DEFAULT_RELAY_MARKER}[${source.label}]`, `Welcome ${username}!`).catch(() => undefined)
+      if (!result?.ok) ctx.log.warn('Could not announce a new member to a relay peer', { from: source.id, to: peer.id, reason: result?.reason })
+    })
+  )
+}
+
 export async function handleGuildJoin(ctx: AppContext, username: string): Promise<void> {
   const account = ctx.minecraft
   const { settings } = await loadJoinSettings(ctx.info, account.id)
@@ -335,6 +352,7 @@ export async function handleGuildJoin(ctx: AppContext, username: string): Promis
       },
       welcome: name => {
         executeIfOnline(account, `/gc Welcome ${name}!`)
+        void announceToRelayPeers(ctx, name)
       },
       setRank: (name, rank) => executeIfOnline(account, `/g setrank ${name} ${rank}`),
       kick: (name, reason) => executeIfOnline(account, `/g kick ${name} ${reason}`),

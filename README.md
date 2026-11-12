@@ -15,7 +15,7 @@ Two-way chat bridge between Hypixel guild chat and Discord. One process can serv
 - **Four formats per channel:** webhook (default), embed, plain, or image (Minecraft font); falls back to embed if one can't be used.
 - **Several guilds, one bridge:** one account per guild, optional relay groups for cross-guild chat. See [multi-guild](docs/multi-guild.md).
 - **Ban-safety filter** (slurs, profanity, links, ads, personal info, pacing, mute guard). See [safety filter](docs/safety-filter.md).
-- **Guild events:** join, leave, kick, promote, demote, mute, unmute, level-up, quest.
+- **Guild events:** join, leave, kick (sent to the officer channel when one is set), promote, demote, mute, unmute, level-up, quest.
 - **In-game `!` commands**, each toggleable, plus **slash commands** for moderation, verify and GEXP. See [commands](docs/commands.md).
 - **Join requests:** requirements, auto-accept/deny, blacklist/whitelist, Apply button, waitlist when full.
 - **GEXP:** weekly leaderboard (`/gexp`, `/guildtop`) and an optional weekly requirement (`/inactive`).

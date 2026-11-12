@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { AppContext } from '../src/app/context'
-import { dispatchChatCommand } from '../src/app/chatCommands'
+import { commandFooter, dispatchChatCommand, withCommandFooter } from '../src/app/chatCommands'
 import type { RelayChat } from '../src/core/contracts'
 import { silentLogger } from './helpers/log'
 
@@ -34,5 +34,26 @@ describe('dispatchChatCommand prefix', () => {
     const { ctx, execute } = ctxWith({ prefix: '?', coinflip: false })
     expect(await dispatchChatCommand(ctx, line('?coinflip'))).toBe(false)
     expect(execute).not.toHaveBeenCalled()
+  })
+})
+
+describe('in-game command footers', () => {
+  const ctxFor = (accounts: number) =>
+    ({ minecraft: { config: { label: 'Main' } }, accounts: { list: () => Array.from({ length: accounts }) } }) as unknown as AppContext
+
+  it("names the guild when there are several, else shows the sender's guild rank", () => {
+    expect(commandFooter(ctxFor(2), 'Officer')).toBe('Main')
+    expect(commandFooter(ctxFor(1), 'Officer')).toBe('Officer')
+    expect(commandFooter(ctxFor(1), undefined)).toBeUndefined()
+  })
+
+  it("replaces an embed's footer and keeps the rest; without a footer it changes nothing", async () => {
+    const sendEmbed = vi.fn(async () => undefined)
+    const discord = { accountId: 1, client: {}, ready: Promise.resolve(), sendEmbed, forAccount: vi.fn() }
+    const ctx = { discord } as unknown as AppContext
+    const timestamp = new Date().toISOString()
+    await withCommandFooter(ctx, 'Officer').discord.sendEmbed('guild', { description: 'RTCA', footer: { text: 'Steve • MVP+' }, timestamp })
+    expect(sendEmbed).toHaveBeenCalledWith('guild', { description: 'RTCA', footer: { text: 'Officer' }, timestamp }, undefined)
+    expect(withCommandFooter(ctx, undefined)).toBe(ctx)
   })
 })

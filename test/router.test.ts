@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { AccountConfig, Chat, RelayChat, RelayEvent, RenderInput, SendResult } from '../src/core/contracts'
 import { DedupCache } from '../src/relay/dedup'
 import { Router, type RouterAccount, type RouterOptions } from '../src/relay/router'
+import { routeEvent } from '../src/app/features/eventRouting'
+import type { EventRoutes } from '../src/settings/formats'
 import { silentLogger } from './helpers/log'
 
 class FakeAccount implements RouterAccount {
@@ -184,6 +186,8 @@ describe('Router: Minecraft → Discord and relay-group peers', () => {
 })
 
 describe('Router: guild events', () => {
+  // The bridge's real routing (Formats → Guild events), with optional per-event routes.
+  const routed = (routes: EventRoutes = {}): Partial<RouterOptions> => ({ routeEvent: async (account, e, count) => routeEvent(account, e, routes, count) })
   const event = (over: Partial<RelayEvent> = {}): RelayEvent => ({
     type: 'join',
     chat: 'guild',
@@ -196,18 +200,68 @@ describe('Router: guild events', () => {
   it("posts an event to the receiving account's channel only, never to relay-group peers", async () => {
     const a = acct(1, 'GA', 'ca', { relayGroup: 'main' })
     const b = acct(2, 'GB', 'cb', { relayGroup: 'main' })
-    const { router, events, posts } = setup([a, b])
+    const { router, events, posts } = setup([a, b], routed())
     await router.onMinecraftEvent(2, event())
-    expect(events).toEqual([{ to: 'cb', event: event() }])
+    expect(events).toEqual([{ to: 'cb', event: { ...event(), guildLabel: 'GB' } }])
     expect(posts).toEqual([])
     expect([a.sent, b.sent]).toEqual([[], []])
+  })
+
+  it('with several guilds, names the guild on join, leave and kick, but not on other events', async () => {
+    const { router, events } = setup([acct(1, 'Main', 'ca'), acct(2, 'Alt', 'cb')], routed())
+    await router.onMinecraftEvent(1, event({ type: 'leave' }))
+    await router.onMinecraftEvent(1, event({ type: 'login' }))
+    expect(events.map(e => e.event.guildLabel)).toEqual(['Main', undefined])
+  })
+
+  it('sends each event type where Formats → Guild events says: guild, officer or both', async () => {
+    const accounts = [acct(1, 'GA', 'ga', { officerChannelId: 'oa' }), acct(2, 'GB', 'gb')]
+    const { router, events } = setup(accounts, routed({ leave: 'both', promote: 'officer', join: 'guild' }))
+    for (const type of ['leave', 'promote', 'join', 'mute'] as const) await router.onMinecraftEvent(1, event({ type }))
+    await router.onMinecraftEvent(2, event({ type: 'leave' }))
+    expect(events.map(e => [e.to, e.event.type])).toEqual([
+      ['ga', 'leave'],
+      ['oa', 'leave'],
+      ['oa', 'promote'],
+      ['ga', 'join'],
+      ['ga', 'mute'],
+      ['gb', 'leave']
+    ])
+  })
+
+  it("falls back to the event's own channel when routing fails", async () => {
+    const { router, events } = setup([acct(1, 'GA', 'ga')], { routeEvent: async () => Promise.reject(new Error('db down')) })
+    await router.onMinecraftEvent(1, event({ type: 'leave' }))
+    expect(events.map(e => e.to)).toEqual(['ga'])
+  })
+
+  it('with one guild, adds no guild name', async () => {
+    const { router, events } = setup([acct(1, 'Main', 'ca')], routed())
+    await router.onMinecraftEvent(1, event({ type: 'join' }))
+    expect(events[0].event.guildLabel).toBeUndefined()
+  })
+
+  it('sends join, leave and kick to the officer channel, falling back to the guild channel', async () => {
+    const a = acct(1, 'GA', 'ca', { officerChannelId: 'oa' })
+    const b = acct(2, 'GB', 'cb')
+    const { router, events } = setup([a, b], routed())
+    for (const type of ['join', 'leave', 'kick'] as const) await router.onMinecraftEvent(1, event({ type }))
+    await router.onMinecraftEvent(1, event({ type: 'login' }))
+    await router.onMinecraftEvent(2, event({ type: 'leave' }))
+    expect(events.map(e => [e.to, e.event.type])).toEqual([
+      ['oa', 'join'],
+      ['oa', 'leave'],
+      ['oa', 'kick'],
+      ['ca', 'login'],
+      ['cb', 'leave']
+    ])
   })
 
   it('skips officer events without an officer channel, disabled accounts, and logs a failed post', async () => {
     const a = acct(1, 'GA', 'ca')
     const b = acct(2, 'GB', 'cb', { enabled: false })
     const { router, events, failPostsTo, log } = setup([a, b])
-    await router.onMinecraftEvent(1, event({ chat: 'officer' }))
+    await router.onMinecraftEvent(1, event({ chat: 'officer', type: 'other' }))
     await router.onMinecraftEvent(2, event())
     expect(events).toEqual([])
     failPostsTo.add('ca')

@@ -145,7 +145,8 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): Env {
 
   const out = {
     discordToken: required('DISCORD_TOKEN'),
-    hypixelApiKey: optional('HYPIXEL_API_KEY'),
+    // Railway's raw editor keeps quotes typed around a value; they'd be sent as part of the key.
+    hypixelApiKey: optional('HYPIXEL_API_KEY')?.replace(/^(["'])(.*)\1$/, '$2'),
     ownerId: required('OWNER_ID', snowflake),
     guildlb,
     accounts,

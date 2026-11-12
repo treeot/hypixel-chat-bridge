@@ -1,7 +1,9 @@
 import { ButtonStyle, ComponentType, type APIActionRowComponent, type APIButtonComponent, type APIEmbed, type ButtonInteraction } from 'discord.js'
 import type { AppContext } from '../context'
 import { withAccount } from '../accountScope'
-import { FullEmbed } from '../../discord/format'
+import { commandMention } from '../commandMentions'
+import { Colours, FullEmbed } from '../../discord/format'
+import type { ApplyEmbed } from '../../settings/applyEmbed'
 import { fetchGuild, type GuildLookup } from '../../services/gexp'
 import { decideMembership, fetchPlayerMetrics, type JoinDecision } from '../../services/membership'
 import { getUsernameFromUUID } from '../../services/mojang'
@@ -122,7 +124,7 @@ export function applyReply(outcome: ApplyOutcome): string {
     case 'closed':
       return 'Applications are closed right now. Ask staff for help.'
     case 'notLinked':
-      return 'Link your Minecraft account first (use /link or the button below), then press Apply again.'
+      return `Link your Minecraft account first (use ${commandMention('verify')} or the button below), then press Apply again.`
     case 'unavailable':
       return `Applications can't be processed right now: ${outcome.reason} Try again in a few minutes.`
     case 'inThisGuild':
@@ -189,18 +191,39 @@ export function linkButtonRow(): APIActionRowComponent<APIButtonComponent> {
   }
 }
 
-export function applyMessage(accountId: number, guildLabel?: string): { embeds: APIEmbed[]; components: APIActionRowComponent<APIButtonComponent>[] } {
+/** The built-in line about the button, kept under the guild's own text unless `showHowTo` is false. */
+export function applyHowTo(): string {
+  return `Press **Apply** to check the requirements and get an in-game invite. Link your Minecraft account first with ${commandMention('verify')}.`
+}
+
+/** The guild's Apply embed with every part it sets; the title and colour fall back to the built-in message. */
+export function buildApplyEmbed(custom: ApplyEmbed | undefined, fallbackTitle: string): APIEmbed {
+  const e = custom ?? {}
+  const description = [e.description?.trim(), e.showHowTo === false ? undefined : applyHowTo()].filter(Boolean).join('\n\n')
+  const embed: APIEmbed = { color: e.color ?? Colours.info, title: e.title?.trim() || fallbackTitle }
+  if (description) embed.description = description
+  if (e.url) embed.url = e.url
+  if (e.authorName)
+    embed.author = { name: e.authorName, ...(e.authorIconUrl ? { icon_url: e.authorIconUrl } : {}), ...(e.authorUrl ? { url: e.authorUrl } : {}) }
+  if (e.fields?.length) embed.fields = e.fields.map(f => ({ name: f.name, value: f.value, inline: f.inline ?? false }))
+  if (e.imageUrl) embed.image = { url: e.imageUrl }
+  if (e.thumbnailUrl) embed.thumbnail = { url: e.thumbnailUrl }
+  if (e.footerText) embed.footer = { text: e.footerText, ...(e.footerIconUrl ? { icon_url: e.footerIconUrl } : {}) }
+  return embed
+}
+
+export function applyMessage(
+  accountId: number,
+  guildLabel?: string,
+  custom: { embed?: ApplyEmbed; buttonLabel?: string } = {}
+): { embeds: APIEmbed[]; components: APIActionRowComponent<APIButtonComponent>[] } {
+  const label = custom.buttonLabel?.trim() || 'Apply'
   return {
-    embeds: [
-      FullEmbed('info', {
-        title: guildLabel ? `Apply to ${guildLabel}` : 'Apply to the guild',
-        description: 'Press **Apply** to check the requirements and get an in-game invite. Link your Minecraft account first with /link.'
-      })
-    ],
+    embeds: [buildApplyEmbed(custom.embed, guildLabel ? `Apply to ${guildLabel}` : 'Apply to the guild')],
     components: [
       {
         type: ComponentType.ActionRow,
-        components: [{ type: ComponentType.Button, style: ButtonStyle.Success, label: 'Apply', custom_id: applyButtonId(accountId) }]
+        components: [{ type: ComponentType.Button, style: ButtonStyle.Success, label, custom_id: applyButtonId(accountId) }]
       }
     ]
   }
@@ -217,8 +240,13 @@ export async function postApplyMessage(
   if (!channel?.isSendable()) return { ok: false, error: 'The bot cannot send messages in that channel.' }
 
   const label = ctx.accounts.list().length > 1 ? account.config.label : undefined
+  const settings = await ctx.settings.readEffective('joinRequests', accountId)
   try {
-    const message = await channel.send({ ...applyMessage(accountId, label), allowedMentions: { parse: [] } })
+    // Mentions in the guild's own text render but never ping (parse: []).
+    const message = await channel.send({
+      ...applyMessage(accountId, label, { embed: settings.applyEmbed, buttonLabel: settings.applyButtonLabel }),
+      allowedMentions: { parse: [] }
+    })
     return { ok: true, messageId: message.id }
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) }

@@ -128,7 +128,7 @@ describe('slash command gating', () => {
     }
   })
   it('leaves the rest alone', () => {
-    for (const n of ['ping', 'members', 'blacklist', 'invite', 'help', 'waitlist']) expect(slashGate(byName(n), noKeys)).toBeUndefined()
+    for (const n of ['ping', 'online', 'blacklist', 'invite', 'help', 'waitlist']) expect(slashGate(byName(n), noKeys)).toBeUndefined()
   })
   it('still publishes Hypixel-gated commands so users see the reply', () => {
     expect(visibleCommands(noKeys).some(c => c.name === 'gexp')).toBe(true)

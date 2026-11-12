@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('../src/services/networth', () => ({ getPlayerNetworth: vi.fn() }))
 vi.mock('../src/services/mojang', () => ({
   getUUIDFromUsername: vi.fn(async () => '069a79f444e94726a5befca90e38aaf5'),
+  lookupUuid: vi.fn(async () => ({ ok: true, uuid: '069a79f444e94726a5befca90e38aaf5' })),
   getUsernameFromUUID: vi.fn(async () => 'Steve')
 }))
 

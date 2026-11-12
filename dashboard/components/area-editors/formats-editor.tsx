@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { GUILD_EVENT_TYPES, type GuildEventType } from '@bridge/core/contracts'
 import { DEFAULT_TEMPLATES, RENDER_MODES, type RenderMode, type TemplateKey } from '@bridge/discord/renderers/settings'
+import { DEFAULT_EVENT_ROUTES } from '@bridge/settings/formats'
 import { IconPlus } from '@/components/icons'
 import { DiscordPicker, FieldErrors } from '@/components/schema-form'
 import { Switch } from '@/components/switch'
@@ -13,12 +14,13 @@ import { fieldCopy } from '@/lib/settings-copy'
 import { AreaNote, withKey } from './rows'
 import { DiscordPreview, EventPreview, type SampleEvent } from './discord-preview'
 import { TemplateEditor } from './template-editor'
+import { Studio, StudioSection } from './studio'
 
 type Scene = 'own' | 'ally' | 'shared' | 'officer' | 'event'
 type EventKind = 'join' | 'leave' | 'promote'
 const SAMPLE_EVENTS: Record<EventKind, SampleEvent> = {
-  join: { title: 'Member Joined', username: 'Steve', description: 'Steve joined the guild.', tone: 'success' },
-  leave: { title: 'Member Left', username: 'Steve', description: 'Steve left the guild.', tone: 'failure' },
+  join: { title: 'Member Joined', username: 'Steve', description: 'Steve joined the guild.', tone: 'success', guild: 'Guild 1' },
+  leave: { title: 'Member Left', username: 'Steve', description: 'Steve left the guild.', tone: 'failure', guild: 'Guild 1' },
   promote: { title: 'Guild Promotion', username: 'Steve', description: 'Steve was promoted from Member to Officer.', tone: 'info' }
 }
 const SCENE_LABEL: Record<Scene, string> = {
@@ -35,7 +37,10 @@ type Override = {
   events?: Partial<Record<GuildEventType, boolean>>
   embedTimestamp?: boolean
 }
-type FormatsValue = Override & { channels?: Record<string, Override> }
+type Route = 'guild' | 'officer' | 'both'
+type FormatsValue = Override & { eventRoutes?: Partial<Record<GuildEventType, Route>>; channels?: Record<string, Override> }
+
+const POST_TO: Record<Route | 'off', string> = { guild: 'Guild channel', officer: 'Officer channel', both: 'Both channels', off: 'Off' }
 
 /** The templates each style uses; Image draws the line itself. */
 const TEMPLATES_FOR: Record<RenderMode, TemplateKey[]> = {
@@ -43,6 +48,15 @@ const TEMPLATES_FOR: Record<RenderMode, TemplateKey[]> = {
   embed: ['embedAuthor', 'embedDescription', 'embedFooter'],
   plain: ['plain'],
   image: []
+}
+/** The part of the Discord message each template fills, as Discohook names them. */
+const PART: Record<TemplateKey, string> = {
+  webhookName: 'Profile name',
+  webhookContent: 'Message',
+  embedAuthor: 'Author',
+  embedDescription: 'Body',
+  embedFooter: 'Footer',
+  plain: 'Line'
 }
 const SHORT_MODE: Record<RenderMode, string> = { webhook: 'Webhook', embed: 'Embed', plain: 'Plain text', image: 'Image' }
 
@@ -85,7 +99,7 @@ function ModeSelect({
 }) {
   const copy = copyOf(path)
   return (
-    <div className="grid gap-2 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-8">
+    <div className="grid gap-2">
       <div>
         <p className="text-[13px] font-medium">{copy?.label ?? 'Message style'}</p>
         <p className="setting-help">Webhook needs the bot&apos;s Manage Webhooks permission in that channel.</p>
@@ -120,7 +134,8 @@ function Templates({
   onChange,
   readOnly,
   issues,
-  source
+  source,
+  footerExtra
 }: {
   prefix: string
   override: Override
@@ -130,35 +145,47 @@ function Templates({
   readOnly: boolean
   issues: Record<string, string[]>
   source: string
+  /** Shown in the Footer section, e.g. the timestamp switch. */
+  footerExtra?: React.ReactNode
 }) {
   const keys = TEMPLATES_FOR[mode]
   if (keys.length === 0)
     return <p className="text-[13px] text-muted-foreground">The Image style draws each line in the Minecraft font, so it has no templates.</p>
   return (
-    <div className="grid gap-5">
+    <div className="grid">
       {keys.map(key => {
         const path = `${prefix}templates.${key}`
+        const custom = override.templates?.[key]
         return (
-          <TemplateEditor
+          <StudioSection
             key={key}
-            name={path}
-            label={label(path, key)}
-            help={
-              key === 'plain'
-                ? 'Leave blank to use the default. Discord formatting works: **bold**, *italic*.'
-                : key === 'embedFooter' && !fallbacks[key]
-                  ? 'Small text under the embed. Leave blank for no footer.'
-                  : 'Leave blank to use the default.'
-            }
-            emptyText={key === 'embedFooter' ? 'No footer' : undefined}
-            value={override.templates?.[key]}
-            fallback={fallbacks[key]}
-            markdown={key !== 'webhookName' && key !== 'embedAuthor' && key !== 'embedFooter'}
-            sample={{ source }}
-            errors={issues[path]}
-            readOnly={readOnly}
-            onChange={next => onChange(withKey(override, 'templates', prune(withKey(override.templates ?? {}, key, next))))}
-          />
+            title={PART[key]}
+            summary={custom ? custom : 'Default'}
+            defaultOpen={key !== 'embedFooter'}
+            forceOpen={Boolean(issues[path])}
+          >
+            <TemplateEditor
+              key={key}
+              name={path}
+              label={label(path, key)}
+              help={
+                key === 'plain'
+                  ? 'Leave blank to use the default. Discord formatting works: **bold**, *italic*.'
+                  : key === 'embedFooter' && !fallbacks[key]
+                    ? 'Small text under the embed. Leave blank for no footer.'
+                    : 'Leave blank to use the default.'
+              }
+              emptyText={key === 'embedFooter' ? 'No footer' : undefined}
+              value={override.templates?.[key]}
+              fallback={fallbacks[key]}
+              markdown={key !== 'webhookName' && key !== 'embedAuthor' && key !== 'embedFooter'}
+              sample={{ source }}
+              errors={issues[path]}
+              readOnly={readOnly}
+              onChange={next => onChange(withKey(override, 'templates', prune(withKey(override.templates ?? {}, key, next))))}
+            />
+            {key === 'embedFooter' && footerExtra}
+          </StudioSection>
         )
       })}
     </div>
@@ -182,7 +209,15 @@ export function FormatsEditor({ value, onChange, issues, readOnly, discord, acco
   const channels = Object.entries(v.channels ?? {})
   const keys = channels.map(([k]) => k)
 
-  const setShared = (next: Override) => onChange({ ...next, ...(v.channels ? { channels: v.channels } : {}) } as FormatsValue)
+  const setShared = (next: Override) =>
+    onChange({ ...next, ...(v.eventRoutes ? { eventRoutes: v.eventRoutes } : {}), ...(v.channels ? { channels: v.channels } : {}) } as FormatsValue)
+  /** Where an event is posted, or 'off'. Off is the event switch; the channels are its route (default per DEFAULT_EVENT_ROUTES). */
+  const postTo = (k: GuildEventType): Route | 'off' => (sharedEvent(k) ? (v.eventRoutes?.[k] ?? DEFAULT_EVENT_ROUTES[k]) : 'off')
+  const setPostTo = (k: GuildEventType, to: Route | 'off') => {
+    const events = prune(withKey(v.events ?? {}, k, to === 'off' ? false : undefined))
+    const routes = to === 'off' ? v.eventRoutes : prune(withKey(v.eventRoutes ?? {}, k, to === DEFAULT_EVENT_ROUTES[k] ? undefined : to))
+    onChange(withKey(withKey(v, 'events', events), 'eventRoutes', routes) as FormatsValue)
+  }
   const shared: Override = {
     ...(v.mode ? { mode: v.mode } : {}),
     ...(v.templates ? { templates: v.templates } : {}),
@@ -212,113 +247,132 @@ export function FormatsEditor({ value, onChange, issues, readOnly, discord, acco
   return (
     <>
       <AreaNote>These apply to every bridged channel. Under Channel overrides you can give one channel its own style.</AreaNote>
-      <div className="setting-row-stacked">
-        <ModeSelect path="mode" value={v.mode} inherited="webhook" readOnly={readOnly} issues={issues} onChange={m => setShared(withKey(shared, 'mode', m))} />
-        <div className="grid gap-2">
-          <p className="text-[13px] font-medium">Preview in Discord</p>
-          {scene === 'event' ? (
-            <EventPreview event={SAMPLE_EVENTS[eventKind]} timestamp={v.embedTimestamp === true} />
-          ) : scene === 'shared' ? (
-            <div className="grid gap-1.5">
-              <DiscordPreview mode={sharedMode} templates={sharedTemplates} timestamp={v.embedTimestamp === true} source="" botName="Bridge" guild="Guild 1" />
-              <DiscordPreview
-                mode={sharedMode}
-                templates={sharedTemplates}
-                timestamp={v.embedTimestamp === true}
-                source=""
-                botName="Bridge"
-                guild="Guild 2"
-                sender="Alex"
+      <div className="setting-row-stacked !p-0">
+        <Studio
+          form={
+            <div className="grid gap-4">
+              <ModeSelect
+                path="mode"
+                value={v.mode}
+                inherited="webhook"
+                readOnly={readOnly}
+                issues={issues}
+                onChange={m => setShared(withKey(shared, 'mode', m))}
               />
+              {recommendGuildTag && (
+                <div>
+                  <p className="text-[13px] leading-5">
+                    <span className="font-medium">Recommended:</span>{' '}
+                    <span className="text-muted-foreground">
+                      A Discord channel is shared by more than one guild. Add <span className="font-mono">{'{guild}'}</span> to the {IDENTITY_SPOT[sharedMode]}{' '}
+                      so every line shows which guild it came from.
+                    </span>{' '}
+                    <button
+                      type="button"
+                      className="badge cursor-pointer font-mono hover:border-border-strong hover:text-foreground disabled:cursor-default disabled:opacity-60"
+                      onClick={addGuildTag}
+                      disabled={readOnly}
+                    >
+                      {'Add {guild}'}
+                    </button>
+                  </p>
+                </div>
+              )}
+              <div>
+                <p className="setting-label">{label('templates', 'Message templates')}</p>
+                <p className="setting-help">The text of each relayed line for the {SHORT_MODE[sharedMode]} style, by part of the message.</p>
+                <Templates
+                  prefix=""
+                  override={shared}
+                  mode={sharedMode}
+                  fallbacks={DEFAULT_TEMPLATES}
+                  readOnly={readOnly}
+                  issues={issues}
+                  source={source}
+                  onChange={setShared}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-4 border-t border-border pt-4">
+                <div>
+                  <p className="text-[13px] font-medium">{label('embedTimestamp', 'Show the time on embeds')}</p>
+                  <p className="setting-help !mt-0">{copyOf('embedTimestamp')?.help}</p>
+                </div>
+                <Switch
+                  name="embedTimestamp"
+                  label={label('embedTimestamp', 'Show the time on embeds')}
+                  checked={v.embedTimestamp === true}
+                  disabled={readOnly}
+                  onChange={on => setShared(withKey(shared, 'embedTimestamp', on || undefined))}
+                />
+              </div>
             </div>
-          ) : (
-            <DiscordPreview
-              mode={sharedMode}
-              templates={sharedTemplates}
-              timestamp={v.embedTimestamp === true}
-              source={source}
-              botName="Bridge"
-              chat={scene === 'officer' ? 'Officer' : 'Guild'}
-            />
-          )}
-          <div className="flex flex-wrap items-center gap-2 text-[13px]">
-            <label className="flex items-center gap-2">
-              Show
-              <select className="input w-auto" aria-label="Preview scenario" value={scene} onChange={e => setScene(e.target.value as Scene)}>
-                {(Object.keys(SCENE_LABEL) as Scene[]).map(s => (
-                  <option key={s} value={s}>
-                    {SCENE_LABEL[s]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {scene === 'event' && (
-              <select className="input w-auto" aria-label="Event type" value={eventKind} onChange={e => setEventKind(e.target.value as EventKind)}>
-                <option value="join">Member joined</option>
-                <option value="leave">Member left</option>
-                <option value="promote">Promotion</option>
-              </select>
-            )}
-          </div>
-          <p className="setting-help">
-            {scene === 'shared'
-              ? 'Two guilds posting to one shared channel. Add {guild} to the templates so each line shows which guild it came from.'
-              : scene === 'ally'
-                ? `Lines relayed from another guild in the same chat group start with that guild's label, ${`[${allyLabel}]`}.`
-                : scene === 'officer'
-                  ? 'An officer chat line; {chat} becomes “Officer”.'
-                  : scene === 'event'
-                    ? 'Guild events always post as an embed, whatever the message style.'
-                    : 'A sample guild chat line from Steve ([MVP+], guild rank Officer). Use {guild} to tag a line with this account’s own guild label.'}
-          </p>
-        </div>
-      </div>
-      {recommendGuildTag && (
-        <div className="setting-row-stacked">
-          <p className="text-[13px] leading-5">
-            <span className="font-medium">Recommended:</span>{' '}
-            <span className="text-muted-foreground">
-              A Discord channel is shared by more than one guild. Add <span className="font-mono">{'{guild}'}</span> to the {IDENTITY_SPOT[sharedMode]} so every
-              line shows which guild it came from.
-            </span>{' '}
-            <button
-              type="button"
-              className="badge cursor-pointer font-mono hover:border-border-strong hover:text-foreground disabled:cursor-default disabled:opacity-60"
-              onClick={addGuildTag}
-              disabled={readOnly}
-            >
-              {'Add {guild}'}
-            </button>
-          </p>
-        </div>
-      )}
-      <div className="setting-row-stacked">
-        <div>
-          <p className="setting-label">{label('templates', 'Message templates')}</p>
-          <p className="setting-help">The text of each relayed line for the {SHORT_MODE[sharedMode]} style.</p>
-        </div>
-        <Templates
-          prefix=""
-          override={shared}
-          mode={sharedMode}
-          fallbacks={DEFAULT_TEMPLATES}
-          readOnly={readOnly}
-          issues={issues}
-          source={source}
-          onChange={setShared}
-        />
-      </div>
-      <div className="setting-row-inline">
-        <div>
-          <p className="setting-label">{label('embedTimestamp', 'Show the time on embeds')}</p>
-          <p className="setting-help">{copyOf('embedTimestamp')?.help}</p>
-        </div>
-        <Switch
-          name="embedTimestamp"
-          label={label('embedTimestamp', 'Show the time on embeds')}
-          checked={v.embedTimestamp === true}
-          disabled={readOnly}
-          onChange={on => setShared(withKey(shared, 'embedTimestamp', on || undefined))}
+          }
+          preview={
+            <div className="grid gap-2">
+              {scene === 'event' ? (
+                <EventPreview event={SAMPLE_EVENTS[eventKind]} timestamp={v.embedTimestamp === true} />
+              ) : scene === 'shared' ? (
+                <div className="grid gap-1.5">
+                  <DiscordPreview
+                    mode={sharedMode}
+                    templates={sharedTemplates}
+                    timestamp={v.embedTimestamp === true}
+                    source=""
+                    botName="Bridge"
+                    guild="Guild 1"
+                  />
+                  <DiscordPreview
+                    mode={sharedMode}
+                    templates={sharedTemplates}
+                    timestamp={v.embedTimestamp === true}
+                    source=""
+                    botName="Bridge"
+                    guild="Guild 2"
+                    sender="Alex"
+                  />
+                </div>
+              ) : (
+                <DiscordPreview
+                  mode={sharedMode}
+                  templates={sharedTemplates}
+                  timestamp={v.embedTimestamp === true}
+                  source={source}
+                  botName="Bridge"
+                  chat={scene === 'officer' ? 'Officer' : 'Guild'}
+                />
+              )}
+              <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                <label className="flex items-center gap-2">
+                  Show
+                  <select className="input w-auto" aria-label="Preview scenario" value={scene} onChange={e => setScene(e.target.value as Scene)}>
+                    {(Object.keys(SCENE_LABEL) as Scene[]).map(s => (
+                      <option key={s} value={s}>
+                        {SCENE_LABEL[s]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {scene === 'event' && (
+                  <select className="input w-auto" aria-label="Event type" value={eventKind} onChange={e => setEventKind(e.target.value as EventKind)}>
+                    <option value="join">Member joined</option>
+                    <option value="leave">Member left</option>
+                    <option value="promote">Promotion</option>
+                  </select>
+                )}
+              </div>
+              <p className="setting-help">
+                {scene === 'shared'
+                  ? 'Two guilds posting to one shared channel. Add {guild} to the templates so each line shows which guild it came from.'
+                  : scene === 'ally'
+                    ? `Lines relayed from another guild in the same chat group start with that guild's label, ${`[${allyLabel}]`}.`
+                    : scene === 'officer'
+                      ? 'An officer chat line; {chat} becomes “Officer”.'
+                      : scene === 'event'
+                        ? 'Guild events always post as an embed, whatever the message style. Joins, leaves and kicks name their guild in the footer.'
+                        : 'A sample guild chat line from Steve ([MVP+], guild rank Officer). Use {guild} to tag a line with this account’s own guild label.'}
+              </p>
+            </div>
+          }
         />
       </div>
       <div className="setting-row-stacked">
@@ -328,16 +382,23 @@ export function FormatsEditor({ value, onChange, issues, readOnly, discord, acco
         </div>
         <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
           {GUILD_EVENT_TYPES.map(k => (
-            <div key={k} className="flex items-center justify-between gap-4">
+            <label key={k} className="flex items-center justify-between gap-4">
               <span className="text-[13px]">{label(`events.${k}`, k)}</span>
-              <Switch
-                name={`events.${k}`}
-                label={label(`events.${k}`, k)}
-                checked={sharedEvent(k)}
+              <select
+                className="input !w-40"
+                name={`eventRoutes.${k}`}
+                aria-label={`Post ${label(`events.${k}`, k)} to`}
+                value={postTo(k)}
                 disabled={readOnly}
-                onChange={on => setShared(withKey(shared, 'events', withKey(shared.events ?? {}, k, on)))}
-              />
-            </div>
+                onChange={e => setPostTo(k, e.target.value as Route | 'off')}
+              >
+                {(Object.keys(POST_TO) as Array<Route | 'off'>).map(to => (
+                  <option key={to} value={to}>
+                    {POST_TO[to]}
+                  </option>
+                ))}
+              </select>
+            </label>
           ))}
         </div>
       </div>

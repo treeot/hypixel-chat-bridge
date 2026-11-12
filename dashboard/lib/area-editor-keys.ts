@@ -11,7 +11,7 @@ export const EDITOR_KEYS = {
   accounts: { rendered: ['list'], hidden: ['nextId' /* managed by Add account */] },
   commands: { rendered: ['prefix', 'toggles'] },
   ranks: { rendered: ['accounts'] },
-  formats: { rendered: ['mode', 'templates', 'events', 'embedTimestamp', 'channels'] },
+  formats: { rendered: ['mode', 'templates', 'events', 'eventRoutes', 'embedTimestamp', 'channels'] },
   joinRequests: {
     rendered: [
       'enabled',
@@ -24,6 +24,8 @@ export const EDITOR_KEYS = {
       'kickUnqualifiedOnJoin',
       'ranks',
       'applyChannelId',
+      'applyEmbed',
+      'applyButtonLabel',
       'waitlistNotifyChannelId'
     ],
     hidden: ['applyMessageId', 'applyPostedIn' /* written by Post Apply button; shown as the Apply button status */]
@@ -31,7 +33,8 @@ export const EDITOR_KEYS = {
   verify: { rendered: ['roleId', 'unverifiedRoleId', 'guildRoleId', 'nonGuildRoleId', 'nicknameTemplate', 'rankRoles'] },
   filters: { rendered: ['categories', 'blockedWords', 'allowedWords'] },
   guildlb: { rendered: 'every' },
-  branding: { rendered: ['name', 'tagline', 'logoUrl', 'accent', 'loginText'] }
+  branding: { rendered: ['name', 'tagline', 'logoUrl', 'accent', 'loginText'] },
+  motd: { rendered: ['message'] }
 } as const satisfies Partial<Record<AreaId, { rendered: readonly string[] | 'every'; hidden?: readonly string[] }>>
 
 export type EditorArea = keyof typeof EDITOR_KEYS

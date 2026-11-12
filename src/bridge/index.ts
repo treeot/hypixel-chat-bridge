@@ -32,6 +32,8 @@ import { allianceCheck } from '../app/features/allianceChecks'
 import { guildSnapshot } from '../app/features/guildState'
 import { startEventLoop } from '../app/events/eventLoop'
 import { pollEvents } from '../app/events/eventPoll'
+import { checkHypixelKey, keyHint } from '../services/hypixel'
+import { routeEvent } from '../app/features/eventRouting'
 import { handleTransitions } from '../app/events/eventAnnounce'
 import { createEventState } from '../app/events/eventState'
 import { createDiscordEventChannel } from '../app/events/discordEventChannel'
@@ -109,7 +111,8 @@ export class Bridge {
 
     this.router = new Router(() => this.accounts.list(), this.discord, log.child('router'), {
       marker: DEFAULT_RELAY_MARKER,
-      intercept: (accountId, payload) => dispatchChatCommand(this.ctxFor(accountId), payload)
+      intercept: (accountId, payload) => dispatchChatCommand(this.ctxFor(accountId), payload),
+      routeEvent: async (account, event, count) => routeEvent(account, event, (await this.settings.read('formats')).eventRoutes ?? {}, count)
     })
 
     this.restApi = createRestApi(
@@ -244,9 +247,23 @@ export class Bridge {
 
     await this.restApi.start()
 
+    void this.checkHypixelKey()
     this.startEvents()
     this.installShutdown()
     log.info('Bridge started')
+  }
+
+  /** Logs whether Hypixel accepts the configured key (by its last 4 characters), so a stale Railway variable is obvious. */
+  private async checkHypixelKey(): Promise<void> {
+    const key = this.deps.env.hypixelApiKey
+    if (!key) return
+    const result = await checkHypixelKey(key)
+    const log = this.deps.log.child('hypixel')
+    if (result.ok) log.info(`Hypixel API key ${keyHint(key)} works`)
+    else
+      log.error(
+        `Hypixel rejected HYPIXEL_API_KEY ${keyHint(key)}: ${result.reason}. Compare the last 4 characters with your current key and redeploy if they differ.`
+      )
   }
 
   private startEvents(): void {

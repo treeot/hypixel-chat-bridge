@@ -22,7 +22,7 @@ const OTHER = '222222222222222222'
 type Handler = (i: unknown) => Promise<void>
 function ctxWith(env: Record<string, unknown>, features: Record<string, unknown> = { verify: true, allianceChecks: true, slashCommands: {} }) {
   const handlers: Handler[] = []
-  const set = vi.fn(async () => undefined)
+  const set = vi.fn(async () => new Map<string, { id: string; name: string }>())
   const ctx = {
     env: { ownerId: '1', accounts: [], ...env },
     log: fakeLog(),

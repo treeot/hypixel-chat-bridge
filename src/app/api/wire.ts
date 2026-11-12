@@ -42,7 +42,13 @@ function catalog(ctx: AppContext): FeatureCatalog {
   for (const command of chatCommands) {
     if (!command.toggle || seen.has(command.toggle)) continue
     seen.add(command.toggle)
-    chat.push({ toggle: command.toggle, usage: command.usage, description: command.description, requires: [...(command.requires ?? [])] })
+    chat.push({
+      toggle: command.toggle,
+      triggers: [...command.triggers],
+      usage: command.usage,
+      description: command.description,
+      requires: [...(command.requires ?? [])]
+    })
   }
   const missing = (req: Requirement) => (has(ctx.env, req) ? null : REQUIREMENT_ENV[req])
   return {

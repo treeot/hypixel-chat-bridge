@@ -19,13 +19,13 @@ const leaks = (value: unknown) =>
 afterEach(() => vi.restoreAllMocks())
 
 describe('hypixelGet errors', () => {
-  it('rethrows HTTP failures as a plain error with method, path and status only', async () => {
+  it('rethrows HTTP failures as a plain error with method, path, status and Hypixel reason only', async () => {
     vi.spyOn(axios, 'get').mockRejectedValueOnce(axiosFailure(403))
     const error = await hypixelGet('/v2/player', KEY, { uuid: 'abc' }).catch((e: unknown) => e)
     expect(error).toBeInstanceOf(Error)
     expect(axios.isAxiosError(error)).toBe(false)
-    expect((error as Error).message).toBe('Hypixel GET /v2/player failed (HTTP 403)')
-    expect(error).toMatchObject({ status: 403, code: 'ERR_BAD_REQUEST' })
+    expect((error as Error).message).toBe('Hypixel GET /v2/player failed (HTTP 403): Invalid API key')
+    expect(error).toMatchObject({ status: 403, code: 'ERR_BAD_REQUEST', reason: 'Invalid API key' })
     expect(leaks(error)).toBe(false)
   })
   it('network failures carry the code, never the request config', async () => {

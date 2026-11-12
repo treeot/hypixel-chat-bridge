@@ -22,6 +22,7 @@ export function CommandsEditor({ node, value, onChange, issues, readOnly }: Area
   const catalog = useContext(CatalogContext)
   const prefixNode = node.kind === 'object' ? node.fields.prefix : undefined
   const toggles = value?.toggles ?? {}
+  const prefix = value?.prefix || '!'
   const setToggle = (key: string, on: boolean) => onChange({ ...(value ?? {}), toggles: { ...toggles, [key]: on } })
   return (
     <>
@@ -45,11 +46,14 @@ export function CommandsEditor({ node, value, onChange, issues, readOnly }: Area
           <div className="divide-y divide-border">
             {catalog.chatCommands.map(c => {
               const missing = c.requires.includes('hypixel') ? catalog.missingEnv.hypixel : null
+              const [main = c.toggle, ...aliases] = c.triggers ?? []
+              const line = `${prefix}${main}${c.usage ? ` ${c.usage}` : ''}`
               return (
                 <div key={c.toggle} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
                   <div className="min-w-0">
-                    <p className="font-mono text-[13px] font-medium">{c.usage}</p>
+                    <p className="font-mono text-[13px] font-medium">{line}</p>
                     <p className="setting-help">{c.description}</p>
+                    {aliases.length > 0 && <p className="setting-help">Also: {aliases.map(a => `${prefix}${a}`).join(', ')}</p>}
                     {missing && (
                       <p className="setting-help" title={UNAVAILABLE_HINT}>
                         {unavailableLabel(missing)}
@@ -58,7 +62,7 @@ export function CommandsEditor({ node, value, onChange, issues, readOnly }: Area
                   </div>
                   <Switch
                     name={`toggles.${c.toggle}`}
-                    label={c.usage}
+                    label={line}
                     // A command missing its key can't run, so it shows off; the saved choice comes back once the key is added.
                     checked={!missing && commandOn(toggles, c.toggle)}
                     disabled={readOnly || !!missing}

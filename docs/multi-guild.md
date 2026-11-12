@@ -60,7 +60,7 @@ Two accounts may share one Discord channel. Each line still appears there once.
 
 ## Commands with several accounts
 
-With two or more accounts, slash commands that act through a Minecraft account (`/kick`, `/mute`, `/unmute`, `/promote`, `/demote`, `/setrank`, `/invite`, `/execute`, `/online`, `/inactive`, `/reqs`, `/gexp`, `/guildtop`, `/members`) get an optional `account` choice. Without it they use the account that owns the channel you run them in, otherwise account 1. In a channel shared by two guilds, these commands refuse to run until you pick which guild with `account`. In-game `!` commands reply through the account that saw them. See [commands.md](commands.md).
+With two or more accounts, slash commands that act through a Minecraft account (`/kick`, `/mute`, `/unmute`, `/promote`, `/demote`, `/setrank`, `/invite`, `/execute`, `/online`, `/inactive`, `/reqs`, `/gexp`, `/guildtop`) get an optional `account` choice. Without it they use the account that owns the channel you run them in, otherwise account 1. In a channel shared by two guilds, these commands refuse to run until you pick which guild with `account`. In-game `!` commands reply through the account that saw them. See [commands.md](commands.md).
 
 ## Per-guild staff roles
 

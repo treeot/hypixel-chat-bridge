@@ -56,7 +56,7 @@ describe('/setup write → feature read', () => {
 
   it('every joinRequests field /setup can store is read by the feature (or explicitly ignored)', () => {
     const m5Keys = Object.keys((joinRequestsSchema as unknown as { shape: Record<string, unknown> }).shape)
-    const m6Keys = [...Object.keys(DEFAULT_JOIN_SETTINGS), 'applyChannelId', 'applyMessageId', 'waitlistNotifyChannelId']
+    const m6Keys = [...Object.keys(DEFAULT_JOIN_SETTINGS), 'applyChannelId', 'applyMessageId', 'waitlistNotifyChannelId', 'applyEmbed', 'applyButtonLabel']
     for (const key of m5Keys) expect(m6Keys.includes(key) || M6_IGNORES.includes(key), key).toBe(true)
   })
 

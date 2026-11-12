@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { ButtonInteraction } from 'discord.js'
+import type { APIEmbed, ButtonInteraction } from 'discord.js'
 import type { AppContext } from '../src/app/context'
 import { DEFAULT_JOIN_SETTINGS, type JoinSettings } from '../src/app/features/settings'
 import type { InviteKind, InviteOutcome } from '../src/app/features/guildCommand'
@@ -10,6 +10,7 @@ import {
   applicationStaffText,
   applyButtonId,
   applyMessage,
+  buildApplyEmbed,
   applyReply,
   handleApplyButton,
   linkButtonRow,
@@ -19,6 +20,7 @@ import {
   type ApplyDeps
 } from '../src/app/interactions/application'
 import { silentLogger } from './helpers/log'
+import type { JoinRequestsSettings } from '../src/settings/joinRequests'
 
 const RULE: ReqRule = { type: 'skyblockLevel', min: 200 }
 const OWN = { _id: 'own', name: 'Our Guild', members: [] }
@@ -215,12 +217,14 @@ describe('apply button ids and message', () => {
 })
 
 describe('postApplyMessage', () => {
-  function postCtx(send: (payload: unknown) => Promise<{ id: string }>) {
+  function postCtx(send: (payload: unknown) => Promise<{ id: string }>, custom: Partial<JoinRequestsSettings> = {}) {
     const info = { get: vi.fn(async () => null), set: vi.fn(async () => undefined) }
+    const settings = { readEffective: vi.fn(async () => custom) }
     const account = { id: 1, config: { label: 'Main' } }
     const channel = { isSendable: () => true, send: vi.fn(send) }
     const ctx = {
       info,
+      settings,
       accounts: { get: (id: number) => (id === 1 ? account : undefined), list: () => [account] },
       discord: { client: { channels: { fetch: vi.fn(async () => channel) } } }
     } as unknown as AppContext
@@ -233,6 +237,37 @@ describe('postApplyMessage', () => {
     expect(channel.send).toHaveBeenCalledWith(expect.objectContaining({ allowedMentions: { parse: [] } }))
     expect(info.set).not.toHaveBeenCalled()
     expect(info.get).not.toHaveBeenCalled()
+  })
+
+  it("posts the guild's own embed and button label", async () => {
+    const { ctx, channel } = postCtx(async () => ({ id: '100000000000000077' }), {
+      applyEmbed: {
+        title: 'Alt',
+        description: '**Requirements:** SkyBlock level 280\nAsk <@&100000000000000009> for help.',
+        color: 0x3498db,
+        fields: [{ name: 'Member', value: '280 sb level', inline: true }],
+        footerText: 'See you in game',
+        imageUrl: 'https://example.com/banner.png'
+      },
+      applyButtonLabel: 'Join Alt'
+    })
+    await postApplyMessage(ctx, 1, '100000000000000005')
+    const payload = channel.send.mock.calls[0][0] as { embeds: APIEmbed[]; components: Array<{ components: Array<{ label: string }> }> }
+    const [embed] = payload.embeds
+    expect(embed).toMatchObject({
+      title: 'Alt',
+      color: 0x3498db,
+      fields: [{ name: 'Member', value: '280 sb level', inline: true }],
+      footer: { text: 'See you in game' },
+      image: { url: 'https://example.com/banner.png' }
+    })
+    expect(embed.description).toMatch(/^\*\*Requirements:\*\* SkyBlock level 280\nAsk <@&100000000000000009> for help\.\n\nPress \*\*Apply\*\*/)
+    expect(payload.components[0].components[0].label).toBe('Join Alt')
+  })
+
+  it('can leave out the built-in Apply line', () => {
+    expect(buildApplyEmbed({ description: 'Hi', showHowTo: false }, 'Apply to X')).toEqual({ color: 0x5865f2, title: 'Apply to X', description: 'Hi' })
+    expect(buildApplyEmbed(undefined, 'Apply to X').description).toMatch(/^Press \*\*Apply\*\*/)
   })
 
   it('reports a failed send instead of throwing', async () => {

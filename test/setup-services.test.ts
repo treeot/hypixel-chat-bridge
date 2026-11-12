@@ -115,12 +115,19 @@ describe('createSetupServices', () => {
     await expect(createSetupServices(ctx).runEffect({ kind: 'postApply', accountId: 1 })).rejects.toThrow('Pick an Apply button channel first.')
   })
 
-  it('pushMotd runs /g motd with the effective message', async () => {
+  it('pushMotd clears the MOTD, then adds each line of the effective message', async () => {
     const { ctx, docs, account } = fakeCtx()
     docs.set('motd', { message: 'Welcome all' })
-    docs.set('motd:1', { message: 'Guild-only MOTD' })
-    expect(await createSetupServices(ctx).runEffect({ kind: 'pushMotd', accountId: 1 })).toBe('Message of the day sent to the guild.')
-    expect(account.execute).toHaveBeenCalledWith('/g motd Guild-only MOTD', { priority: true })
+    docs.set('motd:1', { message: '&aWelcome to &lMain\n\nReqs: level 280' })
+    expect(await createSetupServices(ctx).runEffect({ kind: 'pushMotd', accountId: 1 })).toBe('Message of the day sent to the guild (2 lines).')
+    expect(account.execute.mock.calls.map(c => c[0])).toEqual(['/g motd clear', '/g motd add &aWelcome to &lMain', '/g motd add Reqs: level 280'])
+  })
+
+  it('pushMotd sends nothing when a line would be blocked', async () => {
+    const { ctx, docs, account } = fakeCtx()
+    docs.set('motd', { message: 'Welcome\njoin discord.gg/abcdef now' })
+    await expect(createSetupServices(ctx).runEffect({ kind: 'pushMotd', accountId: 1 })).rejects.toThrow(/Line 2 .*safety filter/)
+    expect(account.execute).not.toHaveBeenCalled()
   })
 
   it('pushMotd needs the account online', async () => {
@@ -138,7 +145,9 @@ describe('createSetupServices', () => {
     const { ctx, docs, account } = fakeCtx()
     docs.set('motd', { message: 'buy gold at example.com' })
     account.execute.mockReturnValueOnce({ ok: false as const, reason: 'advertising' })
-    await expect(createSetupServices(ctx).runEffect({ kind: 'pushMotd', accountId: 1 })).rejects.toThrow(/safety filter \(advertising\)/)
+    await expect(createSetupServices(ctx).runEffect({ kind: 'pushMotd', accountId: 1 })).rejects.toThrow(
+      /^Line 1 of the message of the day was blocked by the safety filter/
+    )
   })
 
   it('loads override docs for extra account ids too (orphan ids in an import file)', async () => {

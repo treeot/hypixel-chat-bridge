@@ -14,6 +14,7 @@ import { extraCommands } from './commands/extra'
 import alliance from './commands/alliance'
 import { setupCommand } from '../setup/command'
 import { slashEnabled, TURNED_OFF } from './features/toggles'
+import { rememberCommandIds } from './commandMentions'
 import { disabledLine, firstMissing, MissingKeyError } from './requirements'
 
 export const HYPIXEL_SLASH: ReadonlySet<string> = new Set(['gexp', 'inactive', 'reqs', 'verify', 'force-verify'])
@@ -62,12 +63,9 @@ export async function publishSlashCommands(ctx: AppContext): Promise<void> {
     ctx.accounts.list().map(a => a.config)
   )
   const payload = commands as unknown as ApplicationCommandDataResolvable[]
-  if (env.discordServerId) {
-    await application.commands.set(payload, env.discordServerId)
-    await application.commands.set([])
-  } else {
-    await application.commands.set(payload)
-  }
+  const published = env.discordServerId ? await application.commands.set(payload, env.discordServerId) : await application.commands.set(payload)
+  if (env.discordServerId) await application.commands.set([])
+  rememberCommandIds(published.values())
   log.info(`${payload.length} slash command(s) published`)
 }
 

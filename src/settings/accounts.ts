@@ -100,10 +100,13 @@ export function lockedFields(env: AccountEnv): AccountField[] {
   return ACCOUNT_FIELDS.filter(field => field === 'guildChannelId' || Boolean(env[field]))
 }
 
-/** Where an account comes from and which of its fields the environment sets; accounts without env vars come from settings. */
-export function accountOrigin(envAccounts: readonly AccountEnv[], id: number): { source: 'env' | 'settings'; locked: AccountField[] } {
+/** Where an account comes from, which of its fields the environment sets, and the env var behind each; accounts without env vars come from settings. */
+export function accountOrigin(
+  envAccounts: readonly AccountEnv[],
+  id: number
+): { source: 'env' | 'settings'; locked: AccountField[]; envVars: Partial<Record<AccountField, string>> } {
   const env = envAccounts.find(a => a.index === id)
-  return env ? { source: 'env', locked: lockedFields(env) } : { source: 'settings', locked: [] }
+  return env ? { source: 'env', locked: lockedFields(env), envVars: envLocks(env) } : { source: 'settings', locked: [], envVars: {} }
 }
 
 function envLocks(env: AccountEnv): Partial<Record<AccountField, string>> {

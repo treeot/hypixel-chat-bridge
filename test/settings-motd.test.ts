@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { motdSettings } from '../src/settings/motd'
+import { motdCommands, motdLines, motdSettings } from '../src/settings/motd'
 import { SettingsStore } from '../src/settings/store'
 import { AREA_ORDER, SETUP_AREAS } from '../src/setup/areas'
 import { motdArea } from '../src/setup/areas/motd'
@@ -10,7 +10,12 @@ function memInfo() {
   return { docs, get: async (k: string) => docs.get(k) ?? null, set: async (k: string, v: Record<string, unknown>) => void docs.set(k, v) }
 }
 
-const twoAccounts = { envAccounts: [{ index: 1, guildChannelId: G1 }, { index: 2, guildChannelId: G2 }] }
+const twoAccounts = {
+  envAccounts: [
+    { index: 1, guildChannelId: G1 },
+    { index: 2, guildChannelId: G2 }
+  ]
+}
 
 describe('motd settings', () => {
   it('defaults to nothing set', async () => {
@@ -24,11 +29,19 @@ describe('motd settings', () => {
   })
 
   it.each([
-    ['an over-long message', { message: 'x'.repeat(129) }],
+    ['an over-long line', { message: 'x'.repeat(129) }],
+    ['more than 5 lines', { message: 'a\nb\nc\nd\ne\nf' }],
     ['an unknown key', { title: 'nope' }],
     ['a dropped legacy field', { enabled: true }]
   ])('rejects %s', (_label, value) => {
     expect(new SettingsStore(memInfo()).validate('motd', value).ok).toBe(false)
+  })
+
+  it('accepts up to 5 lines and turns them into /g motd commands', () => {
+    expect(new SettingsStore(memInfo()).validate('motd', { message: '&aOne\nTwo\nThree\nFour\nFive' }).ok).toBe(true)
+    expect(motdLines('  One  \n\n Two ')).toEqual(['One', 'Two'])
+    expect(motdCommands('One\nTwo')).toEqual(['/g motd clear', '/g motd add One', '/g motd add Two'])
+    expect(motdCommands(undefined)).toEqual([])
   })
 
   it('reads a corrupted stored doc without the bad field', () => {

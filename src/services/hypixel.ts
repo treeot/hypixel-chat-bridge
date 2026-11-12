@@ -76,10 +76,47 @@ export class HypixelApiError extends Error {
     readonly method: string,
     readonly path: string,
     readonly status?: number,
-    readonly code?: string
+    readonly code?: string,
+    /** Hypixel's own reason from the response body, e.g. "Invalid API key". Never contains the key. */
+    readonly reason?: string
   ) {
-    super(`Hypixel ${method} ${path} failed (${status ? `HTTP ${status}` : (code ?? 'network error')})`)
+    super(`Hypixel ${method} ${path} failed (${status ? `HTTP ${status}` : (code ?? 'network error')})${reason ? `: ${reason}` : ''}`)
     this.name = 'HypixelApiError'
+  }
+}
+
+/** What to tell a player when a Hypixel call failed, or undefined when `error` isn't a Hypixel failure. */
+export function hypixelFailureText(error: unknown): string | undefined {
+  if (!(error instanceof HypixelApiError)) return undefined
+  if (error.status === 403 && (!error.reason || /invalid api key/i.test(error.reason)))
+    return "Hypixel rejected the bot's API key for this lookup (it may be invalid, expired, or not allowed to read player data). Ask whoever hosts the bot to check HYPIXEL_API_KEY."
+  if (error.status === 429) return 'Hypixel is rate-limiting the bot right now. Try again in a minute.'
+  const why = error.reason ? `: ${error.reason}` : ''
+  return `Hypixel refused the lookup (${error.status ? `HTTP ${error.status}` : 'network error'}${why}). Try again in a few minutes.`
+}
+
+/** Hypixel's `cause` from an error body, kept short; anything else is ignored. */
+function causeOf(data: unknown): string | undefined {
+  const cause = data && typeof data === 'object' ? (data as { cause?: unknown }).cause : undefined
+  return typeof cause === 'string' && cause.trim() ? cause.trim().slice(0, 200) : undefined
+}
+
+/** The key's last 4 characters, so a log line can say which key is in use without revealing it. */
+export function keyHint(apiKey: string): string {
+  return apiKey.length > 8 ? `…${apiKey.slice(-4)}` : '(short key)'
+}
+
+// Any real player works; this is Notch. /v2/player is the endpoint /verify needs, so it is the one worth checking.
+const CHECK_UUID = '069a79f444e94726a5befca90e38aaf5'
+
+/** Asks Hypixel whether the key can read player data. Never throws. */
+export async function checkHypixelKey(apiKey: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  try {
+    await hypixelGet('/v2/player', apiKey, { uuid: CHECK_UUID })
+    return { ok: true }
+  } catch (error) {
+    if (error instanceof HypixelApiError) return { ok: false, reason: error.message }
+    return { ok: false, reason: String(error) }
   }
 }
 
@@ -89,6 +126,6 @@ export async function hypixelGet(path: string, apiKey: string, params?: Record<s
     return await axios.get(`https://api.hypixel.net${path}`, { headers: { 'API-Key': apiKey }, params })
   } catch (error) {
     if (!axios.isAxiosError(error)) throw new HypixelApiError('GET', path)
-    throw new HypixelApiError('GET', path, error.response?.status, error.code)
+    throw new HypixelApiError('GET', path, error.response?.status, error.code, causeOf(error.response?.data))
   }
 }

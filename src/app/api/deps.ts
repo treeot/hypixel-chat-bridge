@@ -26,10 +26,12 @@ export interface AccountInfo {
   source: 'env' | 'settings'
   /** Fields the environment sets for this account; a settings overlay cannot change them. */
   locked: AccountField[]
+  /** The env var that sets each locked field, e.g. `{ guildChannelId: 'GUILD_CHANNEL_ID' }`. */
+  envVars: Partial<Record<AccountField, string>>
 }
 
 export interface FeatureCatalog {
-  chatCommands: { toggle: string; usage: string; description: string; requires: string[] }[]
+  chatCommands: { toggle: string; triggers: string[]; usage: string; description: string; requires: string[] }[]
   /** feature: the features switch that also turns this command off (verify or allianceChecks), when there is one. */
   slashCommands: { name: string; description: string; requires: string[]; alwaysOn: boolean; feature?: 'verify' | 'allianceChecks' }[]
   /** Env var name when missing, else null. */
