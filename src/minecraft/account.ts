@@ -7,6 +7,7 @@ import { backoffDelay } from '../core/retry'
 import { checkOutbound, guardCommand, isChatCommand, isNewMute, parseMuteExpiry, DEFAULT_SAFETY, type SafetySettings } from '../safety'
 import { destroyBot } from './bot'
 import { GuildMembers } from './guildMembers'
+import type { ChatComponent } from './clickLinks'
 import { extractGuildMembers, matchGuildJoin, matchGuildLeave, parseLine } from './parser'
 import { CommandQueue, DEFAULT_QUEUE, splitForChat, type ChatPort, type ChatTrigger, type QueueOptions } from './queue'
 
@@ -341,8 +342,8 @@ export class Account extends EventEmitter {
     )
     bot.on(
       'messagestr',
-      boundary(`${scope}:messagestr`, this.log, (message: string) => {
-        if (current()) this.handleMessage(message)
+      boundary(`${scope}:messagestr`, this.log, (message: string, _position: string, jsonMsg?: ChatComponent) => {
+        if (current()) this.handleMessage(message, jsonMsg)
       })
     )
   }
@@ -419,8 +420,9 @@ export class Account extends EventEmitter {
     bot?.on('error', () => undefined)
   }
 
-  private handleMessage(message: string): void {
+  private handleMessage(message: string, jsonMsg?: ChatComponent): void {
     this.emit('raw', message)
+    if (jsonMsg) this.emit('rawComponent', jsonMsg)
 
     const { add, remove } = extractGuildMembers(message)
     if (add.length) this.guildMembers.add(...add)
