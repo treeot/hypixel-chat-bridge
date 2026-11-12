@@ -22,6 +22,9 @@ ACCOUNT_2_LABEL=Beta
 | `ACCOUNT_2_RELAY_GROUP` | Optional. Accounts with the same group share chat. |
 | `ACCOUNT_2_LABEL` | Optional short name (default `G2`). |
 | `ACCOUNT_2_STAFF_ROLE_ID` | Optional. Role that may run staff commands on this guild only. |
+| `ACCOUNT_2_HYPIXEL_API_KEY` | Optional. This guild's own Hypixel API key; falls back to `HYPIXEL_API_KEY`. |
+
+A Hypixel guild API key only sees its own guild (`Target is outside this key's guild`), so give each extra guild its own `ACCOUNT_<n>_HYPIXEL_API_KEY`. Account 1 uses the global `HYPIXEL_API_KEY`, which is also the fallback for any account without its own key.
 
 On first start each new account DMs the owner (`OWNER_ID`) a Microsoft sign-in code. Sign in with **that guild's** Minecraft account. The bot caches the login in the database, so redeploys don't ask again.
 

@@ -27,7 +27,7 @@ Railway auto-detects the `Dockerfile` in the repo root and builds it, and its de
 | Restart policy | `ON_FAILURE` (Railway default) | - | - |
 | Volume | mount path `/app/data` | - | SQLite file `/app/data/bridge.db`, plus the Minecraft login cache when using SQLite |
 | `DISCORD_TOKEN` | *(you fill in)* | required | Discord bot token (Developer Portal → your application → Bot → Reset Token). |
-| `HYPIXEL_API_KEY` | empty | optional | Hypixel API key, sent only as the `API-Key` header. Without it, live stat commands, join requirements, GEXP, verify/link and Apply reply with a one-line notice naming this variable. |
+| `HYPIXEL_API_KEY` | empty | optional | Hypixel API key, sent only as the `API-Key` header. Account 1 uses it, and it is the fallback for any extra account without its own `ACCOUNT_<n>_HYPIXEL_API_KEY`. Without it, live stat commands, join requirements, GEXP, verify/link and Apply reply with a one-line notice naming this variable. |
 | `OWNER_ID` | *(you fill in)* | required | Your Discord user ID. Runs `/setup`, receives Microsoft sign-in codes and outage alerts by DM. |
 | `GUILD_CHANNEL_ID` | *(you fill in)* | required | Discord channel bridged to guild chat for account 1. |
 | `OFFICER_CHANNEL_ID` | empty | optional | Discord channel bridged to officer chat for account 1. Officer relay is off when unset. |

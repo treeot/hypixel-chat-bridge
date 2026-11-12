@@ -28,7 +28,7 @@ Everything else (formats, ranks, commands, join requirements, filters) is config
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `HYPIXEL_API_KEY` 🔒 | no | — | Hypixel API key, sent only as the `API-Key` header. Without it, live stat commands, join requirements, GEXP, verify/link and Apply reply with a one-line notice naming this variable. |
+| `HYPIXEL_API_KEY` 🔒 | no | — | Hypixel API key, sent only as the `API-Key` header. Account 1 uses it, and it is the fallback for any extra account without its own `ACCOUNT_<n>_HYPIXEL_API_KEY`. Without it, live stat commands, join requirements, GEXP, verify/link and Apply reply with a one-line notice naming this variable. |
 | `MINECRAFT_HOST` | no | `mc.hypixel.net` | Server the Minecraft accounts connect to. |
 
 ## Multiple guilds (accounts and relay groups)
@@ -41,6 +41,7 @@ The first login of each account DMs a Microsoft device code to OWNER_ID; the tok
 | `ACCOUNT_LABEL` | no | `G1` | Short label for account 1 (max 16 characters), shown on lines relayed to other guilds. |
 | `ACCOUNT_<n>_GUILD_CHANNEL_ID` | no | — | Guild chat channel of account n (2 ≤ n ≤ 99). Setting it adds the account, and it is required for every extra account. |
 | `ACCOUNT_<n>_OFFICER_CHANNEL_ID` | no | — | Officer chat channel of account n. |
+| `ACCOUNT_<n>_HYPIXEL_API_KEY` 🔒 | no | — | Hypixel API key for account n. Guild-scoped keys only see their own guild, so each guild needs its own key; falls back to the global `HYPIXEL_API_KEY` when unset. |
 | `ACCOUNT_<n>_RELAY_GROUP` | no | — | Relay group of account n. |
 | `ACCOUNT_<n>_LABEL` | no | `G<n>` | Label of account n (max 16 characters). |
 | `ACCOUNT_1_STAFF_ROLE_ID` | no | — | Role allowed to run account-scoped staff commands on account 1 only. Added to STAFF_ROLE_ID (any guild), not a replacement. |

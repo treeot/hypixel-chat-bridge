@@ -84,7 +84,7 @@ export const ENV_VARS: readonly EnvVarDoc[] = [
     readBy: 'bridge',
     secret: true,
     description:
-      'Hypixel API key, sent only as the `API-Key` header. Without it, live stat commands, join requirements, GEXP, verify/link and Apply reply with a one-line notice naming this variable.'
+      'Hypixel API key, sent only as the `API-Key` header. Account 1 uses it, and it is the fallback for any extra account without its own `ACCOUNT_<n>_HYPIXEL_API_KEY`. Without it, live stat commands, join requirements, GEXP, verify/link and Apply reply with a one-line notice naming this variable.'
   },
   {
     name: 'MINECRAFT_HOST',
@@ -118,6 +118,15 @@ export const ENV_VARS: readonly EnvVarDoc[] = [
     description: 'Guild chat channel of account n (2 ≤ n ≤ 99). Setting it adds the account, and it is required for every extra account.'
   },
   { name: 'ACCOUNT_<n>_OFFICER_CHANNEL_ID', group: 'accounts', required: false, readBy: 'bridge', description: 'Officer chat channel of account n.' },
+  {
+    name: 'ACCOUNT_<n>_HYPIXEL_API_KEY',
+    group: 'accounts',
+    required: false,
+    readBy: 'bridge',
+    secret: true,
+    description:
+      'Hypixel API key for account n. Guild-scoped keys only see their own guild, so each guild needs its own key; falls back to the global `HYPIXEL_API_KEY` when unset.'
+  },
   { name: 'ACCOUNT_<n>_RELAY_GROUP', group: 'accounts', required: false, readBy: 'bridge', description: 'Relay group of account n.' },
   { name: 'ACCOUNT_<n>_LABEL', group: 'accounts', required: false, readBy: 'bridge', default: 'G<n>', description: 'Label of account n (max 16 characters).' },
   {

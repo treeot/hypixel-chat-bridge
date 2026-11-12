@@ -253,17 +253,30 @@ export class Bridge {
     log.info('Bridge started')
   }
 
-  /** Logs whether Hypixel accepts the configured key (by its last 4 characters), so a stale Railway variable is obvious. */
+  /** Logs whether Hypixel accepts each account's resolved key (by its last 4 characters), so a stale Railway variable is obvious. */
   private async checkHypixelKey(): Promise<void> {
-    const key = this.deps.env.hypixelApiKey
-    if (!key) return
-    const result = await checkHypixelKey(key)
+    const env = this.deps.env
     const log = this.deps.log.child('hypixel')
-    if (result.ok) log.info(`Hypixel API key ${keyHint(key)} works`)
-    else
-      log.error(
-        `Hypixel rejected HYPIXEL_API_KEY ${keyHint(key)}: ${result.reason}. Compare the last 4 characters with your current key and redeploy if they differ.`
-      )
+    // Each account resolves to its own ACCOUNT_<n>_HYPIXEL_API_KEY or the global HYPIXEL_API_KEY; validate each distinct key once.
+    const seen = new Set<string>()
+    const keys: Array<{ key: string; label: string }> = []
+    if (env.hypixelApiKey) {
+      seen.add(env.hypixelApiKey)
+      keys.push({ key: env.hypixelApiKey, label: 'HYPIXEL_API_KEY' })
+    }
+    for (const account of env.accounts) {
+      if (account.hypixelApiKey && !seen.has(account.hypixelApiKey)) {
+        seen.add(account.hypixelApiKey)
+        keys.push({ key: account.hypixelApiKey, label: `ACCOUNT_${account.index}_HYPIXEL_API_KEY` })
+      }
+    }
+    await Promise.all(
+      keys.map(async ({ key, label }) => {
+        const result = await checkHypixelKey(key)
+        if (result.ok) log.info(`Hypixel API key ${label} ${keyHint(key)} works`)
+        else log.error(`Hypixel rejected ${label} ${keyHint(key)}: ${result.reason}. Compare the last 4 characters with your current key and redeploy if they differ.`)
+      })
+    )
   }
 
   private startEvents(): void {

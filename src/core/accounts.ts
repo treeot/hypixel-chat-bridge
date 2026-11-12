@@ -24,6 +24,7 @@ export function accountConfigsFromEnv(accounts: readonly AccountEnv[]): AccountC
     const group = a.relayGroup?.trim().toLowerCase()
     if (group) config.relayGroup = group
     if (a.staffRoleId) config.staffRoleId = a.staffRoleId
+    if (a.hypixelApiKey) config.hypixelApiKey = a.hypixelApiKey
     return config
   })
 }

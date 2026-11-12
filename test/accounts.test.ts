@@ -34,6 +34,15 @@ describe('accountConfigsFromEnv', () => {
       { id: 2, label: 'Alt', enabled: true, guildChannelId: G2, officerChannelId: O2, relayGroup: 'main' }
     ])
   })
+
+  it('carries an account’s own Hypixel key through and omits it when absent', () => {
+    const [a1, a2] = accountConfigsFromEnv([
+      { index: 1, guildChannelId: G1 },
+      { index: 2, guildChannelId: G2, hypixelApiKey: 'key-two' }
+    ])
+    expect(a1.hypixelApiKey).toBeUndefined()
+    expect(a2.hypixelApiKey).toBe('key-two')
+  })
 })
 
 describe('channel lookup', () => {

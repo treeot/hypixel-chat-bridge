@@ -69,6 +69,28 @@ describe('loadEnv', () => {
     expect(env.accounts[1].staffRoleId).toBe('222222222222222222')
   })
 
+  it('parses per-account Hypixel keys, leaving account 1 to the global key', () => {
+    const env = loadEnv({
+      ...base,
+      ACCOUNT_2_GUILD_CHANNEL_ID: '423456789012345678',
+      ACCOUNT_2_HYPIXEL_API_KEY: 'key-two'
+    })
+    expect(env.hypixelApiKey).toBe('key')
+    expect(env.accounts[0].hypixelApiKey).toBeUndefined()
+    expect(env.accounts[1].hypixelApiKey).toBe('key-two')
+  })
+
+  it('strips a matching quote pair around per-account and global Hypixel keys', () => {
+    const env = loadEnv({
+      ...base,
+      HYPIXEL_API_KEY: '"key-one"',
+      ACCOUNT_2_GUILD_CHANNEL_ID: '423456789012345678',
+      ACCOUNT_2_HYPIXEL_API_KEY: "'key-two'"
+    })
+    expect(env.hypixelApiKey).toBe('key-one')
+    expect(env.accounts[1].hypixelApiKey).toBe('key-two')
+  })
+
   it('enables REST API only when token is set, default port 3000', () => {
     expect(loadEnv({ ...base, REST_API_TOKEN: 'x'.repeat(32) }).restApi).toEqual({ port: 3000, token: 'x'.repeat(32) })
   })

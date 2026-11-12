@@ -1,5 +1,14 @@
 import { EventEmitter } from 'node:events'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const apiRankTags = vi.fn(async () => new Map<string, string>())
+vi.mock('../src/setup/ranksSource', async importActual => {
+  const actual = await importActual<typeof import('../src/setup/ranksSource')>()
+  return { ...actual, apiRankTags: (...args: Parameters<typeof actual.apiRankTags>) => (apiRankTags as (...a: unknown[]) => Promise<Map<string, string>>)(...args) }
+})
+
+beforeEach(() => apiRankTags.mockClear())
+
 import type { AppContext } from '../src/app/context'
 import { hypixelDeps } from '../src/app/requirements'
 import type { Env } from '../src/core/env'
@@ -25,14 +34,16 @@ function fakeCtx(opts: { online?: boolean } = {}) {
   const reconcile = vi.fn(async () => ({ added: [2], removed: [], changed: [], problems: [] }))
   const env = { ownerId: '100000000000000042', accounts: [{ index: 1, guildChannelId: G1 }] } as unknown as Env
   const log = silentLogger()
+  const discord = { client: { channels: { fetch }, user: { id: 'bot' } }, forAccount: () => discord }
   const ctx = {
     env,
     log,
     hypixel: hypixelDeps(env, log),
     settings,
+    minecraft: account,
     accounts: { get: (id: number) => (id === 1 ? account : undefined), list: () => [account] },
     accountControl: { reconcile },
-    discord: { client: { channels: { fetch }, user: { id: 'bot' } } }
+    discord
   } as unknown as AppContext
   return { ctx, docs, account, fetch, reconcile }
 }
@@ -103,6 +114,25 @@ describe('createSetupServices', () => {
     const { ctx } = fakeCtx()
     ;(ctx.env as { hypixelApiKey?: string }).hypixelApiKey = 'k'
     expect((await createSetupServices(ctx).loadState('ranks')).hasHypixelKey).toBe(true)
+  })
+
+  it('refreshRanks uses the account’s own Hypixel key', async () => {
+    const { ctx, account } = fakeCtx()
+    const account2 = Object.assign(new EventEmitter(), {
+      id: 2,
+      online: true,
+      username: 'BridgeBot2',
+      config: { id: 2, hypixelApiKey: 'account-2-key' },
+      execute: vi.fn(() => {
+        queueMicrotask(() => ['        -- Member --', 'Total Members: 1'].forEach(line => account2.emit('raw', line)))
+        return { ok: true as const }
+      })
+    })
+    const multi = { ...ctx, minecraft: account, accounts: { get: (id: number) => (id === 2 ? account2 : account), list: () => [account, account2] } } as unknown as AppContext
+    await createSetupServices(multi).runEffect({ kind: 'refreshRanks', accountId: 2 })
+    expect(apiRankTags).toHaveBeenCalled()
+    const deps = (apiRankTags.mock.calls[0] as unknown[])[0] as { apiKey: string }
+    expect(deps.apiKey).toBe('account-2-key')
   })
 
   it('refreshRanks needs the account online', async () => {

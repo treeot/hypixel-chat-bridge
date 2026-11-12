@@ -1,5 +1,6 @@
 import { describeReconcile } from '../app/accountControl'
 import { isAdmin } from '../app/permissions'
+import { withAccount } from '../app/accountScope'
 import { chatCommands } from '../app/chat'
 import type { AppContext } from '../app/context'
 import { postApplyMessage } from '../app/interactions/application'
@@ -54,8 +55,9 @@ async function refreshRanks(ctx: AppContext, accountId: number): Promise<string>
   if (!account || !account.online) throw new Error(`Account #${accountId} is offline, so /g list cannot run. Try again once it is online.`)
   const listed = await collectGuildRanks(account)
   if (!listed.ok) throw new Error(listed.reason)
+  // Use this account's own Hypixel key (guild-scoped keys only see their own guild).
   // ctx.hypixel.apiKey throws MissingKeyError without a key; apiRankTags reads it lazily and treats that as "no key".
-  const tags = await apiRankTags(ctx.hypixel, account.username)
+  const tags = await apiRankTags(withAccount(ctx, account).hypixel, account.username)
   const stored = await ctx.settings.read('ranks')
   const key = String(accountId)
   const merged = mergeRanks(stored.accounts[key] ?? [], listed.names, tags)

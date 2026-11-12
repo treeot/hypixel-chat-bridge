@@ -102,6 +102,8 @@ export interface AccountConfig {
   relayGroup?: string
   /** Role that may run account-scoped commands on this guild only. Added to the global staff role, not a replacement. */
   staffRoleId?: string
+  /** This guild's own Hypixel API key. Guild-scoped keys only see their own guild, so each guild needs its own; falls back to the global key. */
+  hypixelApiKey?: string
 }
 
 /** Which of an account's channels a guild event is posted to. Turning an event off is the Formats event switch. */

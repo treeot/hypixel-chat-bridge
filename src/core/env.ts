@@ -28,6 +28,8 @@ export interface AccountEnv {
   officerChannelId?: string
   relayGroup?: string
   staffRoleId?: string
+  /** This account's own Hypixel API key (`ACCOUNT_<n>_HYPIXEL_API_KEY`). Falls back to the global `HYPIXEL_API_KEY` when unset. */
+  hypixelApiKey?: string
 }
 
 export interface Env {
@@ -55,6 +57,11 @@ type Raw = Record<string, string | undefined>
 
 function blank(v: string | undefined): string | undefined {
   return v === undefined || v.trim() === '' ? undefined : v.trim()
+}
+
+/** Railway's raw editor keeps quotes typed around a value; strip one matching pair so they aren't sent as part of the key. */
+function unquote(v: string | undefined): string | undefined {
+  return v?.replace(/^(["'])(.*)\1$/, '$2')
 }
 
 /** Railway variables (docs.railway.com/reference/variables); RAILWAY_ENVIRONMENT is the older name, kept for existing services. */
@@ -105,7 +112,8 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): Env {
         officerChannelId: optional(`${p}OFFICER_CHANNEL_ID`, snowflake),
         relayGroup: optional(`${p}RELAY_GROUP`),
         label: optional(`${p}LABEL`),
-        staffRoleId: optional(`${p}STAFF_ROLE_ID`, snowflake)
+        staffRoleId: optional(`${p}STAFF_ROLE_ID`, snowflake),
+        hypixelApiKey: unquote(optional(`${p}HYPIXEL_API_KEY`))
       })
     )
   }
@@ -145,8 +153,8 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): Env {
 
   const out = {
     discordToken: required('DISCORD_TOKEN'),
-    // Railway's raw editor keeps quotes typed around a value; they'd be sent as part of the key.
-    hypixelApiKey: optional('HYPIXEL_API_KEY')?.replace(/^(["'])(.*)\1$/, '$2'),
+    // Account 1's key and the fallback for any account without its own ACCOUNT_<n>_HYPIXEL_API_KEY.
+    hypixelApiKey: unquote(optional('HYPIXEL_API_KEY')),
     ownerId: required('OWNER_ID', snowflake),
     guildlb,
     accounts,

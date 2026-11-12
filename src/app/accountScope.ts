@@ -2,10 +2,23 @@ import type { Account } from '../minecraft'
 import { ApplicationCommandOptionType, type ApplicationCommandOptionData } from 'discord.js'
 import type { AccountConfig, AccountId } from '../core/contracts'
 import type { AppContext, SlashCommand } from './context'
+import { hypixelDeps } from './requirements'
 
+/**
+ * Scopes the context to one account: its Minecraft session, its Discord channels, and its Hypixel API key.
+ * Guild-scoped keys only see their own guild, so each account uses `ACCOUNT_<n>_HYPIXEL_API_KEY` when set,
+ * otherwise the global `HYPIXEL_API_KEY`. Rebuilding `env`/`hypixel` makes both reader patterns
+ * (`ctx.hypixel.apiKey` and `hypixelKey(ctx.env)`) resolve the account's key with no per-call-site change.
+ */
 export function withAccount(ctx: AppContext, account: Account): AppContext {
   if (ctx.minecraft === account) return ctx
-  return { ...ctx, minecraft: account, discord: ctx.discord.forAccount(account.id) }
+  const next: AppContext = { ...ctx, minecraft: account, discord: ctx.discord.forAccount(account.id) }
+  const key = account.config?.hypixelApiKey
+  if (key && ctx.env && key !== ctx.env.hypixelApiKey) {
+    next.env = { ...ctx.env, hypixelApiKey: key }
+    next.hypixel = hypixelDeps(next.env, ctx.hypixel.log)
+  }
+  return next
 }
 
 export const ACCOUNT_OPTION = 'account'

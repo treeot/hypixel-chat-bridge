@@ -5,8 +5,10 @@ import { ApplicationCommandOptionType } from 'discord.js'
 import type { AccountConfig } from '../src/core/contracts'
 import type { SlashCommand } from '../src/app/context'
 import { ACCOUNT_SCOPED_COMMANDS, resolveAccount, withAccount, withAccountOption } from '../src/app/accountScope'
+import { hypixelDeps, MissingKeyError } from '../src/app/requirements'
 import type { AppContext } from '../src/app/context'
 import type { DiscordScope } from '../src/discord'
+import type { Logger } from '../src/core/logger'
 import type { Account } from '../src/minecraft'
 
 function scope(accountId: number): DiscordScope {
@@ -37,6 +39,45 @@ describe('withAccount', () => {
     const a1 = account(1)
     const base = { minecraft: a1, discord: scope(1) } as unknown as AppContext
     expect(withAccount(base, a1)).toBe(base)
+  })
+})
+
+const keyAccount = (id: number, hypixelApiKey?: string) => ({ id, config: { id, hypixelApiKey } }) as unknown as Account
+
+function keyCtx(globalKey?: string): AppContext {
+  const env = { hypixelApiKey: globalKey, accounts: [] } as unknown as AppContext['env']
+  return {
+    minecraft: keyAccount(1, globalKey),
+    discord: scope(1),
+    env,
+    hypixel: hypixelDeps(env, { child: () => undefined } as unknown as Logger)
+  } as unknown as AppContext
+}
+
+describe('withAccount Hypixel key resolution', () => {
+  it('uses the account’s own key for both ctx.hypixel and ctx.env', () => {
+    const scoped = withAccount(keyCtx('global-key'), keyAccount(2, 'account-2-key'))
+    expect(scoped.hypixel.apiKey).toBe('account-2-key')
+    expect(scoped.env.hypixelApiKey).toBe('account-2-key')
+  })
+
+  it('falls back to the global key when the account has none', () => {
+    const base = keyCtx('global-key')
+    const scoped = withAccount(base, keyAccount(2))
+    expect(scoped.hypixel.apiKey).toBe('global-key')
+    expect(scoped.env).toBe(base.env)
+  })
+
+  it('throws MissingKeyError when neither the account nor the global key is set', () => {
+    const scoped = withAccount(keyCtx(undefined), keyAccount(2))
+    expect(() => scoped.hypixel.apiKey).toThrow(MissingKeyError)
+  })
+
+  it('does not mutate the base context', () => {
+    const base = keyCtx('global-key')
+    withAccount(base, keyAccount(2, 'account-2-key'))
+    expect(base.env.hypixelApiKey).toBe('global-key')
+    expect(base.hypixel.apiKey).toBe('global-key')
   })
 })
 
