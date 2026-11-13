@@ -71,6 +71,8 @@ export interface FeatureCatalog {
   slashCommands: { name: string; description: string; requires: string[]; alwaysOn: boolean; feature?: 'verify' | 'allianceChecks' }[]
   /** guildlbApi is missing from bots older than the API keys section. */
   missingEnv: Record<'hypixel' | 'guildlbGuild', string | null> & { guildlbApi?: string | null }
+  /** The global Hypixel key's scope; absent on older bots, null when unset/unclassified. */
+  hypixelKeyType?: 'personal' | 'guild' | null
 }
 export interface DiscordChannel {
   id: string

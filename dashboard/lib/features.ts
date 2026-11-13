@@ -66,6 +66,8 @@ export interface ApiKey {
   unlocks: string
   /** The bot's variable name, for whoever hosts it. */
   envVar: string
+  /** For the Hypixel key only: its scope, so staff know guild-scoped keys can't verify non-members. Never the key value. */
+  keyType?: 'personal' | 'guild' | null
 }
 
 /** The keys the bot can use and what each turns on; a key an older bot doesn't report is left out. */
@@ -76,7 +78,8 @@ export function apiKeys(catalog: FeatureCatalog): ApiKey[] {
       name: 'Hypixel API key',
       set: hypixel === null,
       unlocks: 'Join requirements and auto-accept, the Apply button, GEXP, Verify and live stat commands.',
-      envVar: 'HYPIXEL_API_KEY'
+      envVar: 'HYPIXEL_API_KEY',
+      keyType: catalog.hypixelKeyType ?? null
     },
     {
       name: 'GuildLB alliance key',

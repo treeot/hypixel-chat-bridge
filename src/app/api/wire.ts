@@ -63,7 +63,8 @@ function catalog(ctx: AppContext): FeatureCatalog {
         ...(feature ? { feature } : {})
       }
     }),
-    missingEnv: { hypixel: missing('hypixel'), guildlbGuild: missing('guildlbGuild'), guildlbApi: ctx.env.guildlb?.apiKey ? null : 'GUILDLB_API_KEY' }
+    missingEnv: { hypixel: missing('hypixel'), guildlbGuild: missing('guildlbGuild'), guildlbApi: ctx.env.guildlb?.apiKey ? null : 'GUILDLB_API_KEY' },
+    hypixelKeyType: (ctx.env.hypixelApiKey ? ctx.keyTypes?.typeOf(ctx.env.hypixelApiKey) : undefined) ?? null
   }
 }
 

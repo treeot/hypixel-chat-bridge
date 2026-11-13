@@ -39,6 +39,8 @@ export interface FeatureCatalog {
   /** Env var name when missing, else null. */
   /** Env var name for each key the bot lacks, null when set. guildlbApi is the GuildLB website key (networth for !nw). */
   missingEnv: Record<'hypixel' | 'guildlbGuild' | 'guildlbApi', string | null>
+  /** The global HYPIXEL_API_KEY's scope, or null when it's unset or not yet classified. The key value itself is never sent. */
+  hypixelKeyType: 'personal' | 'guild' | null
 }
 
 export interface SettingsDeps {

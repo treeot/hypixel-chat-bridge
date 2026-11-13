@@ -19,6 +19,19 @@ describe('createDashboardDeps catalog', () => {
     expect(catalog.missingEnv.guildlbApi).toBe('GUILDLB_API_KEY')
   })
 
+  it('reports the global Hypixel key type, null when unset', () => {
+    const base = { log: { child: () => ({}) }, repos: {}, accounts: { list: () => [] } }
+    const withKey = {
+      ...base,
+      env: { ownerId: '1', accounts: [], hypixelApiKey: 'GLOBAL' },
+      keyTypes: { typeOf: (k: string) => (k === 'GLOBAL' ? 'guild' : undefined) }
+    } as never
+    expect(createDashboardDeps(withKey, new ChatFeed()).settings.catalog().hypixelKeyType).toBe('guild')
+
+    const noKey = { ...base, env: { ownerId: '1', accounts: [] } } as never
+    expect(createDashboardDeps(noKey, new ChatFeed()).settings.catalog().hypixelKeyType).toBeNull()
+  })
+
   it('tags commands owned by a feature switch', () => {
     const ctx = { env: { ownerId: '1', accounts: [] }, log: { child: () => ({}) }, repos: {}, accounts: { list: () => [] } } as never
     const catalog = createDashboardDeps(ctx, new ChatFeed()).settings.catalog()

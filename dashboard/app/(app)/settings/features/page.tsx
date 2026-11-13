@@ -50,8 +50,16 @@ export default async function FeaturesPage() {
             {keys.map(k => (
               <div key={k.envVar} className="flex items-start justify-between gap-4 px-4 py-3.5 sm:px-5">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium">{k.name}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium">{k.name}</p>
+                    {k.set && k.keyType && <span className="badge">{k.keyType === 'guild' ? 'Guild-scoped' : 'Personal'}</span>}
+                  </div>
                   <p className="mt-0.5 max-w-[65ch] text-[13px] leading-5 text-muted-foreground">Turns on: {k.unlocks}</p>
+                  {k.set && k.keyType === 'guild' && (
+                    <p className="mt-0.5 max-w-[65ch] text-[13px] leading-5 text-muted-foreground">
+                      This key only sees its own guild, so it can&apos;t verify players outside it; non-members become guests.
+                    </p>
+                  )}
                   {!k.set && <HostDetail detail={`Set ${k.envVar} on the bot (in Railway: the bot's service → Variables), then it restarts.`} />}
                 </div>
                 <span className={`badge shrink-0 ${k.set ? 'badge-success' : 'badge-warning'}`}>{k.set ? 'Added' : 'Not added'}</span>
