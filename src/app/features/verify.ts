@@ -4,9 +4,8 @@ import type { AppContext } from '../context'
 import type { LinkEntry } from '../../storage/repos'
 import { FullEmbed } from '../../discord/format'
 import { footer } from '../../discord/brand'
-import { hypixelFailureText, hypixelGet } from '../../services/hypixel'
+import { HypixelApiError, hypixelFailureText, hypixelGet, OUTSIDE_GUILD } from '../../services/hypixel'
 import { getUUIDFromUsername, lookupUuid } from '../../services/mojang'
-import { fetchGuild } from '../../services/gexp'
 import { loadVerifySettings, type RankRole } from './settings'
 import { hypixelKey } from '../requirements'
 
@@ -64,7 +63,7 @@ export function renderNickname(template: string, vars: { ign: string; discord: s
 }
 
 export interface LinkStore {
-  getByUuid(uuid: string): Promise<{ id: string } | null>
+  getByUuid(uuid: string): Promise<LinkEntry | null>
   delete(discordId: string): Promise<boolean>
   set(entry: LinkEntry): Promise<void>
 }
@@ -75,7 +74,7 @@ export async function storeLink(links: LinkStore, entry: LinkEntry): Promise<voi
   await links.set(entry)
 }
 
-export type VerifyResult = { ok: true; uuid: string; ign: string } | { ok: false; embed: APIEmbed }
+export type VerifyResult = { ok: true; uuid: string; ign: string; verified: boolean } | { ok: false; embed: APIEmbed }
 
 export async function verifyAndLink(
   ctx: AppContext,
@@ -101,18 +100,49 @@ export async function verifyAndLink(
   try {
     response = await hypixelGet('/v2/player', hypixelKey(ctx.env), { uuid })
   } catch (error) {
-    const text = hypixelFailureText(error)
-    if (!text) throw error
-    ctx.log.warn('Hypixel lookup failed during /verify', { error: String(error) })
-    return { ok: false, embed: failure('Verification Error', text) }
+    if (error instanceof HypixelApiError && error.reason && OUTSIDE_GUILD.test(error.reason)) {
+      // A guild-scoped key cannot read non-members. Use a personal key if we have one; otherwise link as an unverified guest.
+      const personal = ctx.keyTypes?.firstPersonalKey()
+      if (!personal) {
+        // The IGN is Mojang-confirmed, but there is no player data to check the Discord link against: never claim verification.
+        const existing = await ctx.repos.link.getByUuid(uuid)
+        if (existing && existing.id !== user.id) {
+          // A guest has no proof of owning this IGN: never displace another member's link.
+          return {
+            ok: false,
+            embed: failure(
+              'Verification Error',
+              `${escapeMarkdown(username)} is already linked to another Discord account, and the bot cannot verify guests for accounts that are already linked.`
+            )
+          }
+        }
+        // Never downgrade the same user's verified link to a guest one.
+        if (existing?.verified) return { ok: true, uuid, ign: existing.ign, verified: true }
+        await storeLink(ctx.repos.link, { id: user.id, uuid, ign: username, verified: false })
+        return { ok: true, uuid, ign: username, verified: false }
+      }
+      try {
+        response = await hypixelGet('/v2/player', personal, { uuid })
+      } catch (retryError) {
+        const text = hypixelFailureText(retryError)
+        if (!text) throw retryError
+        ctx.log.warn('Hypixel lookup failed during /verify', { error: String(retryError) })
+        return { ok: false, embed: failure('Verification Error', text) }
+      }
+    } else {
+      const text = hypixelFailureText(error)
+      if (!text) throw error
+      ctx.log.warn('Hypixel lookup failed during /verify', { error: String(error) })
+      return { ok: false, embed: failure('Verification Error', text) }
+    }
   }
   const { data } = response
   const tag = discordTagFor(user)
   const check = checkHypixelDiscord(data?.player, tag)
   if (!check.ok) return { ok: false, embed: socialCheckEmbed(check, username, tag) }
 
-  await storeLink(ctx.repos.link, { id: user.id, uuid, ign: check.displayName })
-  return { ok: true, uuid, ign: check.displayName }
+  await storeLink(ctx.repos.link, { id: user.id, uuid, ign: check.displayName, verified: true })
+  return { ok: true, uuid, ign: check.displayName, verified: true }
 }
 
 /**
@@ -145,13 +175,18 @@ export async function syncRankRole(ctx: AppContext, member: GuildMember, uuid: s
   let rank = options.knownRank
   if (!options.departure && rank === undefined) {
     if (!ctx.env.hypixelApiKey) return
-    const result = await fetchGuild({ apiKey: ctx.env.hypixelApiKey, log: ctx.log }, { player: uuid })
-    if (!result.ok) {
-      ctx.log.warn('Rank-role sync skipped: guild lookup failed', { id: member.id, uuid })
-      return
+    try {
+      const { data } = await hypixelGet('/v2/guild', ctx.env.hypixelApiKey, { player: uuid })
+      const bare = bareUuid(uuid)
+      rank = (data?.guild?.members ?? []).find((m: { uuid: string }) => bareUuid(m.uuid) === bare)?.rank
+    } catch (error) {
+      // Outside this key's guild is a definitive "not a member"; any other failure is unknown, so skip.
+      if (!(error instanceof HypixelApiError && error.reason && OUTSIDE_GUILD.test(error.reason))) {
+        ctx.log.warn('Rank-role sync skipped: guild lookup failed', { id: member.id, uuid, error: String(error) })
+        return
+      }
+      rank = undefined
     }
-    const bare = bareUuid(uuid)
-    rank = result.guild?.members.find(m => bareUuid(m.uuid) === bare)?.rank
   }
 
   if (settings.guildRoleId) {
@@ -189,7 +224,7 @@ export async function syncRankRole(ctx: AppContext, member: GuildMember, uuid: s
   }
 }
 
-export async function applyVerifiedMember(ctx: AppContext, member: GuildMember, ign: string, uuid?: string): Promise<void> {
+export async function applyVerifiedMember(ctx: AppContext, member: GuildMember, ign: string, uuid?: string, verified = true): Promise<void> {
   const { settings } = await loadVerifySettings(ctx.info)
   if (settings.nicknameTemplate) {
     const nickname = renderNickname(settings.nicknameTemplate, { ign, discord: member.user.globalName ?? member.user.username })
@@ -199,7 +234,7 @@ export async function applyVerifiedMember(ctx: AppContext, member: GuildMember, 
       ctx.log.warn("Cannot change this member's nickname (server owner, or the bot's role is not above theirs)", { id: member.id })
     }
   }
-  if (settings.roleId) {
+  if (verified && settings.roleId) {
     await member.roles.add(settings.roleId).catch(error => ctx.log.warn('Could not add the verified role', { id: member.id, error: String(error) }))
   }
   if (settings.unverifiedRoleId && member.roles.cache.has(settings.unverifiedRoleId)) {
@@ -300,5 +335,5 @@ export async function runVerify(interaction: ChatInputCommandInteraction, ctx: A
     ]
   })
   const member = await interaction.guild?.members.fetch(interaction.user.id).catch(() => null)
-  if (member) await applyVerifiedMember(ctx, member, result.ign, result.uuid)
+  if (member) await applyVerifiedMember(ctx, member, result.ign, result.uuid, result.verified)
 }

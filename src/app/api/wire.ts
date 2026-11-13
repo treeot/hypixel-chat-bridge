@@ -186,18 +186,22 @@ export function createDashboardDeps(ctx: AppContext, feed: ChatFeed): DashboardD
     audit: ctx.repos.audit,
     access: discordId => roleFor({ ownerId: ctx.env.ownerId, staffRoleId: ctx.env.staffRoleId, adminRoleId: ctx.env.adminRoleId, fetchRoles }, discordId),
     accounts: () =>
-      ctx.accounts.list().map(a => ({
-        id: a.id,
-        label: a.config.label,
-        enabled: a.config.enabled,
-        online: a.online,
-        username: a.username ?? null,
-        relayGroup: a.config.relayGroup ?? null,
-        guildChannelId: a.config.guildChannelId,
-        officerChannelId: a.config.officerChannelId ?? null,
-        staffRoleId: a.config.staffRoleId ?? null,
-        ...accountOrigin(ctx.env.accounts, a.id)
-      })),
+      ctx.accounts.list().map(a => {
+        const key = a.config.hypixelApiKey ?? ctx.env.hypixelApiKey
+        return {
+          id: a.id,
+          label: a.config.label,
+          enabled: a.config.enabled,
+          online: a.online,
+          username: a.username ?? null,
+          relayGroup: a.config.relayGroup ?? null,
+          guildChannelId: a.config.guildChannelId,
+          officerChannelId: a.config.officerChannelId ?? null,
+          staffRoleId: a.config.staffRoleId ?? null,
+          keyType: (key ? ctx.keyTypes?.typeOf(key) : undefined) ?? null,
+          ...accountOrigin(ctx.env.accounts, a.id)
+        }
+      }),
     settings: {
       store: ctx.settings,
       accountIds: () => ctx.accounts.list().map(a => a.id),

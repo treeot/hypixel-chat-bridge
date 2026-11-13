@@ -30,7 +30,7 @@ describe('key check', () => {
   it('reports whether Hypixel accepts the key for player data, without throwing', async () => {
     const get = vi.spyOn(axios, 'get')
     get.mockResolvedValueOnce({ data: { success: true } })
-    expect(await checkHypixelKey('key-0000-0000-1234')).toEqual({ ok: true })
+    expect(await checkHypixelKey('key-0000-0000-1234')).toEqual({ ok: true, type: 'personal' })
     expect(get.mock.calls[0][0]).toBe('https://api.hypixel.net/v2/player')
     get.mockRejectedValueOnce(new AxiosError('x', 'ERR_BAD_REQUEST', undefined, undefined, { status: 403, data: { cause: 'Invalid API key' } } as never))
     expect(await checkHypixelKey('key-0000-0000-1234')).toEqual({ ok: false, reason: 'Hypixel GET /v2/player failed (HTTP 403): Invalid API key' })

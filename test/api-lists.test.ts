@@ -130,8 +130,8 @@ describe('lists routes', () => {
 
   it('lists and deletes links', async () => {
     const { deps, audit } = await setup()
-    await deps.links.set({ id: '99', uuid: 'abc123', ign: 'Steve' })
-    expect((await (await api.call('GET', '/lists/links')).json()).entries).toEqual([{ id: '99', uuid: 'abc123', ign: 'Steve' }])
+    await deps.links.set({ id: '99', uuid: 'abc123', ign: 'Steve', verified: true })
+    expect((await (await api.call('GET', '/lists/links')).json()).entries).toEqual([{ id: '99', uuid: 'abc123', ign: 'Steve', verified: true }])
     expect(await (await api.call('DELETE', '/lists/links/99')).json()).toEqual({ ok: true, removed: true })
     expect(await actions(audit)).toEqual(['list.remove links:99'])
   })

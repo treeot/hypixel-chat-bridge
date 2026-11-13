@@ -11,6 +11,8 @@ export interface AccountInfo {
   officerChannelId?: string | null
   /** Role that runs this guild's scoped staff commands (absent from older bots). */
   staffRoleId?: string | null
+  /** Kind of Hypixel API key the account uses (absent from older bots, null when unknown). */
+  keyType?: 'personal' | 'guild' | null
   source: 'env' | 'settings'
   locked: ('guildChannelId' | 'officerChannelId' | 'relayGroup' | 'label' | 'staffRoleId')[]
   /** The env var behind each locked field, e.g. GUILD_CHANNEL_ID (absent from older bots). */

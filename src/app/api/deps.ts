@@ -28,6 +28,8 @@ export interface AccountInfo {
   locked: AccountField[]
   /** The env var that sets each locked field, e.g. `{ guildChannelId: 'GUILD_CHANNEL_ID' }`. */
   envVars: Partial<Record<AccountField, string>>
+  /** Kind of Hypixel API key the account uses, or null when it has none or it is unclassified. */
+  keyType: 'personal' | 'guild' | null
 }
 
 export interface FeatureCatalog {

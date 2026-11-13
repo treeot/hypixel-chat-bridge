@@ -32,7 +32,8 @@ import { allianceCheck } from '../app/features/allianceChecks'
 import { guildSnapshot } from '../app/features/guildState'
 import { startEventLoop } from '../app/events/eventLoop'
 import { pollEvents } from '../app/events/eventPoll'
-import { checkHypixelKey, keyHint } from '../services/hypixel'
+import { keyHint } from '../services/hypixel'
+import { HypixelKeyRegistry } from '../services/keyRegistry'
 import { routeEvent } from '../app/features/eventRouting'
 import { handleTransitions } from '../app/events/eventAnnounce'
 import { createEventState } from '../app/events/eventState'
@@ -247,7 +248,7 @@ export class Bridge {
 
     await this.restApi.start()
 
-    void this.checkHypixelKey()
+    await this.checkHypixelKey()
     this.startEvents()
     this.installShutdown()
     log.info('Bridge started')
@@ -270,13 +271,14 @@ export class Bridge {
         keys.push({ key: account.hypixelApiKey, label: `ACCOUNT_${account.index}_HYPIXEL_API_KEY` })
       }
     }
-    await Promise.all(
-      keys.map(async ({ key, label }) => {
-        const result = await checkHypixelKey(key)
-        if (result.ok) log.info(`Hypixel API key ${label} ${keyHint(key)} works`)
-        else log.error(`Hypixel rejected ${label} ${keyHint(key)}: ${result.reason}. Compare the last 4 characters with your current key and redeploy if they differ.`)
-      })
-    )
+    const registry = new HypixelKeyRegistry()
+    await registry.classify(keys.map(k => k.key))
+    this.ctx.keyTypes = registry
+    for (const { key, label } of keys) {
+      const type = registry.typeOf(key)
+      if (type) log.info(`Hypixel API key ${label} ${keyHint(key)} works (${type === 'guild' ? 'guild-scoped' : 'personal'})`)
+      else log.error(`Hypixel rejected ${label} ${keyHint(key)}: ${registry.reasonOf(key) ?? 'unknown reason'}. If this is an invalid-key error, compare the last 4 characters with your current key and redeploy if they differ.`)
+    }
   }
 
   private startEvents(): void {

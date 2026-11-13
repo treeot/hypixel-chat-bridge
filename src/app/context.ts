@@ -10,6 +10,7 @@ import type { AccountControl } from './accountControl'
 import type { GuildLbClient } from '../services/guildlb'
 import type { PreAcceptCheck } from './features/screening'
 import type { Requirement } from './requirements'
+import type { HypixelKeyRegistry } from '../services/keyRegistry'
 
 export interface AppContext {
   env: Env
@@ -27,6 +28,8 @@ export interface AppContext {
   /** Convenience bundle for the Hypixel/services calls. Reading `apiKey` throws `MissingKeyError` when HYPIXEL_API_KEY is unset (see `hypixelDeps`). */
   hypixel: { readonly apiKey: string; log: Logger }
   guildlb?: GuildLbClient
+  /** Personal/guild classification of each configured Hypixel key. Absent in tests and before the bridge starts. */
+  keyTypes?: HypixelKeyRegistry
   preAcceptCheck?: PreAcceptCheck
 }
 

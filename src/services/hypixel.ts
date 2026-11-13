@@ -109,12 +109,18 @@ export function keyHint(apiKey: string): string {
 // Any real player works; this is Notch. /v2/player is the endpoint /verify needs, so it is the one worth checking.
 const CHECK_UUID = '069a79f444e94726a5befca90e38aaf5'
 
-/** Asks Hypixel whether the key can read player data. Never throws. */
-export async function checkHypixelKey(apiKey: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+/** Hypixel's cause when a guild-scoped key asks about a player outside its guild. */
+export const OUTSIDE_GUILD = /outside this key'?s guild/i
+
+/** Asks Hypixel whether the key works, and whether it is personal or guild-scoped. Never throws. */
+export async function checkHypixelKey(
+  apiKey: string
+): Promise<{ ok: true; type: 'personal' | 'guild' } | { ok: false; reason: string }> {
   try {
     await hypixelGet('/v2/player', apiKey, { uuid: CHECK_UUID })
-    return { ok: true }
+    return { ok: true, type: 'personal' }
   } catch (error) {
+    if (error instanceof HypixelApiError && error.reason && OUTSIDE_GUILD.test(error.reason)) return { ok: true, type: 'guild' }
     if (error instanceof HypixelApiError) return { ok: false, reason: error.message }
     return { ok: false, reason: String(error) }
   }
@@ -123,8 +129,11 @@ export async function checkHypixelKey(apiKey: string): Promise<{ ok: true } | { 
 /** Every Hypixel API call goes through here so the key is sent as a header, never in the URL. */
 export async function hypixelGet(path: string, apiKey: string, params?: Record<string, string | number | undefined>) {
   try {
-    return await axios.get(`https://api.hypixel.net${path}`, { headers: { 'API-Key': apiKey }, params })
+    const response = await axios.get(`https://api.hypixel.net${path}`, { headers: { 'API-Key': apiKey }, params })
+    if (response.data?.success === false) throw new HypixelApiError('GET', path, response.status, undefined, causeOf(response.data))
+    return response
   } catch (error) {
+    if (error instanceof HypixelApiError) throw error
     if (!axios.isAxiosError(error)) throw new HypixelApiError('GET', path)
     throw new HypixelApiError('GET', path, error.response?.status, error.code, causeOf(error.response?.data))
   }

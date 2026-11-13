@@ -87,6 +87,7 @@ export default async function OverviewPage() {
                       <p className="truncate text-[13px] text-muted-foreground">Not connected to Hypixel. It retries automatically.</p>
                     )}
                   </div>
+                  {a.keyType && <span className="badge">{a.keyType === 'guild' ? 'Guild key' : 'Personal key'}</span>}
                   {showGroups && <span className="badge">Chat group: {a.relayGroup ?? 'default'}</span>}
                   <span className={`badge ${a.online ? 'badge-success' : 'badge-danger'}`}>{a.online ? 'Online' : 'Offline'}</span>
                   <IconChevronRight size={16} className="shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" aria-hidden="true" />

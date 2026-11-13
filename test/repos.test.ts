@@ -97,23 +97,23 @@ describe('WaitlistRepo', () => {
 describe('LinkRepo', () => {
   it('links by Discord id and looks up by uuid', async () => {
     const links = new LinkRepo(store)
-    await links.set({ id: 'd1', uuid: 'u1', ign: 'Steve' })
-    expect(await links.getByDiscord('d1')).toEqual({ id: 'd1', uuid: 'u1', ign: 'Steve' })
-    expect(await links.getByUuid('u1')).toEqual({ id: 'd1', uuid: 'u1', ign: 'Steve' })
+    await links.set({ id: 'd1', uuid: 'u1', ign: 'Steve', verified: true })
+    expect(await links.getByDiscord('d1')).toEqual({ id: 'd1', uuid: 'u1', ign: 'Steve', verified: true })
+    expect(await links.getByUuid('u1')).toEqual({ id: 'd1', uuid: 'u1', ign: 'Steve', verified: true })
     expect(await links.getByUuid('nobody')).toBeNull()
   })
 
   it('relinking a Discord user replaces the old player', async () => {
     const links = new LinkRepo(store)
-    await links.set({ id: 'd1', uuid: 'u1', ign: 'Steve' })
-    await links.set({ id: 'd1', uuid: 'u2', ign: 'Alex' })
+    await links.set({ id: 'd1', uuid: 'u1', ign: 'Steve', verified: true })
+    await links.set({ id: 'd1', uuid: 'u2', ign: 'Alex', verified: true })
     expect(await links.getByUuid('u1')).toBeNull()
-    expect(await links.getByDiscord('d1')).toEqual({ id: 'd1', uuid: 'u2', ign: 'Alex' })
+    expect(await links.getByDiscord('d1')).toEqual({ id: 'd1', uuid: 'u2', ign: 'Alex', verified: true })
   })
 
   it('delete reports whether a link existed', async () => {
     const links = new LinkRepo(store)
-    await links.set({ id: 'd1', uuid: 'u1', ign: 'Steve' })
+    await links.set({ id: 'd1', uuid: 'u1', ign: 'Steve', verified: true })
     expect(await links.delete('d1')).toBe(true)
     expect(await links.delete('d1')).toBe(false)
   })

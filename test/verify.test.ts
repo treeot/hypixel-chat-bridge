@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/services/mojang', () => ({ getUUIDFromUsername: vi.fn() }))
-vi.mock('../src/services/gexp', () => ({ fetchGuild: vi.fn() }))
+vi.mock('../src/services/hypixel', async importOriginal => {
+  const actual = await importOriginal<typeof import('../src/services/hypixel')>()
+  return { ...actual, hypixelGet: vi.fn() }
+})
 
 import {
   applyVerifiedMember,
@@ -17,7 +20,7 @@ import {
   storeLink
 } from '../src/app/features/verify'
 import { getUUIDFromUsername } from '../src/services/mojang'
-import { fetchGuild } from '../src/services/gexp'
+import { hypixelGet } from '../src/services/hypixel'
 import type { LinkEntry } from '../src/storage/repos'
 
 describe('rankRoleUpdate', () => {
@@ -161,8 +164,8 @@ describe('verify role lifecycle', () => {
   })
 
   it('adds the guild member role when the linked member is in the guild', async () => {
-    vi.mocked(fetchGuild).mockClear()
-    vi.mocked(fetchGuild).mockResolvedValueOnce({ ok: true, guild: { _id: 'g', name: 'G', members: [{ uuid: 'uuid-1', rank: 'Member', expHistory: {} }] } })
+    vi.mocked(hypixelGet).mockClear()
+    vi.mocked(hypixelGet).mockResolvedValueOnce({ data: { guild: { members: [{ uuid: 'uuid-1', rank: 'Member' }] } } } as never)
     const member = roleMember([])
     const ctx = { env: { hypixelApiKey: 'key' }, info: { get: vi.fn(async () => ({ guildRoleId: '333333333333333333' })) }, log } as never
     await syncRankRole(ctx, member.member, 'uuid-1', {})
@@ -170,8 +173,8 @@ describe('verify role lifecycle', () => {
   })
 
   it('removes the guild member role when the linked member is not in the guild or departs', async () => {
-    vi.mocked(fetchGuild).mockClear()
-    vi.mocked(fetchGuild).mockResolvedValueOnce({ ok: true, guild: { _id: 'g', name: 'G', members: [] } })
+    vi.mocked(hypixelGet).mockClear()
+    vi.mocked(hypixelGet).mockResolvedValueOnce({ data: { guild: { members: [] } } } as never)
     const member = roleMember(['333333333333333333'])
     const ctx = { env: { hypixelApiKey: 'key' }, info: { get: vi.fn(async () => ({ guildRoleId: '333333333333333333' })) }, log } as never
     await syncRankRole(ctx, member.member, 'uuid-1', {})
@@ -180,7 +183,7 @@ describe('verify role lifecycle', () => {
     const departed = roleMember(['333333333333333333'])
     await syncRankRole(ctx, departed.member, 'uuid-1', { departure: true })
     expect(departed.removed).toEqual(['333333333333333333'])
-    expect(fetchGuild).toHaveBeenCalledTimes(1)
+    expect(hypixelGet).toHaveBeenCalledTimes(1)
   })
 
   it('removes the guild member role when unlinking', async () => {
@@ -191,8 +194,8 @@ describe('verify role lifecycle', () => {
   })
 
   it('adds the non-guild member role when the linked member is not in the guild or departs', async () => {
-    vi.mocked(fetchGuild).mockClear()
-    vi.mocked(fetchGuild).mockResolvedValueOnce({ ok: true, guild: { _id: 'g', name: 'G', members: [] } })
+    vi.mocked(hypixelGet).mockClear()
+    vi.mocked(hypixelGet).mockResolvedValueOnce({ data: { guild: { members: [] } } } as never)
     const member = roleMember([])
     const ctx = { env: { hypixelApiKey: 'key' }, info: { get: vi.fn(async () => ({ nonGuildRoleId: '444444444444444444' })) }, log } as never
     await syncRankRole(ctx, member.member, 'uuid-1', {})
@@ -201,12 +204,12 @@ describe('verify role lifecycle', () => {
     const departed = roleMember([])
     await syncRankRole(ctx, departed.member, 'uuid-1', { departure: true })
     expect(departed.added).toEqual(['444444444444444444'])
-    expect(fetchGuild).toHaveBeenCalledTimes(1)
+    expect(hypixelGet).toHaveBeenCalledTimes(1)
   })
 
   it('removes the non-guild member role when the linked member is in the guild', async () => {
-    vi.mocked(fetchGuild).mockClear()
-    vi.mocked(fetchGuild).mockResolvedValueOnce({ ok: true, guild: { _id: 'g', name: 'G', members: [{ uuid: 'uuid-1', rank: 'Member', expHistory: {} }] } })
+    vi.mocked(hypixelGet).mockClear()
+    vi.mocked(hypixelGet).mockResolvedValueOnce({ data: { guild: { members: [{ uuid: 'uuid-1', rank: 'Member' }] } } } as never)
     const member = roleMember(['444444444444444444'])
     const ctx = { env: { hypixelApiKey: 'key' }, info: { get: vi.fn(async () => ({ nonGuildRoleId: '444444444444444444' })) }, log } as never
     await syncRankRole(ctx, member.member, 'uuid-1', {})

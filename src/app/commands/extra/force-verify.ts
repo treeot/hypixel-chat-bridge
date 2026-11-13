@@ -1,7 +1,7 @@
 import { ApplicationCommandOptionType } from 'discord.js'
 import type { SlashCommand } from '../../context'
 import { FullEmbed, SimpleEmbed } from '../../../discord/format'
-import { hypixelFailureText, hypixelGet } from '../../../services/hypixel'
+import { HypixelApiError, hypixelFailureText, hypixelGet, OUTSIDE_GUILD } from '../../../services/hypixel'
 import { lookupUuid } from '../../../services/mojang'
 import { applyVerifiedMember, MINECRAFT_NAME, storeLink } from '../../features/verify'
 import { hypixelKey } from '../../requirements'
@@ -32,18 +32,21 @@ const forceVerify: SlashCommand = {
     }
     const { uuid } = lookup
 
-    let response: Awaited<ReturnType<typeof hypixelGet>>
+    let ign = username
     try {
-      response = await hypixelGet('/v2/player', hypixelKey(ctx.env), { uuid })
+      const { data } = await hypixelGet('/v2/player', hypixelKey(ctx.env), { uuid })
+      if (typeof data?.player?.displayname === 'string') ign = data.player.displayname
     } catch (error) {
-      const text = hypixelFailureText(error)
-      if (!text) throw error
-      ctx.log.warn('Hypixel lookup failed during /force-verify', { error: String(error) })
-      return interaction.editReply({ embeds: [SimpleEmbed('failure', text)] })
+      // A guild key can't read a non-member; the admin vouches, so link them verified with the Mojang name.
+      const outsideGuild = error instanceof HypixelApiError && error.reason && OUTSIDE_GUILD.test(error.reason)
+      if (!outsideGuild) {
+        const text = hypixelFailureText(error)
+        if (!text) throw error
+        ctx.log.warn('Hypixel lookup failed during /force-verify', { error: String(error) })
+        return interaction.editReply({ embeds: [SimpleEmbed('failure', text)] })
+      }
     }
-    const { data } = response
-    const ign: string = typeof data?.player?.displayname === 'string' ? data.player.displayname : username
-    await storeLink(ctx.repos.link, { id: target.id, uuid, ign })
+    await storeLink(ctx.repos.link, { id: target.id, uuid, ign, verified: true })
 
     await interaction.editReply({
       embeds: [FullEmbed('success', { description: `Force-linked <@${target.id}> to **${ign}**.`, timestamp: new Date().toISOString() })]
